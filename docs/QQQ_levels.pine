@@ -1,6 +1,6 @@
 //@version=5
-// QQQ dealer gamma levels, 2026-11-16 16:33 ET (free Cboe data). Net gamma -5.87bn per 1%.
-indicator("QQQ gamma levels 2026-11-16 16:33", overlay=true, max_labels_count=50)
+// QQQ dealer gamma levels, 2026-11-16 16:44 ET (free Cboe data). Net gamma -5.87bn per 1%.
+indicator("QQQ gamma levels 2026-11-16 16:44", overlay=true, max_labels_count=50)
 hline(692.79, "Zero gamma (flip) 692.79", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
 if barstate.islast
     label.new(bar_index + 2, 692.79, "Zero gamma (flip) 692.79", style=label.style_none, textcolor=color.orange, size=size.small)
