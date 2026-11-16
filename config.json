@@ -1,6 +1,7 @@
 {
-  "tickers": ["SPY", "QQQ"],
+  "tickers": ["SPY", "QQQ", "SPX"],
   "cboe_symbols": {"SPX": "_SPX", "NDX": "_NDX"},
+  "yahoo_symbols": {"SPX": "^GSPC", "NDX": "^NDX"},
   "entry_level_bn": null,
-  "auto_level_min_rows": 150
+  "auto_level_min_rows": 450
 }

@@ -1,10 +1,12 @@
 # Dealer gamma tracker (free)
 
-Tracks dealer gamma exposure for **SPY and QQQ** every 15 minutes using Cboe's free, delayed
+Tracks dealer gamma exposure for **SPY, QQQ and SPX** every 5 minutes using Cboe's free, delayed
 option chains (about 15 minutes behind). Each snapshot adds a row to a history file and redraws:
 
 - **Timeline chart**: price, dealer gamma line, and a put/call "fear" bar per day (like the Marmus chart)
 - **Gamma by strike chart**: where gamma sits right now, with gamma flip, call wall and put wall
+- **Gamma map**: today's price line drawn over horizontal gamma bars per strike (from open interest and from today's volume), with dots showing where each bar was 5, 15 and 30 minutes earlier
+- **TradingView levels**: a ready-made indicator (`docs/<TICKER>_levels.pine`, also on the web page) that draws the flip, walls and biggest gamma strikes on your TradingView chart
 - **A web page** (`docs/index.html`) showing both charts plus today's key levels
 
 The history starts empty. After about 2 weeks the bottom panel switches on. After about 150 snapshots
@@ -32,7 +34,7 @@ You need a free GitHub account. No coding needed after setup.
 5. **Test it now.** Go to **Actions → Dealer gamma snapshot → Run workflow**. After about a minute
    you should see a green tick, and the charts appear on your page a minute or two later.
 
-From then on it runs every 15 minutes during US market hours (14:30–21:00 Lisbon time in winter).
+From then on it runs every 5 minutes during US market hours (14:30–21:00 Lisbon time in winter).
 
 Notes:
 - GitHub's timer is sometimes a few minutes late, or skips a run when busy. That's normal.
@@ -55,11 +57,24 @@ loop is running.
 
 ---
 
+## Seeing the levels on TradingView
+
+TradingView doesn't let outside data flow into charts automatically, so each run writes a small indicator with
+that moment's levels:
+
+1. On the web page, open **"TradingView levels for SPY"** and copy the code (or open `docs/SPY_levels.pine` in the repo).
+2. In TradingView, open a **SPY** chart (use an **SPX** chart for the SPX levels), click **Pine Editor** at the
+   bottom, delete what's there, paste, then **Save** and **Add to chart**.
+3. You'll see dashed lines: orange = gamma flip, thick red = put wall, thick green = call wall, thin red/green =
+   the other big negative/positive strikes.
+
+The levels are a snapshot, so paste a fresh copy each morning (or when the page shows the walls have moved).
+
 ## Settings (`config.json`)
 
 | Setting | What it does |
 |---|---|
-| `tickers` | Which tickers to track. `["SPY","QQQ"]` by default. You can add `"SPX"` or `"NDX"` (index options; larger numbers). |
+| `tickers` | Which tickers to track. `["SPY","QQQ","SPX"]` by default. You can add `"NDX"`. |
 | `entry_level_bn` | Your "deep negative gamma" line in $bn. Leave it `null` to set it automatically to the lowest 15% of your own history, or type a number such as `-6` once you've watched it for a while. |
 | `auto_level_min_rows` | How many snapshots to wait before drawing the automatic line. |
 

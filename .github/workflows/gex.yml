@@ -2,9 +2,9 @@ name: Dealer gamma snapshot
 
 on:
   schedule:
-    # every 15 minutes, Mon-Fri, 13:00-21:59 UTC (covers US market hours in summer and winter;
+    # every 5 minutes, Mon-Fri, 13:00-21:59 UTC (covers US market hours in summer and winter;
     # the script itself skips runs when the US market is closed)
-    - cron: "*/15 13-21 * * 1-5"
+    - cron: "*/5 13-21 * * 1-5"
   workflow_dispatch: {}   # lets you press "Run workflow" by hand
 
 permissions:

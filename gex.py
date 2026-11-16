@@ -132,13 +132,16 @@ def analyse(spot, now, df):
     df["gex"] = sign * df["gamma"] * df["oi"] * 100 * spot * spot * 0.01
     net = df["gex"].sum()
 
+    # same formula using today's traded volume instead of open interest (shows fresh activity)
+    df["vgex"] = sign * df["gamma"] * df["volume"] * 100 * spot * spot * 0.01
+
     near = df[(df["strike"] > spot * 0.85) & (df["strike"] < spot * 1.15)]
-    by_strike = near.pivot_table(index="strike", columns="type", values="gex",
-                                 aggfunc="sum", fill_value=0.0)
-    for c in ("C", "P"):
-        if c not in by_strike:
-            by_strike[c] = 0.0
+    by_strike = pd.DataFrame(index=np.sort(near["strike"].unique()))
+    for col, src, typ in [("C", "gex", "C"), ("P", "gex", "P"), ("vC", "vgex", "C"), ("vP", "vgex", "P")]:
+        by_strike[col] = near[near["type"] == typ].groupby("strike")[src].sum()
+    by_strike = by_strike.fillna(0.0)
     by_strike["net"] = by_strike["C"] + by_strike["P"]
+    by_strike["vnet"] = by_strike["vC"] + by_strike["vP"]
     call_wall = float(by_strike["C"].idxmax()) if by_strike["C"].max() > 0 else np.nan
     put_wall = float(by_strike["P"].idxmin()) if by_strike["P"].min() < 0 else np.nan
 
@@ -355,6 +358,16 @@ def draw_profile(t, row, by_strike):
     return out
 
 
+def pine_box(t):
+    p = DOCS / f"{t}_levels.pine"
+    if not p.exists():
+        return ""
+    code = p.read_text().replace("&", "&amp;").replace("<", "&lt;")
+    return (f'<details><summary>TradingView levels for {t} (copy into Pine Editor)</summary>'
+            f'<textarea readonly rows="12" style="width:100%;font-family:monospace" onclick="this.select()">'
+            f'{code}</textarea></details>')
+
+
 def write_page(latest):
     def fmt(v):
         return "–" if v is None or (isinstance(v, float) and math.isnan(v)) else f"{v:g}"
@@ -374,8 +387,10 @@ def write_page(latest):
 <p class="{'neg' if r['net_gex_bn'] < 0 else 'pos'}">{regime}</p>
 <table><tr><th>Price</th><th>Net gamma ($bn / 1%)</th><th>Gamma flip</th><th>Call wall</th><th>Put wall</th><th>Put/call volume</th></tr>
 <tr><td>{fmt(r['spot'])}</td><td>{r['net_gex_bn']:+.2f}</td><td>{fmt(r['flip'])}</td><td>{fmt(r['call_wall'])}</td><td>{fmt(r['put_wall'])}</td><td>{fmt(r['pc_volume_ratio'])}</td></tr></table>
+<img src="{t}_map.png?v={int(time.time())}" onerror="this.style.display='none'">
 <img src="{t}_timeline.png?v={int(time.time())}" onerror="this.style.display='none'">
 <img src="{t}_profile.png?v={int(time.time())}" onerror="this.style.display='none'">
+{pine_box(t)}
 </section>""")
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" content="300"><title>Dealer gamma tracker</title>
@@ -387,6 +402,158 @@ td,th{{border:1px solid #ddd;padding:6px 10px;text-align:center}}.neg{{color:#c0
 <footer>Free Cboe delayed data, ~15 min delay. Estimates assume dealers are long calls and short puts.
 Not investment advice. Page refreshes every 5 minutes.</footer></body></html>"""
     (DOCS / "index.html").write_text(html)
+
+
+# ----------------------------------------------------------------------------- levels map
+def save_strikes(t, row, by_strike):
+    """Keep every snapshot's per-strike gamma for today (used for the 'minutes prior' dots)."""
+    spot = row["spot"]
+    bs = by_strike[(by_strike.index > spot * 0.94) & (by_strike.index < spot * 1.06)]
+    out = pd.DataFrame({"time_et": row["time_et"], "strike": bs.index,
+                        "oi_net": bs["net"].round(0).to_numpy(), "vol_net": bs["vnet"].round(0).to_numpy()})
+    d = DATA / "strikes"
+    d.mkdir(parents=True, exist_ok=True)
+    p = d / f"{t}_{row['time_et'][:10]}.csv"
+    if p.exists():
+        old = pd.read_csv(p)
+        if (old["time_et"] == row["time_et"]).any():
+            return old
+        out = pd.concat([old, out], ignore_index=True)
+    out.to_csv(p, index=False)
+    return out
+
+
+def intraday_prices(t, day, hist):
+    """1-minute prices for today from Yahoo (free); falls back to our own snapshots."""
+    try:
+        import yfinance as yf
+        sym = CONFIG.get("yahoo_symbols", {}).get(t, t)
+        px = yf.Ticker(sym).history(period="1d", interval="1m")["Close"]
+        px.index = px.index.tz_convert(ET)
+        px = px[px.index.date == day]
+        if len(px) > 5:
+            return px
+    except Exception as e:
+        print(f"  {t}: Yahoo intraday prices unavailable ({e}); using snapshots")
+    h = hist[hist["time_et"].dt.date == day]
+    return pd.Series(h["spot"].to_numpy(), index=h["time_et"].dt.tz_localize(ET))
+
+
+def key_strikes(row, by_strike, band):
+    spot = row["spot"]
+    bs = by_strike[(by_strike.index >= spot - band) & (by_strike.index <= spot + band)]
+    major_neg = float(bs["net"].idxmin()) if (bs["net"] < 0).any() else np.nan
+    major_pos = float(bs["net"].idxmax()) if (bs["net"] > 0).any() else np.nan
+    return bs, major_pos, major_neg
+
+
+def draw_levels_map(t, row, by_strike, hist, strikes_today):
+    spot, now = row["spot"], pd.Timestamp(row["time_et"]).tz_localize(ET)
+    band = spot * 0.03
+    if not pd.isna(row["flip"]) and abs(row["flip"] - spot) < spot * 0.05:
+        band = max(band, abs(row["flip"] - spot) * 1.15)
+    bs, major_pos, major_neg = key_strikes(row, by_strike, band)
+    if bs.empty:
+        return None
+    step = float(np.median(np.diff(bs.index))) if len(bs) > 1 else 1.0
+    px = intraday_prices(t, now.date(), hist)
+
+    with plt.style.context("dark_background"):
+        fig, ax = plt.subplots(figsize=(13, 10))
+        fig.patch.set_facecolor("black")
+        ax.set_facecolor("black")
+        # price over the session (bottom time axis)
+        start = now.normalize() + pd.Timedelta(hours=9, minutes=30)
+        end = now.normalize() + pd.Timedelta(hours=16)
+        if len(px):
+            ax.plot(px.index, px.to_numpy(), color="#00e5ff", lw=1.4, zorder=4)
+        ax.set_xlim(start, end)
+        ax.set_ylim(spot - band, spot + band)
+        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%H:%M", tz=ET))
+        ax.set_xlabel("Time (New York)")
+        ax.set_ylabel("Strike / price")
+
+        # gamma bars by strike (top axis)
+        ax2 = ax.twiny()
+        oi = bs["net"] / 1e9
+        vol = bs["vnet"] / 1e9
+        ax2.barh(bs.index, oi.abs(), height=step * 0.8, zorder=2,
+                 color=np.where(oi < 0, "#7a1c1c", "#2f7d32"), label="OI gamma")
+        ax2.barh(bs.index, vol.abs(), height=step * 0.35, zorder=3,
+                 color=np.where(vol < 0, "#ff5a4e", "#7ee07e"), label="Volume gamma")
+        # dots: where each strike's OI gamma bar was some minutes ago
+        if strikes_today is not None and len(strikes_today):
+            st = strikes_today.copy()
+            st["t"] = pd.to_datetime(st["time_et"]).dt.tz_localize(ET)
+            times = st["t"].drop_duplicates().sort_values()
+            for mins, colr in [(5, "#e8f4ff"), (15, "#7fc8ff"), (30, "#2e86de")]:
+                target = now - pd.Timedelta(minutes=mins)
+                near_t = times[(times - target).abs() <= pd.Timedelta(minutes=4)]
+                if near_t.empty:
+                    continue
+                tt = near_t.iloc[(near_t - target).abs().argmin()]
+                snap = st[(st["t"] == tt) & st["strike"].isin(bs.index)]
+                ax2.scatter(snap["oi_net"].abs() / 1e9, snap["strike"], s=10, color=colr,
+                            zorder=5, label=f"{mins} min prior")
+        xmax = max(oi.abs().max(), vol.abs().max()) * 1.15 or 1
+        ax2.set_xlim(0, xmax)
+        ax.set_zorder(ax2.get_zorder() + 1)  # price line on top of the bars
+        ax.patch.set_visible(False)
+        ax2.set_xlabel(f"{t} gamma exposure ($bn per 1% move) — red = negative, green = positive")
+
+        # level lines
+        ax.axhline(spot, color="#00e5ff", ls="--", lw=0.8)
+        ax.annotate(f"{spot:.2f}", (1.005, spot), xycoords=("axes fraction", "data"), color="#00e5ff",
+                    va="center", fontsize=10, bbox=dict(boxstyle="round", fc="black", ec="#00e5ff"))
+        lines = [("flip", row["flip"], "#ffb000", "Zero gamma (flip)"),
+                 ("pos", major_pos, "#7ee07e", "Major positive gamma"),
+                 ("neg", major_neg, "#ff5a4e", "Major negative gamma")]
+        for _, lvl, colr, lab in lines:
+            if not pd.isna(lvl):
+                ax.axhline(lvl, color=colr, ls="--", lw=0.9, label=f"{lab}: {lvl:g}")
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax2.legend(h2 + h1, l2 + l1, loc="upper right", fontsize=9, facecolor="black", framealpha=0.8)
+        fig.suptitle(f"{t} gamma map | {row['time_et']} ET | net {row['net_gex_bn']:+.2f}bn | "
+                     f"put wall {row['put_wall']:g} | call wall {row['call_wall']:g}",
+                     color="white", fontsize=12)
+        fig.text(0.01, 0.005, "Bars: dealer gamma per strike from open interest (wide, dark) and from today's "
+                 "volume (thin, bright). Dots: where the OI bar was 5/15/30 min earlier. Cboe data ~15 min delayed; "
+                 "price line from Yahoo.", fontsize=8, color="#999")
+        fig.tight_layout(rect=(0, 0.02, 0.97, 0.97))
+        out = DOCS / f"{t}_map.png"
+        fig.savefig(out, dpi=100, facecolor="black")
+        plt.close(fig)
+    return out
+
+
+def write_pine(t, row, by_strike):
+    """TradingView indicator (paste into the Pine Editor) that draws today's levels."""
+    spot = row["spot"]
+    bs, major_pos, major_neg = key_strikes(row, by_strike, spot * 0.05)
+    levels = []
+    def add(price, name, colr, width):
+        if not pd.isna(price) and all(abs(price - p) > 1e-9 for p, *_ in levels):
+            levels.append((float(price), name, colr, width))
+    add(row["flip"], "Zero gamma (flip)", "color.orange", 2)
+    add(row["put_wall"], "Put wall", "color.red", 3)
+    add(row["call_wall"], "Call wall", "color.green", 3)
+    for k in bs["net"].nsmallest(6).index:
+        if bs.loc[k, "net"] < 0:
+            add(k, "Neg gamma", "color.new(color.red, 40)", 1)
+    for k in bs["net"].nlargest(3).index:
+        if bs.loc[k, "net"] > 0:
+            add(k, "Pos gamma", "color.new(color.green, 40)", 1)
+    body = "\n".join(
+        f'hline({p:g}, "{n} {p:g}", color={c}, linestyle=hline.style_dashed, linewidth={w})\n'
+        f'if barstate.islast\n    label.new(bar_index + 2, {p:g}, "{n} {p:g}", style=label.style_none, '
+        f'textcolor={c}, size=size.small)'
+        for p, n, c, w in levels)
+    pine = (f"//@version=5\n// {t} dealer gamma levels, {row['time_et']} ET (free Cboe data). "
+            f"Net gamma {row['net_gex_bn']:+.2f}bn per 1%.\n"
+            f'indicator("{t} gamma levels {row["time_et"]}", overlay=true, max_labels_count=50)\n{body}\n')
+    (DOCS / f"{t}_levels.pine").write_text(pine)
+    return pine
 
 
 # ----------------------------------------------------------------------------- main
@@ -416,6 +583,12 @@ def run_once(force=False, charts_only=False, file=None):
             h = append_history(t, row)
             draw_timeline(t, h)
             draw_profile(t, row, by_strike)
+            try:
+                st = save_strikes(t, row, by_strike)
+                draw_levels_map(t, row, by_strike, h, st)
+                write_pine(t, row, by_strike)
+            except Exception as e:
+                print(f"  {t}: gamma map failed - {e}", file=sys.stderr)
             latest[t] = row
             print(f"  {t} {row['time_et']}: price {row['spot']}, net gamma {row['net_gex_bn']:+.2f}bn, "
                   f"flip {row['flip']}, call wall {row['call_wall']}, put wall {row['put_wall']}")
