@@ -1,12 +1,15 @@
 //@version=5
-// SPX dealer gamma levels, 2026-11-16 16:31 ET (free Cboe data). Net gamma -108.58bn per 1%.
-indicator("SPX gamma levels 2026-11-16 16:31", overlay=true, max_labels_count=50)
-hline(7612.88, "Zero gamma (flip) 7612.88", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
+// SPX dealer gamma levels, 2026-11-16 16:32 ET (free Cboe data). Net gamma -90.28bn per 1%.
+indicator("SPX gamma levels 2026-11-16 16:32", overlay=true, max_labels_count=50)
+hline(7612.46, "Zero gamma (flip) 7612.46", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
 if barstate.islast
-    label.new(bar_index + 2, 7612.88, "Zero gamma (flip) 7612.88", style=label.style_none, textcolor=color.orange, size=size.small)
+    label.new(bar_index + 2, 7612.46, "Zero gamma (flip) 7612.46", style=label.style_none, textcolor=color.orange, size=size.small)
 hline(7000, "Put wall 7000", color=color.red, linestyle=hline.style_dashed, linewidth=3)
 if barstate.islast
     label.new(bar_index + 2, 7000, "Put wall 7000", style=label.style_none, textcolor=color.red, size=size.small)
+hline(8000, "Call wall 8000", color=color.green, linestyle=hline.style_dashed, linewidth=3)
+if barstate.islast
+    label.new(bar_index + 2, 8000, "Call wall 8000", style=label.style_none, textcolor=color.green, size=size.small)
 hline(7500, "Neg gamma 7500", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
 if barstate.islast
     label.new(bar_index + 2, 7500, "Neg gamma 7500", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
@@ -16,15 +19,15 @@ if barstate.islast
 hline(7400, "Neg gamma 7400", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
 if barstate.islast
     label.new(bar_index + 2, 7400, "Neg gamma 7400", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
-hline(7415, "Neg gamma 7415", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
-if barstate.islast
-    label.new(bar_index + 2, 7415, "Neg gamma 7415", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
-hline(7420, "Neg gamma 7420", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
-if barstate.islast
-    label.new(bar_index + 2, 7420, "Neg gamma 7420", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
 hline(7250, "Neg gamma 7250", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
 if barstate.islast
     label.new(bar_index + 2, 7250, "Neg gamma 7250", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(7350, "Neg gamma 7350", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7350, "Neg gamma 7350", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(7200, "Neg gamma 7200", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7200, "Neg gamma 7200", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
 hline(7700, "Pos gamma 7700", color=color.new(color.green, 40), linestyle=hline.style_dashed, linewidth=1)
 if barstate.islast
     label.new(bar_index + 2, 7700, "Pos gamma 7700", style=label.style_none, textcolor=color.new(color.green, 40), size=size.small)

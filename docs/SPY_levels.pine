@@ -1,18 +1,18 @@
 //@version=5
-// SPY dealer gamma levels, 2026-11-16 16:30 ET (free Cboe data). Net gamma -17.41bn per 1%.
-indicator("SPY gamma levels 2026-11-16 16:30", overlay=true, max_labels_count=50)
-hline(756.91, "Zero gamma (flip) 756.91", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
+// SPY dealer gamma levels, 2026-11-16 16:32 ET (free Cboe data). Net gamma -13.52bn per 1%.
+indicator("SPY gamma levels 2026-11-16 16:32", overlay=true, max_labels_count=50)
+hline(759.5, "Zero gamma (flip) 759.5", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
 if barstate.islast
-    label.new(bar_index + 2, 756.91, "Zero gamma (flip) 756.91", style=label.style_none, textcolor=color.orange, size=size.small)
-hline(740, "Put wall 740", color=color.red, linestyle=hline.style_dashed, linewidth=3)
+    label.new(bar_index + 2, 759.5, "Zero gamma (flip) 759.5", style=label.style_none, textcolor=color.orange, size=size.small)
+hline(730, "Put wall 730", color=color.red, linestyle=hline.style_dashed, linewidth=3)
 if barstate.islast
-    label.new(bar_index + 2, 740, "Put wall 740", style=label.style_none, textcolor=color.red, size=size.small)
+    label.new(bar_index + 2, 730, "Put wall 730", style=label.style_none, textcolor=color.red, size=size.small)
 hline(775, "Call wall 775", color=color.green, linestyle=hline.style_dashed, linewidth=3)
 if barstate.islast
     label.new(bar_index + 2, 775, "Call wall 775", style=label.style_none, textcolor=color.green, size=size.small)
-hline(730, "Neg gamma 730", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+hline(740, "Neg gamma 740", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
 if barstate.islast
-    label.new(bar_index + 2, 730, "Neg gamma 730", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+    label.new(bar_index + 2, 740, "Neg gamma 740", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
 hline(750, "Neg gamma 750", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
 if barstate.islast
     label.new(bar_index + 2, 750, "Neg gamma 750", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
