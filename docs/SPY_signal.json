@@ -1,0 +1,1 @@
+{"ticker": "SPY", "time_et": "2026-11-16 18:56", "level": -10.0, "level_note": "fixed", "gamma": -13.49, "spot": 739.2, "add_min_z": 1.0, "max_adds": 1, "retail": {"date": "2026-11-16", "premium": 47157344.0, "bar": null, "z": null, "complete": true, "days": 1}, "position": {"entry_time": "2026-11-16 15:20", "entry": 740.14, "adds": []}, "closed": []}

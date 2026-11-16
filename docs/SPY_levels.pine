@@ -1,9 +1,9 @@
 //@version=5
-// SPY dealer gamma levels, 2026-11-16 16:44 ET (free Cboe data). Net gamma -13.53bn per 1%.
-indicator("SPY gamma levels 2026-11-16 16:44", overlay=true, max_labels_count=50)
-hline(759.5, "Zero gamma (flip) 759.5", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
+// SPY dealer gamma levels, 2026-11-16 18:56 ET (free Cboe data). Net gamma -13.49bn per 1%.
+indicator("SPY gamma levels 2026-11-16 18:56", overlay=true, max_labels_count=50)
+hline(759.46, "Zero gamma (flip) 759.46", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
 if barstate.islast
-    label.new(bar_index + 2, 759.5, "Zero gamma (flip) 759.5", style=label.style_none, textcolor=color.orange, size=size.small)
+    label.new(bar_index + 2, 759.46, "Zero gamma (flip) 759.46", style=label.style_none, textcolor=color.orange, size=size.small)
 hline(730, "Put wall 730", color=color.red, linestyle=hline.style_dashed, linewidth=3)
 if barstate.islast
     label.new(bar_index + 2, 730, "Put wall 730", style=label.style_none, textcolor=color.red, size=size.small)
