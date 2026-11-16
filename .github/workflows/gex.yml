@@ -1,0 +1,36 @@
+name: Dealer gamma snapshot
+
+on:
+  schedule:
+    # every 15 minutes, Mon-Fri, 13:00-21:59 UTC (covers US market hours in summer and winter;
+    # the script itself skips runs when the US market is closed)
+    - cron: "*/15 13-21 * * 1-5"
+  workflow_dispatch: {}   # lets you press "Run workflow" by hand
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gex
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Take snapshot
+        run: python gex.py ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
+      - name: Save history and charts
+        run: |
+          git config user.name "gex-bot"
+          git config user.email "gex-bot@users.noreply.github.com"
+          git add data docs
+          git diff --cached --quiet || git commit -m "snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push

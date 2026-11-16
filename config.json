@@ -1,0 +1,6 @@
+{
+  "tickers": ["SPY", "QQQ"],
+  "cboe_symbols": {"SPX": "_SPX", "NDX": "_NDX"},
+  "entry_level_bn": null,
+  "auto_level_min_rows": 150
+}
