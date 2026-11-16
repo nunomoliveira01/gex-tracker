@@ -29,6 +29,14 @@
   .linkbtn { background:#333; }
   a { color:#6cb6ff; }
   footer { color:var(--muted); font-size:12px; padding:0 18px 20px; line-height:1.5; }
+  .rule { border:1px solid #2a2a2a; border-radius:8px; padding:10px 14px; display:grid; gap:8px; font-size:14px; }
+  .rule h2 { font-size:15px; margin:0; color:#ddd; }
+  .rule .big { font-size:20px; font-weight:700; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
+  .card { background:#0b0b0b; border:1px solid #1f1f1f; border-radius:6px; padding:8px 10px; line-height:1.5; }
+  .card .lbl { color:#888; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  .ok { color:var(--green); } .no { color:#666; } .warn { color:var(--orange); }
+  .muted { color:#888; font-size:12px; }
   @media (max-width:700px){ canvas{height:480px;} .quote .px{font-size:22px;} }
 </style>
 </head>
@@ -50,6 +58,7 @@
 </div>
 
 <main>
+  <div class="rule" id="rule"><h2>Regra do JP (SPY)</h2><div class="muted">a carregar…</div></div>
   <section><div class="sechead" id="head-SPY"></div><canvas id="cv-SPY"></canvas></section>
   <section><div class="sechead" id="head-QQQ"></div><canvas id="cv-QQQ"></canvas></section>
 </main>
@@ -172,6 +181,7 @@ setInterval(() => {
     }
     draw(t);
   }
+  renderRule();
   if (getKey() && ws && ws.readyState === 1)
     setStatus(true, lastTradeAt && now - lastTradeAt < 10000 ? "ao vivo" : "ligado (sem negócios agora — mercado fechado?)");
 }, 1000);
@@ -184,7 +194,7 @@ function draw(t) {
   if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
-  const L = 58, R = 78, T = 34, B = 28, pw = W - L - R, ph = H - T - B;
+  const L = 58, R = 100, T = 34, B = 28, pw = W - L - R, ph = H - T - B;
 
   const ks = d.strikes.map(x => x.k);
   const step = ks.length > 1 ? Math.min(...ks.slice(1).map((k, i) => k - ks[i])) : 1;
@@ -232,6 +242,11 @@ function draw(t) {
   lvl(d.major_pos, "#7ee07e", "+γ " + d.major_pos);
   lvl(d.major_neg, "#ff5a4e", "−γ " + d.major_neg);
 
+  // JP position lines (SPY)
+  if (t === "SPY" && signal && signal.position) {
+    lvl(signal.position.entry, "#1f8bff", "entrada " + fmt(signal.position.entry));
+    signal.position.adds.forEach(a => lvl(a.price, "#c9a227", "reforço " + fmt(a.price)));
+  }
   // price line: script minute prices + live seconds
   const pts = d.prices.concat(s.live.filter(p => !d.prices.length || p[0] > d.prices[d.prices.length - 1][0]));
   const today = pts.filter(p => { const m = etMinutes(p[0]); return m >= tmin - 1 && m <= tmax + 1; });
@@ -251,12 +266,62 @@ function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const 
 function quantile(a, q) { if (!a.length) return 0; const b = [...a].sort((x, y) => x - y); return b[Math.floor((b.length - 1) * q)]; }
 function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 
+// ---------- JP rule panel
+let signal = null;
+async function loadSignal() {
+  const bust = "?v=" + Date.now();
+  const urls = location.protocol === "file:" ? [REMOTE + "SPY_signal.json" + bust] : ["SPY_signal.json" + bust, REMOTE + "SPY_signal.json" + bust];
+  for (const u of urls) { try { const r = await fetch(u, { cache:"no-store" }); if (r.ok) { signal = await r.json(); renderRule(); return; } } catch (e) {} }
+}
+const money = v => v == null ? "–" : "$" + Math.round(v).toLocaleString("en-US");
+const tick = (ok, txt) => `<div class="${ok ? "ok" : "no"}">${ok ? "✔" : "✘"} ${txt}</div>`;
+function renderRule() {
+  const sg = signal; if (!sg) return;
+  const live = state.SPY.last ?? sg.spot, pos = sg.position, lvl = sg.level;
+  let status, pnlTxt = "";
+  if (pos) {
+    const units = [pos.entry].concat(pos.adds.map(a => a.price));
+    const pnl = units.reduce((a, u) => a + (live - u), 0);
+    status = `<span class="big ${pnl >= 0 ? "up" : "down"}">COMPRADO ${units.length}x</span>`;
+    pnlTxt = `Entrada ${fmt(pos.entry)} (${pos.entry_time} ET)` +
+      pos.adds.map(a => `<br>Reforço ${fmt(a.price)} (${a.time} ET)`).join("") +
+      `<br>Resultado agora: <b class="${pnl >= 0 ? "up" : "down"}">${pnl >= 0 ? "+" : ""}${fmt(pnl)} pontos</b> com SPY a ${fmt(live)}`;
+  } else {
+    status = `<span class="big" style="color:#bbb">FORA</span>`;
+    pnlTxt = lvl == null ? "Nível de entrada ainda por definir." : `Entra quando a gamma chegar a ${lvl}bn.`;
+  }
+  const g = sg.gamma, rt = sg.retail;
+  const gammaTxt = `Agora <b>${g > 0 ? "+" : ""}${fmt(g)}bn</b> · entrada ${lvl}bn · saída 0bn` +
+    (pos ? `<br>${g >= 0 ? '<span class="ok">Saída: gamma voltou a zero</span>' : `Faltam ${fmt(-g)}bn para a saída`}` : "");
+  const zTxt = rt.z == null ? `<span class="muted">a juntar histórico (${rt.days} dias de 10 necessários)</span>`
+    : `z = <b class="${rt.z >= sg.add_min_z ? "warn" : ""}">${fmt(rt.z)}</b>${rt.complete ? "" : " <span class=muted>(dia a decorrer)</span>"}`;
+  const retailTxt = `Prémio de puts XSP hoje: <b>${money(rt.premium)}</b><br>Fasquia (z=${sg.add_min_z}): ${money(rt.bar)}<br>${zTxt}`;
+  const below = pos && live < pos.entry, addsLeft = pos && pos.adds.length < sg.max_adds;
+  const addChecks = pos ? tick(true, "posição aberta") + tick(g <= lvl, `gamma ≤ ${lvl}bn`) +
+      tick(rt.z != null && rt.z >= sg.add_min_z, `retail z ≥ ${sg.add_min_z}`) + tick(below, `preço abaixo da entrada (${fmt(pos.entry)})`) +
+      tick(addsLeft, "reforço ainda disponível") + `<div class="muted">Avaliado ao fecho (16:00 Nova Iorque).</div>`
+    : `<div class="muted">Só se aplica com posição aberta.</div>`;
+  const closed = sg.closed || [], total = closed.reduce((a, c) => a + c.pnl, 0), wins = closed.filter(c => c.pnl > 0).length;
+  const hist = closed.length ? `${closed.length} trades fechados · ${wins}/${closed.length} ganhos · total <b class="${total >= 0 ? "up" : "down"}">${total >= 0 ? "+" : ""}${fmt(total)} pontos</b>` +
+      closed.slice(-5).reverse().map(c => `<br><span class="muted">${c.entry_time.slice(5)} ${fmt(c.entry)}${c.adds.length ? " + " + c.adds.map(a => fmt(a)).join(", ") : ""} → ${c.exit_time.slice(5)} ${fmt(c.exit)}: <span class="${c.pnl >= 0 ? "up" : "down"}">${c.pnl >= 0 ? "+" : ""}${fmt(c.pnl)}</span></span>`).join("")
+    : `<span class="muted">Ainda sem trades fechados (registo começa a ${sg.time_et.slice(0, 10)} no máximo).</span>`;
+  document.getElementById("rule").innerHTML = `<h2>Regra do JP (SPY) — entra a ${lvl}bn, reforça ao fecho se houver pânico de retalho abaixo da entrada, sai a 0bn</h2>
+    <div class="grid">
+      <div class="card"><div class="lbl">Posição</div>${status}<br>${pnlTxt}</div>
+      <div class="card"><div class="lbl">Gamma SPY</div>${gammaTxt}</div>
+      <div class="card"><div class="lbl">Pânico de retalho (aproximação grátis)</div>${retailTxt}</div>
+      <div class="card"><div class="lbl">Condições para o reforço</div>${addChecks}</div>
+      <div class="card"><div class="lbl">Histórico</div>${hist}</div>
+    </div>
+    <div class="muted">Gamma e prémio de puts da Cboe (~15 min de atraso), atualizado a cada 5 min. O JP usa só puts de 1 contrato compradas ao ask; aqui conta-se todo o prémio de puts XSP com 5+ dias, que é o mais próximo com dados grátis. Não é aconselhamento de investimento.</div>`;
+}
+
 // ---------- start
 document.getElementById("savekey").onclick = () => { const k = document.getElementById("keyinput").value.trim(); if (k) { setKey(k); startLive(); } };
 document.getElementById("changekey").onclick = () => { document.getElementById("keyinput").value = getKey(); showKeyBox(); };
 window.addEventListener("resize", () => TICKERS.forEach(draw));
-TICKERS.forEach(loadData);
-setInterval(() => TICKERS.forEach(loadData), 60000);   // new gamma every minute check (script updates every 5)
+TICKERS.forEach(loadData); loadSignal();
+setInterval(() => { TICKERS.forEach(loadData); loadSignal(); }, 60000);   // new gamma every minute check (script updates every 5)
 startLive();
 </script>
 </body>

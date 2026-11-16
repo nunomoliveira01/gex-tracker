@@ -1,7 +1,27 @@
 {
-  "tickers": ["SPY", "QQQ", "SPX"],
-  "cboe_symbols": {"SPX": "_SPX", "NDX": "_NDX"},
-  "yahoo_symbols": {"SPX": "^GSPC", "NDX": "^NDX"},
-  "entry_level_bn": null,
-  "auto_level_min_rows": 450
+  "tickers": [
+    "SPY",
+    "QQQ",
+    "SPX"
+  ],
+  "cboe_symbols": {
+    "SPX": "_SPX",
+    "NDX": "_NDX"
+  },
+  "yahoo_symbols": {
+    "SPX": "^GSPC",
+    "NDX": "^NDX"
+  },
+  "entry_level_bn": {
+    "SPY": -10,
+    "QQQ": null,
+    "SPX": null
+  },
+  "auto_level_min_rows": 450,
+  "add_min_z": 1.0,
+  "max_adds": 1,
+  "retail_symbols": [
+    "_XSP",
+    "XSP"
+  ]
 }

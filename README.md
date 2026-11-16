@@ -57,6 +57,22 @@ loop is running.
 
 ---
 
+## JP's rule and the retail panic gauge
+
+The tracker follows JP's (financascomjp) SPY rule automatically:
+
+- **Entry**: SPY dealer gamma reaches **-10bn** (`entry_level_bn` in `config.json`).
+- **Add** (one, `max_adds`): at a day's close, if gamma is still at or below -10bn, the retail panic gauge is
+  at least `add_min_z` (1.0) **and** the close is **below the first entry** (JP added this last condition after 13 Nov).
+- **Exit**: gamma back to **0**.
+
+**Retail panic gauge (free stand-in).** JP measures the dollar premium of 1-contract XSP puts bought at the ask,
+against the previous 60 days. Free data has no trade sizes or buy/sell side, so the tracker adds up the dollar
+premium of *all* XSP puts with 5+ days to expiry traded that day (XSP is the mini-SPX, mostly traded by small
+accounts) and compares it with the previous 60 days. It needs at least 10 trading days before it shows a value.
+
+Entries, adds, exits and P&L appear on the timeline chart and in the **"Regra do JP"** panel on `live.html`.
+
 ## Seeing the levels on TradingView
 
 TradingView doesn't let outside data flow into charts automatically, so each run writes a small indicator with

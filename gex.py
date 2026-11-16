@@ -99,6 +99,9 @@ def parse_chain(raw):
             "gamma": float(o.get("gamma") or 0),
             "iv": float(o.get("iv") or 0),
             "volume": float(o.get("volume") or 0),
+            "bid": float(o.get("bid") or 0),
+            "ask": float(o.get("ask") or 0),
+            "last": float(o.get("last_trade_price") or o.get("last") or 0),
         })
     df = pd.DataFrame(rows)
     if df.empty:
@@ -211,40 +214,119 @@ def append_history(t, row):
     return h
 
 
-def daily_put_call_z(h, lookback=60):
-    """Last reading of each day -> put/call volume ratio -> z-score vs prior days."""
-    if h.empty:
-        return pd.DataFrame(columns=["date", "pc", "z"])
-    d = h.copy()
-    d["date"] = d["time_et"].dt.date
-    daily = d.groupby("date").last().reset_index()[["date", "pc_volume_ratio"]]
-    daily = daily.rename(columns={"pc_volume_ratio": "pc"})
-    prior = daily["pc"].shift(1).rolling(lookback, min_periods=10)
-    daily["z"] = (daily["pc"] - prior.mean()) / prior.std()
-    return daily
+# ----------------------------------------------------------------------------- retail panic gauge
+RETAIL_PATH = DATA / "retail_history.csv"
 
 
-def entry_level(h):
-    lvl = CONFIG.get("entry_level_bn")
-    if lvl is not None:
-        return float(lvl), "set"
-    if len(h) >= CONFIG.get("auto_level_min_rows", 150):
+def snapshot_retail(file=None):
+    """Free stand-in for JP's retail signal: dollar premium of XSP (mini-SPX) puts traded today with
+    5+ days to expiry. JP uses only 1-lot puts bought at the ask; free data has no trade sizes or sides,
+    so this counts all XSP put premium (XSP is mostly traded by small accounts)."""
+    raw = None
+    for sym in CONFIG.get("retail_symbols", ["_XSP", "XSP"]):
+        try:
+            raw = fetch_chain(sym, file.format("XSP") if file else None)
+            break
+        except Exception as e:
+            last_err = e
+    if raw is None:
+        raise RuntimeError(f"XSP chain unavailable: {last_err}")
+    _, t, df = parse_chain(raw)
+    px = np.where((df["bid"] > 0) & (df["ask"] > 0), (df["bid"] + df["ask"]) / 2, df["last"])
+    dte = np.array([(e - t.date()).days for e in df["expiry"]])
+    m = (df["type"].to_numpy() == "P") & (dte >= 5)
+    row = {"time_et": t.strftime("%Y-%m-%d %H:%M"),
+           "put_premium": round(float((df["volume"].to_numpy()[m] * px[m] * 100).sum()), 0),
+           "put_volume": int(df["volume"].to_numpy()[m].sum())}
+    DATA.mkdir(exist_ok=True)
+    old = pd.read_csv(RETAIL_PATH) if RETAIL_PATH.exists() else pd.DataFrame(columns=list(row))
+    if len(old) and old["time_et"].iloc[-1] == row["time_et"]:
+        return row
+    pd.concat([old, pd.DataFrame([row])], ignore_index=True).to_csv(RETAIL_PATH, index=False)
+    return row
+
+
+def daily_retail(lookback=60):
+    """One value per day (last reading = whole day), z-score vs the previous `lookback` days."""
+    if not RETAIL_PATH.exists():
+        return pd.DataFrame(columns=["date", "premium", "mean", "std", "bar", "z", "complete"])
+    r = pd.read_csv(RETAIL_PATH)
+    r["time_et"] = pd.to_datetime(r["time_et"])
+    r["date"] = r["time_et"].dt.date
+    daily = r.groupby("date").last().reset_index()
+    daily = daily.rename(columns={"put_premium": "premium"})
+    daily["complete"] = daily["time_et"].dt.hour >= 16
+    prior = daily["premium"].where(daily["complete"]).shift(1).rolling(lookback, min_periods=10)
+    daily["mean"], daily["std"] = prior.mean(), prior.std()
+    daily["bar"] = daily["mean"] + CONFIG.get("add_min_z", 1.0) * daily["std"]
+    daily["z"] = (daily["premium"] - daily["mean"]) / daily["std"]
+    return daily[["date", "premium", "mean", "std", "bar", "z", "complete"]]
+
+
+# ----------------------------------------------------------------------------- JP rule
+def entry_level(h, t=None):
+    lv = CONFIG.get("entry_level_bn")
+    if isinstance(lv, dict):
+        lv = lv.get(t)
+    if lv is not None:
+        return float(lv), "fixed"
+    if len(h) >= CONFIG.get("auto_level_min_rows", 450):
         return float(np.nanpercentile(h["net_gex_bn"], 15)), "auto: lowest 15% of your history"
     return None, "collecting history"
 
 
-def signals(h, level):
-    """Simple version of the 'enter on deep negative gamma, exit at 0' idea."""
+def jp_signals(h, level, retail_daily):
+    """JP's rule: first entry when gamma <= level; add (max N) at a day's close if gamma is still
+    <= level, the retail gauge z >= add_min_z AND the close is below the first entry; exit when gamma >= 0."""
     trades, pos = [], None
-    if level is None:
+    if level is None or h.empty:
         return trades, pos
+    zmap = dict(zip(retail_daily["date"], retail_daily["z"])) if len(retail_daily) else {}
+    h = h.reset_index(drop=True)
+    dates = h["time_et"].dt.date
+    last_of_day = set(h.groupby(dates).tail(1).index)
+    max_adds, zmin = CONFIG.get("max_adds", 1), CONFIG.get("add_min_z", 1.0)
     for i, r in h.iterrows():
-        if pos is None and r["net_gex_bn"] <= level:
-            pos = (i, r["spot"])
-        elif pos is not None and r["net_gex_bn"] >= 0:
-            trades.append((pos[0], pos[1], i, r["spot"]))
+        g, p = r["net_gex_bn"], r["spot"]
+        if pos is not None and g >= 0:
+            units = [pos["entry"]] + pos["adds"]
+            trades.append({**pos, "exit": (i, p), "pnl": sum(p - u[1] for u in units)})
             pos = None
+            continue
+        if pos is None and g <= level:
+            pos = {"entry": (i, p), "adds": []}
+            continue
+        is_close = i in last_of_day and r["time_et"].hour >= 16
+        if pos is not None and is_close and g <= level and len(pos["adds"]) < max_adds:
+            z = zmap.get(dates[i])
+            if z is not None and not pd.isna(z) and z >= zmin and p < pos["entry"][1]:
+                pos["adds"].append((i, p))
     return trades, pos
+
+
+def write_signal_json(t, h, level, note, trades, pos, retail_daily):
+    """Status of JP's rule for the live page."""
+    rd = retail_daily.iloc[-1].to_dict() if len(retail_daily) else {}
+    clean = lambda v: None if v is None or (isinstance(v, float) and math.isnan(v)) else v
+    last = h.iloc[-1]
+    out = {"ticker": t, "time_et": last["time_et"].strftime("%Y-%m-%d %H:%M"), "level": level, "level_note": note,
+           "gamma": float(last["net_gex_bn"]), "spot": float(last["spot"]),
+           "add_min_z": CONFIG.get("add_min_z", 1.0), "max_adds": CONFIG.get("max_adds", 1),
+           "retail": {"date": str(rd.get("date", "")), "premium": clean(rd.get("premium")),
+                      "bar": clean(rd.get("bar")), "z": clean(rd.get("z")),
+                      "complete": bool(rd.get("complete", False)),
+                      "days": int(len(retail_daily))},
+           "position": None,
+           "closed": [{"entry_time": h["time_et"][tr["entry"][0]].strftime("%Y-%m-%d %H:%M"), "entry": tr["entry"][1],
+                       "adds": [a[1] for a in tr["adds"]],
+                       "exit_time": h["time_et"][tr["exit"][0]].strftime("%Y-%m-%d %H:%M"), "exit": tr["exit"][1],
+                       "pnl": round(tr["pnl"], 2)} for tr in trades]}
+    if pos:
+        out["position"] = {"entry_time": h["time_et"][pos["entry"][0]].strftime("%Y-%m-%d %H:%M"),
+                           "entry": pos["entry"][1],
+                           "adds": [{"time": h["time_et"][a[0]].strftime("%Y-%m-%d %H:%M"), "price": a[1]}
+                                    for a in pos["adds"]]}
+    (DOCS / f"{t}_signal.json").write_text(json.dumps(out))
 
 
 # ----------------------------------------------------------------------------- charts
@@ -254,30 +336,51 @@ def draw_timeline(t, h):
         return None
     h = h.reset_index(drop=True)
     x = np.arange(len(h))
-    level, level_note = entry_level(h)
-    trades, open_pos = signals(h, level)
-    daily = daily_put_call_z(h)
+    level, level_note = entry_level(h, t)
+    daily = daily_retail()
+    trades, open_pos = jp_signals(h, level, daily)
+    try:
+        write_signal_json(t, h, level, level_note, trades, open_pos, daily)
+    except Exception as e:
+        print(f"  {t}: signal file failed - {e}", file=sys.stderr)
 
     fig, (a1, a2, a3) = plt.subplots(3, 1, figsize=(16, 10), sharex=True,
                                      gridspec_kw={"height_ratios": [3, 1.6, 1.1]})
-    pnl = sum(sp - ep for _, ep, _, sp in trades)
-    sub = f"{len(trades)} trades closed | P&L {pnl:+.1f} points | entry level: "
-    sub += f"{level:.2f}bn ({level_note})" if level is not None else level_note
+    pnl = sum(tr["pnl"] for tr in trades)
+    wins = sum(tr["pnl"] > 0 for tr in trades)
+    n_adds = sum(len(tr["adds"]) for tr in trades)
+    sub = (f"Rule: enter at {level:g}bn, add at close if retail z >= {CONFIG.get('add_min_z', 1.0):g} and below entry, exit at 0 | "
+           if level is not None else f"entry level: {level_note} | ")
+    sub += f"{len(trades)} trades closed | P&L {pnl:+.1f} points | hit rate {wins}/{len(trades)} | adds {n_adds}"
     if open_pos is not None:
-        sub += f" | OPEN long since {h['time_et'][open_pos[0]]:%d %b %H:%M} at {open_pos[1]:.2f}"
+        units = [open_pos["entry"]] + open_pos["adds"]
+        cur = h["spot"].iloc[-1]
+        sub += (f"\nOPEN {len(units)}x long since {h['time_et'][open_pos['entry'][0]]:%d %b %H:%M} at "
+                f"{open_pos['entry'][1]:.2f}, now {sum(cur - u[1] for u in units):+.1f} at {cur:.2f}")
     fig.suptitle(f"{t} dealer gamma | updated {h['time_et'].iloc[-1]:%a %d %b %Y %H:%M} ET\n{sub}",
                  x=0.06, ha="left", fontsize=13, color="#0b2545")
 
     # price
     a1.plot(x, h["spot"], color="#0b2545", lw=1.2, label=t)
-    for ie, pe, ix, px in trades:
-        a1.plot([ie, ix], [pe, px], color="#2e7d5b", lw=2)
+    for tr in trades:
+        (ie, pe), (ix, px) = tr["entry"], tr["exit"]
+        colr = "#2e7d5b" if tr["pnl"] > 0 else "#c0392b"
+        a1.plot([ie, ix], [pe, px], color=colr, lw=2)
         a1.scatter(ie, pe, marker="^", color="#1f5fbf", zorder=5, s=60)
-        a1.scatter(ix, px, marker="o", facecolor="white", edgecolor="#2e7d5b", zorder=5, s=60)
-        a1.annotate(f"{px - pe:+.1f}", (ix, px), xytext=(0, 8), textcoords="offset points",
-                    ha="center", color="#2e7d5b", fontsize=9, fontweight="bold")
+        for ia, pa in tr["adds"]:
+            a1.plot([ia, ix], [pa, px], color=colr, lw=1.2, alpha=0.5)
+            a1.scatter(ia, pa, marker="^", color="#c9a227", zorder=5, s=60)
+        a1.scatter(ix, px, marker="o", facecolor="white", edgecolor=colr, zorder=5, s=60)
+        a1.annotate(f"{tr['pnl']:+.1f}", (ix, px), xytext=(0, 8), textcoords="offset points",
+                    ha="center", color=colr, fontsize=9, fontweight="bold")
     if open_pos is not None:
-        a1.scatter(open_pos[0], open_pos[1], marker="^", color="#1f5fbf", zorder=5, s=60)
+        a1.scatter(*open_pos["entry"], marker="^", color="#1f5fbf", zorder=5, s=60)
+        for ia, pa in open_pos["adds"]:
+            a1.scatter(ia, pa, marker="^", color="#c9a227", zorder=5, s=60)
+    a1.scatter([], [], marker="^", color="#1f5fbf", label="Entry: gamma reaches entry level")
+    a1.scatter([], [], marker="^", color="#c9a227", label="Add: at close, retail z >= 1, below entry")
+    a1.scatter([], [], marker="o", facecolor="white", edgecolor="#2e7d5b", label="Exit: gamma back to 0")
+    a1.legend(loc="upper left", fontsize=8, ncol=3)
     a1.set_ylabel(f"{t} ($)")
     a1.grid(alpha=0.25)
 
@@ -294,18 +397,21 @@ def draw_timeline(t, h):
     a2.set_ylabel("Dealer gamma ($bn / 1%)")
     a2.grid(alpha=0.25)
 
-    # put/call proxy, one bar per day placed at the day's last snapshot
+    # retail gauge, one bar per day placed at the day's last snapshot
     h["date"] = h["time_et"].dt.date
     lasts = h.groupby("date").tail(1)
     pos_map = dict(zip(lasts["date"], lasts.index))
     for _, r in daily.iterrows():
         if pd.isna(r["z"]) or r["date"] not in pos_map:
             continue
-        colr = "#c9a227" if r["z"] >= 1 else "#bbbbbb"
-        a3.bar(pos_map[r["date"]], r["z"], width=max(len(h) / 60, 1), color=colr)
+        colr = "#c9a227" if r["z"] >= CONFIG.get("add_min_z", 1.0) else "#bbbbbb"
+        a3.bar(pos_map[r["date"]], r["z"], width=max(len(h) / 60, 1), color=colr,
+               hatch=None if r["complete"] else "///", edgecolor="#888" if not r["complete"] else colr)
+        a3.text(pos_map[r["date"]], r["z"], f"{r['z']:.2f}", ha="center",
+                va="bottom" if r["z"] >= 0 else "top", fontsize=7)
     a3.axhline(1, color="#8a7a1a", ls="--", lw=0.8)
     a3.axhline(0, color="#444", lw=0.6)
-    a3.set_ylabel("Put/call z\n(free proxy)")
+    a3.set_ylabel("Retail z\n(XSP puts)")
     if daily["z"].notna().sum() == 0:
         a3.text(0.5, 0.5, "needs ~10 trading days of history", transform=a3.transAxes,
                 ha="center", va="center", color="#888")
@@ -322,8 +428,9 @@ def draw_timeline(t, h):
 
     fig.text(0.06, 0.01,
              "Free data: Cboe delayed option chains (~15 min delay). Gamma assumes dealers long calls / "
-             "short puts, all expiries. Bottom panel is a free stand-in for retail put buying: "
-             "daily put/call volume ratio, z-score vs prior 60 days. Not investment advice.",
+             "short puts, all expiries. Retail z: dollar premium of XSP puts (5+ days to expiry) traded that day vs "
+             "the previous 60 days (free stand-in for JP's 1-lot XSP puts bought at the ask); hatched = day not finished. "
+             "Not investment advice.",
              fontsize=8, color="#666")
     fig.tight_layout(rect=(0, 0.03, 1, 0.95))
     out = DOCS / f"{t}_timeline.png"
@@ -631,6 +738,12 @@ def run_once(force=False, charts_only=False, file=None):
         print(f"US market closed ({now:%a %H:%M} ET) - nothing to do. Use --force to run anyway.")
         return
     latest = {}
+    if not charts_only:
+        try:
+            rr = snapshot_retail(file)
+            print(f"  retail gauge {rr['time_et']}: XSP put premium ${rr['put_premium']:,.0f} ({rr['put_volume']:,} contracts)")
+        except Exception as e:
+            print(f"  retail gauge FAILED - {e}", file=sys.stderr)
     for t in CONFIG["tickers"]:
         try:
             if charts_only:
