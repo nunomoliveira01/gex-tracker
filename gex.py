@@ -126,6 +126,9 @@ def bs_gamma(S, K, iv, T):
 
 def analyse(spot, now, df):
     """Work out everything we want from one snapshot."""
+    # put/call volume uses every option that traded today (including ones expiring today)
+    pv = df.loc[(df["type"] == "P") & (df["expiry"] >= now.date()), "volume"].sum()
+    cv = df.loc[(df["type"] == "C") & (df["expiry"] >= now.date()), "volume"].sum()
     after_close = now.hour >= 16
     df = df[(df["expiry"] > now.date()) | ((df["expiry"] == now.date()) & (not after_close))].copy()
     sign = np.where(df["type"] == "C", 1.0, -1.0)
@@ -144,7 +147,8 @@ def analyse(spot, now, df):
     by_strike["net"] = by_strike["C"] + by_strike["P"]
     by_strike["vnet"] = by_strike["vC"] + by_strike["vP"]
     # call wall: biggest call strike above the price; put wall: biggest put strike below it
-    above, below = by_strike[by_strike.index >= spot], by_strike[by_strike.index <= spot]
+    wb = by_strike[(by_strike.index > spot * 0.95) & (by_strike.index < spot * 1.05)]  # within 5%
+    above, below = wb[wb.index >= spot], wb[wb.index <= spot]
     call_wall = float(above["C"].idxmax()) if len(above) and above["C"].max() > 0 else np.nan
     put_wall = float(below["P"].idxmin()) if len(below) and below["P"].min() < 0 else np.nan
 
@@ -167,8 +171,6 @@ def analyse(spot, now, df):
             x0, x1, y0, y1 = grid[i], grid[i + 1], curve[i], curve[i + 1]
             flip = float(x0 - y0 * (x1 - x0) / (y1 - y0))
 
-    pv = df.loc[df["type"] == "P", "volume"].sum()
-    cv = df.loc[df["type"] == "C", "volume"].sum()
     return {
         "time_et": now.strftime("%Y-%m-%d %H:%M"),
         "spot": round(spot, 2),
