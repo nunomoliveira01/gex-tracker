@@ -126,7 +126,8 @@ def bs_gamma(S, K, iv, T):
 
 def analyse(spot, now, df):
     """Work out everything we want from one snapshot."""
-    df = df[df["expiry"] >= now.date()].copy()
+    after_close = now.hour >= 16
+    df = df[(df["expiry"] > now.date()) | ((df["expiry"] == now.date()) & (not after_close))].copy()
     sign = np.where(df["type"] == "C", 1.0, -1.0)
     # dollars of SPY/QQQ dealers must trade for a 1% move
     df["gex"] = sign * df["gamma"] * df["oi"] * 100 * spot * spot * 0.01
@@ -142,8 +143,10 @@ def analyse(spot, now, df):
     by_strike = by_strike.fillna(0.0)
     by_strike["net"] = by_strike["C"] + by_strike["P"]
     by_strike["vnet"] = by_strike["vC"] + by_strike["vP"]
-    call_wall = float(by_strike["C"].idxmax()) if by_strike["C"].max() > 0 else np.nan
-    put_wall = float(by_strike["P"].idxmin()) if by_strike["P"].min() < 0 else np.nan
+    # call wall: biggest call strike above the price; put wall: biggest put strike below it
+    above, below = by_strike[by_strike.index >= spot], by_strike[by_strike.index <= spot]
+    call_wall = float(above["C"].idxmax()) if len(above) and above["C"].max() > 0 else np.nan
+    put_wall = float(below["P"].idxmin()) if len(below) and below["P"].min() < 0 else np.nan
 
     # gamma flip: re-price gamma over a grid of prices and find where net crosses 0
     use = df[(df["oi"] > 0) & (df["iv"] > 0.01) &
@@ -495,8 +498,13 @@ def draw_levels_map(t, row, by_strike, hist, strikes_today):
                 snap = st[(st["t"] == tt) & st["strike"].isin(bs.index)]
                 ax2.scatter(snap["oi_net"].abs() / 1e9, snap["strike"], s=10, color=colr,
                             zorder=5, label=f"{mins} min prior")
-        xmax = max(oi.abs().max(), vol.abs().max()) * 1.15 or 1
+        # scale to the open-interest bars; very large volume bars (same-day options) run off the edge
+        xmax = float(max(oi.abs().max() * 1.3, vol.abs().quantile(0.9) * 1.1)) or 1.0
         ax2.set_xlim(0, xmax)
+        for k, v in vol.items():
+            if abs(v) > xmax:
+                ax2.text(xmax * 0.99, k, f"{abs(v):.0f}►", ha="right", va="center", fontsize=7,
+                         color="white", zorder=6)
         ax.set_zorder(ax2.get_zorder() + 1)  # price line on top of the bars
         ax.patch.set_visible(False)
         ax2.set_xlabel(f"{t} gamma exposure ($bn per 1% move) — red = negative, green = positive")
