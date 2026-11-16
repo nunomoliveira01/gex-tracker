@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPY & QQQ ao vivo + gamma</title>
+<style>
+  :root { --bg:#000; --fg:#e8e8e8; --muted:#8a8a8a; --cyan:#00e5ff; --red:#ff5a4e; --green:#7ee07e; --orange:#ffb000; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,sans-serif; }
+  header { display:flex; flex-wrap:wrap; gap:12px 28px; align-items:center; padding:14px 18px; border-bottom:1px solid #222; }
+  h1 { font-size:16px; margin:0; font-weight:600; color:#ccc; }
+  .quote { display:flex; align-items:baseline; gap:10px; }
+  .quote .sym { font-weight:700; color:#aaa; }
+  .quote .px { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .quote .chg { font-size:14px; font-variant-numeric:tabular-nums; }
+  .up { color:var(--green); } .down { color:var(--red); }
+  .status { font-size:12px; color:var(--muted); margin-left:auto; display:flex; gap:8px; align-items:center; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#555; display:inline-block; }
+  .dot.live { background:#2ecc71; box-shadow:0 0 6px #2ecc71; }
+  main { padding:10px 14px 30px; display:grid; gap:18px; }
+  section { border:1px solid #1d1d1d; border-radius:8px; padding:8px 8px 4px; }
+  .sechead { display:flex; flex-wrap:wrap; gap:6px 18px; font-size:13px; color:#bbb; padding:2px 6px 6px; }
+  .sechead b { color:#fff; }
+  canvas { width:100%; height:560px; display:block; }
+  .keybox { background:#111; border:1px solid #333; border-radius:8px; padding:12px 14px; margin:12px 14px 0; font-size:14px; line-height:1.5; }
+  .keybox input { background:#000; color:#fff; border:1px solid #444; border-radius:6px; padding:6px 8px; width:260px; max-width:100%; }
+  .keybox button, .linkbtn { background:#1f6feb; color:#fff; border:0; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px; }
+  .linkbtn { background:#333; }
+  a { color:#6cb6ff; }
+  footer { color:var(--muted); font-size:12px; padding:0 18px 20px; line-height:1.5; }
+  @media (max-width:700px){ canvas{height:480px;} .quote .px{font-size:22px;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ao vivo</h1>
+  <div class="quote"><span class="sym">SPY</span><span class="px" id="px-SPY">–</span><span class="chg" id="chg-SPY"></span></div>
+  <div class="quote"><span class="sym">QQQ</span><span class="px" id="px-QQQ">–</span><span class="chg" id="chg-QQQ"></span></div>
+  <div class="status"><span class="dot" id="livedot"></span><span id="statustext">a ligar…</span>
+    <button class="linkbtn" id="changekey" style="display:none">chave</button></div>
+</header>
+
+<div class="keybox" id="keybox" style="display:none">
+  <b>Preço ao segundo:</b> cria uma chave grátis em <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a>
+  (30 segundos, sem cartão) e cola-a aqui. Fica guardada só neste browser.<br>
+  <input id="keyinput" placeholder="chave Finnhub" autocomplete="off">
+  <button id="savekey">Guardar</button>
+  <span style="color:#888">Sem chave, a página mostra o último preço do script (a cada 5 min).</span>
+</div>
+
+<main>
+  <section><div class="sechead" id="head-SPY"></div><canvas id="cv-SPY"></canvas></section>
+  <section><div class="sechead" id="head-QQQ"></div><canvas id="cv-QQQ"></canvas></section>
+</main>
+
+<footer>
+  Linha azul: preço (minuto a minuto até à última leitura do script, depois ao segundo via Finnhub).
+  Barras: gamma dos dealers por strike — larga/escura = open interest, fina/clara = volume de hoje; vermelho = negativo
+  (dealers amplificam movimentos), verde = positivo (travam). Pontos: onde estava a barra há 5 / 15 / 30 min.
+  Gamma vem da Cboe (dados ~15 min atrasados), atualizado a cada 5 min. Não é aconselhamento de investimento.
+</footer>
+
+<script>
+const TICKERS = ["SPY", "QQQ"];
+const REMOTE = "https://nunomoliveira01.github.io/gex-tracker/";   // used when the page is opened as a local file
+const state = {};
+TICKERS.forEach(t => state[t] = { data:null, live:[], last:null, prevClose:null, lastSecond:0 });
+
+// ---------- helpers
+const etFmt = new Intl.DateTimeFormat("en-US", { timeZone:"America/New_York", hour:"numeric", minute:"numeric", second:"numeric", hour12:false });
+function etMinutes(ms) {
+  const p = Object.fromEntries(etFmt.formatToParts(new Date(ms)).map(x => [x.type, x.value]));
+  return (+p.hour % 24) * 60 + (+p.minute) + (+p.second) / 60;
+}
+const fmt = (v, d=2) => v == null ? "–" : Number(v).toFixed(d);
+function getKey() { try { return localStorage.getItem("finnhubKey") || ""; } catch { return ""; } }
+function setKey(k) { try { localStorage.setItem("finnhubKey", k); } catch {} }
+
+// ---------- gamma data from the script (every 5 min)
+async function loadData(t) {
+  const bust = "?v=" + Date.now();
+  const urls = location.protocol === "file:" ? [REMOTE + t + "_live.json" + bust]
+                                             : [t + "_live.json" + bust, REMOTE + t + "_live.json" + bust];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { cache:"no-store" });
+      if (r.ok) {
+        const d = await r.json();
+        const s = state[t];
+        if (s.data && s.data.date !== d.date) s.live = [];
+        s.data = d;
+        if (!s.last) s.last = d.spot;
+        renderHead(t); draw(t); updateQuote(t);
+        return;
+      }
+    } catch (e) { /* try next */ }
+  }
+}
+
+function renderHead(t) {
+  const d = state[t].data; if (!d) return;
+  const reg = d.net_gex_bn < 0 ? '<span class="down">gamma NEGATIVO</span>' : '<span class="up">gamma POSITIVO</span>';
+  document.getElementById("head-" + t).innerHTML =
+    `<span><b>${t}</b> ${reg}: <b>${d.net_gex_bn > 0 ? "+" : ""}${fmt(d.net_gex_bn)}bn</b> por 1%</span>` +
+    `<span>Flip <b style="color:var(--orange)">${fmt(d.flip)}</b></span>` +
+    `<span>Put wall <b style="color:var(--red)">${fmt(d.put_wall,0)}</b></span>` +
+    `<span>Call wall <b style="color:var(--green)">${fmt(d.call_wall,0)}</b></span>` +
+    `<span style="color:#777">gamma de ${d.time_et} ET</span>`;
+}
+
+function updateQuote(t) {
+  const s = state[t]; if (s.last == null) return;
+  document.getElementById("px-" + t).textContent = fmt(s.last);
+  const el = document.getElementById("chg-" + t);
+  if (s.prevClose) {
+    const c = s.last - s.prevClose, p = c / s.prevClose * 100;
+    el.textContent = `${c >= 0 ? "+" : ""}${fmt(c)} (${p >= 0 ? "+" : ""}${fmt(p)}%)`;
+    el.className = "chg " + (c >= 0 ? "up" : "down");
+  }
+}
+
+// ---------- live prices from Finnhub (every trade, drawn once per second)
+let ws, wsRetry = 1000, lastTradeAt = 0;
+async function startLive() {
+  const key = getKey();
+  document.getElementById("keybox").style.display = key ? "none" : "block";
+  document.getElementById("changekey").style.display = key ? "inline-block" : "none";
+  if (!key) { setStatus(false, "sem preço ao vivo (falta a chave)"); return; }
+  for (const t of TICKERS) {
+    try {
+      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${t}&token=${encodeURIComponent(key)}`);
+      if (r.status === 401 || r.status === 403) { setStatus(false, "chave Finnhub inválida"); showKeyBox(); return; }
+      const q = await r.json();
+      if (q.pc) state[t].prevClose = q.pc;
+      if (q.c) { state[t].last = q.c; updateQuote(t); }
+    } catch (e) {}
+  }
+  connectWS(key);
+}
+function connectWS(key) {
+  if (ws) try { ws.close(); } catch {}
+  ws = new WebSocket("wss://ws.finnhub.io?token=" + encodeURIComponent(key));
+  ws.onopen = () => { wsRetry = 1000; TICKERS.forEach(t => ws.send(JSON.stringify({ type:"subscribe", symbol:t }))); setStatus(true, "ligado"); };
+  ws.onmessage = ev => {
+    const m = JSON.parse(ev.data);
+    if (m.type !== "trade" || !m.data) return;
+    for (const tr of m.data) {
+      const s = state[tr.s]; if (!s) continue;
+      s.last = tr.p; s.lastTime = tr.t; lastTradeAt = Date.now();
+    }
+  };
+  ws.onclose = () => { setStatus(false, "a religar…"); setTimeout(() => connectWS(key), wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
+  ws.onerror = () => { try { ws.close(); } catch {} };
+}
+function setStatus(on, text) {
+  document.getElementById("livedot").className = "dot" + (on ? " live" : "");
+  document.getElementById("statustext").textContent = text;
+}
+function showKeyBox() { document.getElementById("keybox").style.display = "block"; }
+
+// once per second: add a point to the live line and redraw
+setInterval(() => {
+  const now = Date.now();
+  for (const t of TICKERS) {
+    const s = state[t];
+    if (s.last == null) continue;
+    updateQuote(t);
+    if (s.lastTime && now - s.lastTime < 120000) {   // only plot real recent trades
+      const sec = Math.floor(s.lastTime / 1000);
+      if (sec !== s.lastSecond) { s.live.push([s.lastTime, s.last]); s.lastSecond = sec; if (s.live.length > 30000) s.live.shift(); }
+    }
+    draw(t);
+  }
+  if (getKey() && ws && ws.readyState === 1)
+    setStatus(true, lastTradeAt && now - lastTradeAt < 10000 ? "ao vivo" : "ligado (sem negócios agora — mercado fechado?)");
+}, 1000);
+
+// ---------- drawing (same layout as the gamma map image)
+function draw(t) {
+  const s = state[t], d = s.data, cv = document.getElementById("cv-" + t);
+  if (!d || !d.strikes.length) return;
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+  const L = 58, R = 78, T = 34, B = 28, pw = W - L - R, ph = H - T - B;
+
+  const ks = d.strikes.map(x => x.k);
+  const step = ks.length > 1 ? Math.min(...ks.slice(1).map((k, i) => k - ks[i])) : 1;
+  const cur = s.last ?? d.spot;
+  let ymin = Math.min(ks[0], cur) - step, ymax = Math.max(ks[ks.length - 1], cur) + step;
+  const Y = v => T + (ymax - v) / (ymax - ymin) * ph;
+  const tmin = 9.5 * 60, tmax = 16 * 60;
+  const X = ms => L + (etMinutes(ms) - tmin) / (tmax - tmin) * pw;
+
+  // axes + grid
+  g.font = "11px system-ui"; g.fillStyle = "#9a9a9a"; g.strokeStyle = "#1c1c1c"; g.lineWidth = 1;
+  const yStep = niceStep((ymax - ymin) / 10);
+  for (let v = Math.ceil(ymin / yStep) * yStep; v <= ymax; v += yStep) {
+    const y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke();
+    g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(v.toFixed(yStep < 1 ? 1 : 0), L - 6, y);
+  }
+  g.textAlign = "center"; g.textBaseline = "top";
+  for (let h = 10; h <= 16; h++) { const x = L + (h * 60 - tmin) / (tmax - tmin) * pw; g.fillText(h + ":00", x, T + ph + 6);
+    g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + ph); g.stroke(); }
+
+  // gamma bars (top axis)
+  const oiMax = Math.max(...d.strikes.map(x => Math.abs(x.oi)), 1e-9);
+  const volQ = quantile(d.strikes.map(x => Math.abs(x.vol)), 0.9);
+  const xmax = Math.max(oiMax * 1.3, volQ * 1.1);
+  const BX = v => L + Math.min(Math.abs(v) / xmax, 1) * pw;
+  const bh = Math.max(2, Math.abs(Y(0) - Y(step)) * 0.8);
+  for (const x of d.strikes) {
+    const y = Y(x.k);
+    g.fillStyle = x.oi < 0 ? "#7a1c1c" : "#2f7d32"; g.fillRect(L, y - bh / 2, BX(x.oi) - L, bh);
+    g.fillStyle = x.vol < 0 ? "#ff5a4e" : "#7ee07e"; g.fillRect(L, y - bh * 0.18, BX(x.vol) - L, bh * 0.36);
+    [["oi30", "#2e86de"], ["oi15", "#7fc8ff"], ["oi5", "#ffffff"]].forEach(([f, c]) => {
+      if (x[f] != null) { g.fillStyle = c; g.beginPath(); g.arc(BX(x[f]), y, 2.2, 0, 7); g.fill(); }
+    });
+  }
+  g.fillStyle = "#9a9a9a"; g.textAlign = "center"; g.textBaseline = "bottom";
+  const xs = niceStep(xmax / 5);
+  for (let v = 0; v <= xmax; v += xs) g.fillText(v.toFixed(xs < 1 ? 1 : 0), L + v / xmax * pw, T - 4);
+  g.textAlign = "left"; g.fillText("gamma $bn / 1%", L + pw - 90, T - 18);
+
+  // level lines
+  const lvl = (v, c, label) => { if (v == null || v < ymin || v > ymax) return; const y = Y(v);
+    g.strokeStyle = c; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.setLineDash([]);
+    g.fillStyle = c; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(label, L + pw + 6, y); };
+  lvl(d.flip, "#ffb000", "flip " + fmt(d.flip, 1));
+  lvl(d.major_pos, "#7ee07e", "+γ " + d.major_pos);
+  lvl(d.major_neg, "#ff5a4e", "−γ " + d.major_neg);
+
+  // price line: script minute prices + live seconds
+  const pts = d.prices.concat(s.live.filter(p => !d.prices.length || p[0] > d.prices[d.prices.length - 1][0]));
+  const today = pts.filter(p => { const m = etMinutes(p[0]); return m >= tmin - 1 && m <= tmax + 1; });
+  if (today.length > 1) {
+    g.strokeStyle = "#00e5ff"; g.lineWidth = 1.5; g.beginPath();
+    today.forEach((p, i) => { const x = X(p[0]), y = Y(p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.stroke(); g.lineWidth = 1;
+  }
+  // current price tag
+  const y = Y(cur);
+  g.strokeStyle = "#00e5ff"; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.setLineDash([]);
+  g.fillStyle = "#000"; g.strokeStyle = "#00e5ff"; roundRect(g, L + pw + 4, y - 10, R - 8, 20, 5); g.fill(); g.stroke();
+  g.fillStyle = "#00e5ff"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(fmt(cur), L + pw + 4 + (R - 8) / 2, y);
+  g.strokeStyle = "#333"; g.strokeRect(L, T, pw, ph);
+}
+function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const n = x / p; return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * p; }
+function quantile(a, q) { if (!a.length) return 0; const b = [...a].sort((x, y) => x - y); return b[Math.floor((b.length - 1) * q)]; }
+function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+
+// ---------- start
+document.getElementById("savekey").onclick = () => { const k = document.getElementById("keyinput").value.trim(); if (k) { setKey(k); startLive(); } };
+document.getElementById("changekey").onclick = () => { document.getElementById("keyinput").value = getKey(); showKeyBox(); };
+window.addEventListener("resize", () => TICKERS.forEach(draw));
+TICKERS.forEach(loadData);
+setInterval(() => TICKERS.forEach(loadData), 60000);   // new gamma every minute check (script updates every 5)
+startLive();
+</script>
+</body>
+</html>

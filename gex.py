@@ -403,7 +403,7 @@ def write_page(latest):
 img{{width:100%;margin:8px 0;border:1px solid #eee}}table{{border-collapse:collapse;margin:8px 0}}
 td,th{{border:1px solid #ddd;padding:6px 10px;text-align:center}}.neg{{color:#c0392b;font-weight:600}}
 .pos{{color:#2e7d5b;font-weight:600}}small{{color:#888;font-weight:400}}footer{{color:#888;font-size:12px}}</style></head>
-<body><h1>Dealer gamma tracker</h1>{''.join(cards)}
+<body><h1>Dealer gamma tracker</h1><p><a href="live.html"><b>&#9654; Página ao vivo (preço ao segundo)</b></a></p>{''.join(cards)}
 <footer>Free Cboe delayed data, ~15 min delay. Estimates assume dealers are long calls and short puts.
 Not investment advice. Page refreshes every 5 minutes.</footer></body></html>"""
     (DOCS / "index.html").write_text(html)
@@ -428,8 +428,18 @@ def save_strikes(t, row, by_strike):
     return out
 
 
+_PX_CACHE = {}
+
+
 def intraday_prices(t, day, hist):
     """1-minute prices for today from Yahoo (free); falls back to our own snapshots."""
+    if (t, day) in _PX_CACHE:
+        return _PX_CACHE[(t, day)]
+    _PX_CACHE[(t, day)] = _intraday_prices(t, day, hist)
+    return _PX_CACHE[(t, day)]
+
+
+def _intraday_prices(t, day, hist):
     try:
         import yfinance as yf
         sym = CONFIG.get("yahoo_symbols", {}).get(t, t)
@@ -537,6 +547,46 @@ def draw_levels_map(t, row, by_strike, hist, strikes_today):
     return out
 
 
+def write_live_json(t, row, by_strike, hist, strikes_today):
+    """Data for the live web page (docs/live.html): gamma per strike + today's minute prices."""
+    spot, now = row["spot"], pd.Timestamp(row["time_et"]).tz_localize(ET)
+    band = spot * 0.03
+    if not pd.isna(row["flip"]) and abs(row["flip"] - spot) < spot * 0.05:
+        band = max(band, abs(row["flip"] - spot) * 1.15)
+    bs, major_pos, major_neg = key_strikes(row, by_strike, band)
+    prior = {}
+    if strikes_today is not None and len(strikes_today):
+        st = strikes_today.copy()
+        st["t"] = pd.to_datetime(st["time_et"]).dt.tz_localize(ET)
+        times = st["t"].drop_duplicates().sort_values()
+        for mins in (5, 15, 30):
+            target = now - pd.Timedelta(minutes=mins)
+            near_t = times[(times - target).abs() <= pd.Timedelta(minutes=4)]
+            if len(near_t):
+                tt = near_t.iloc[(near_t - target).abs().argmin()]
+                snap = st[st["t"] == tt]
+                prior[mins] = dict(zip(snap["strike"], snap["oi_net"]))
+    strikes = []
+    for k, r in bs.iterrows():
+        item = {"k": float(k), "oi": round(r["net"] / 1e9, 4), "vol": round(r["vnet"] / 1e9, 4)}
+        for mins, d in prior.items():
+            if k in d:
+                item[f"oi{mins}"] = round(d[k] / 1e9, 4)
+        strikes.append(item)
+    px = intraday_prices(t, now.date(), hist)
+    clean = lambda v: None if v is None or (isinstance(v, float) and math.isnan(v)) else float(v)
+    out = {
+        "ticker": t, "time_et": row["time_et"], "date": str(now.date()),
+        "updated_utc": pd.Timestamp.now(tz="UTC").isoformat(),
+        "spot": row["spot"], "net_gex_bn": row["net_gex_bn"], "flip": clean(row["flip"]),
+        "call_wall": clean(row["call_wall"]), "put_wall": clean(row["put_wall"]),
+        "major_pos": clean(major_pos), "major_neg": clean(major_neg),
+        "strikes": strikes,
+        "prices": [[int(ts.timestamp() * 1000), round(float(p), 2)] for ts, p in px.items()],
+    }
+    (DOCS / f"{t}_live.json").write_text(json.dumps(out, separators=(",", ":")))
+
+
 def write_pine(t, row, by_strike):
     """TradingView indicator (paste into the Pine Editor) that draws today's levels."""
     spot = row["spot"]
@@ -596,6 +646,7 @@ def run_once(force=False, charts_only=False, file=None):
             try:
                 st = save_strikes(t, row, by_strike)
                 draw_levels_map(t, row, by_strike, h, st)
+                write_live_json(t, row, by_strike, h, st)
                 write_pine(t, row, by_strike)
             except Exception as e:
                 print(f"  {t}: gamma map failed - {e}", file=sys.stderr)
