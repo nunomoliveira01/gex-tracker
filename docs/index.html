@@ -5,19 +5,137 @@ img{width:100%;margin:8px 0;border:1px solid #eee}table{border-collapse:collapse
 td,th{border:1px solid #ddd;padding:6px 10px;text-align:center}.neg{color:#c0392b;font-weight:600}
 .pos{color:#2e7d5b;font-weight:600}small{color:#888;font-weight:400}footer{color:#888;font-size:12px}</style></head>
 <body><h1>Dealer gamma tracker</h1>
-<section><h2>SPY <small>2026-11-16 15:24 ET</small></h2>
+<section><h2>SPY <small>2026-11-16 16:30 ET</small></h2>
 <p class="neg">NEGATIVE gamma: dealer hedging adds to moves</p>
 <table><tr><th>Price</th><th>Net gamma ($bn / 1%)</th><th>Gamma flip</th><th>Call wall</th><th>Put wall</th><th>Put/call volume</th></tr>
-<tr><td>740.2</td><td>-15.73</td><td>756.11</td><td>775</td><td>740</td><td>1.381</td></tr></table>
-<img src="SPY_timeline.png?v=1794860703" onerror="this.style.display='none'">
-<img src="SPY_profile.png?v=1794860703" onerror="this.style.display='none'">
+<tr><td>740.14</td><td>-17.41</td><td>756.91</td><td>775</td><td>740</td><td>1.368</td></tr></table>
+<img src="SPY_map.png?v=1794864713" onerror="this.style.display='none'">
+<img src="SPY_timeline.png?v=1794864713" onerror="this.style.display='none'">
+<img src="SPY_profile.png?v=1794864713" onerror="this.style.display='none'">
+<details><summary>TradingView levels for SPY (copy into Pine Editor)</summary><textarea readonly rows="12" style="width:100%;font-family:monospace" onclick="this.select()">//@version=5
+// SPY dealer gamma levels, 2026-11-16 16:30 ET (free Cboe data). Net gamma -17.41bn per 1%.
+indicator("SPY gamma levels 2026-11-16 16:30", overlay=true, max_labels_count=50)
+hline(756.91, "Zero gamma (flip) 756.91", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
+if barstate.islast
+    label.new(bar_index + 2, 756.91, "Zero gamma (flip) 756.91", style=label.style_none, textcolor=color.orange, size=size.small)
+hline(740, "Put wall 740", color=color.red, linestyle=hline.style_dashed, linewidth=3)
+if barstate.islast
+    label.new(bar_index + 2, 740, "Put wall 740", style=label.style_none, textcolor=color.red, size=size.small)
+hline(775, "Call wall 775", color=color.green, linestyle=hline.style_dashed, linewidth=3)
+if barstate.islast
+    label.new(bar_index + 2, 775, "Call wall 775", style=label.style_none, textcolor=color.green, size=size.small)
+hline(730, "Neg gamma 730", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 730, "Neg gamma 730", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(750, "Neg gamma 750", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 750, "Neg gamma 750", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(720, "Neg gamma 720", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 720, "Neg gamma 720", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(725, "Neg gamma 725", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 725, "Neg gamma 725", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(735, "Neg gamma 735", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 735, "Neg gamma 735", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(770, "Pos gamma 770", color=color.new(color.green, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 770, "Pos gamma 770", style=label.style_none, textcolor=color.new(color.green, 40), size=size.small)
+hline(774, "Pos gamma 774", color=color.new(color.green, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 774, "Pos gamma 774", style=label.style_none, textcolor=color.new(color.green, 40), size=size.small)
+</textarea></details>
 </section>
-<section><h2>QQQ <small>2026-11-16 15:24 ET</small></h2>
+<section><h2>QQQ <small>2026-11-16 16:30 ET</small></h2>
 <p class="neg">NEGATIVE gamma: dealer hedging adds to moves</p>
 <table><tr><th>Price</th><th>Net gamma ($bn / 1%)</th><th>Gamma flip</th><th>Call wall</th><th>Put wall</th><th>Put/call volume</th></tr>
-<tr><td>663.43</td><td>-6.85</td><td>688.19</td><td>700</td><td>680</td><td>1.06</td></tr></table>
-<img src="QQQ_timeline.png?v=1794860703" onerror="this.style.display='none'">
-<img src="QQQ_profile.png?v=1794860703" onerror="this.style.display='none'">
+<tr><td>662.27</td><td>-7.08</td><td>689.16</td><td>700</td><td>680</td><td>1.044</td></tr></table>
+<img src="QQQ_map.png?v=1794864713" onerror="this.style.display='none'">
+<img src="QQQ_timeline.png?v=1794864713" onerror="this.style.display='none'">
+<img src="QQQ_profile.png?v=1794864713" onerror="this.style.display='none'">
+<details><summary>TradingView levels for QQQ (copy into Pine Editor)</summary><textarea readonly rows="12" style="width:100%;font-family:monospace" onclick="this.select()">//@version=5
+// QQQ dealer gamma levels, 2026-11-16 16:30 ET (free Cboe data). Net gamma -7.08bn per 1%.
+indicator("QQQ gamma levels 2026-11-16 16:30", overlay=true, max_labels_count=50)
+hline(689.16, "Zero gamma (flip) 689.16", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
+if barstate.islast
+    label.new(bar_index + 2, 689.16, "Zero gamma (flip) 689.16", style=label.style_none, textcolor=color.orange, size=size.small)
+hline(680, "Put wall 680", color=color.red, linestyle=hline.style_dashed, linewidth=3)
+if barstate.islast
+    label.new(bar_index + 2, 680, "Put wall 680", style=label.style_none, textcolor=color.red, size=size.small)
+hline(700, "Call wall 700", color=color.green, linestyle=hline.style_dashed, linewidth=3)
+if barstate.islast
+    label.new(bar_index + 2, 700, "Call wall 700", style=label.style_none, textcolor=color.green, size=size.small)
+hline(650, "Neg gamma 650", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 650, "Neg gamma 650", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(670, "Neg gamma 670", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 670, "Neg gamma 670", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(662, "Neg gamma 662", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 662, "Neg gamma 662", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(660, "Neg gamma 660", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 660, "Neg gamma 660", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(640, "Neg gamma 640", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 640, "Neg gamma 640", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(695, "Pos gamma 695", color=color.new(color.green, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 695, "Pos gamma 695", style=label.style_none, textcolor=color.new(color.green, 40), size=size.small)
+hline(686, "Pos gamma 686", color=color.new(color.green, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 686, "Pos gamma 686", style=label.style_none, textcolor=color.new(color.green, 40), size=size.small)
+hline(683, "Pos gamma 683", color=color.new(color.green, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 683, "Pos gamma 683", style=label.style_none, textcolor=color.new(color.green, 40), size=size.small)
+</textarea></details>
+</section>
+<section><h2>SPX <small>2026-11-16 16:31 ET</small></h2>
+<p class="neg">NEGATIVE gamma: dealer hedging adds to moves</p>
+<table><tr><th>Price</th><th>Net gamma ($bn / 1%)</th><th>Gamma flip</th><th>Call wall</th><th>Put wall</th><th>Put/call volume</th></tr>
+<tr><td>7416.59</td><td>-108.58</td><td>7612.88</td><td>7000</td><td>7000</td><td>1.234</td></tr></table>
+<img src="SPX_map.png?v=1794864713" onerror="this.style.display='none'">
+<img src="SPX_timeline.png?v=1794864713" onerror="this.style.display='none'">
+<img src="SPX_profile.png?v=1794864713" onerror="this.style.display='none'">
+<details><summary>TradingView levels for SPX (copy into Pine Editor)</summary><textarea readonly rows="12" style="width:100%;font-family:monospace" onclick="this.select()">//@version=5
+// SPX dealer gamma levels, 2026-11-16 16:31 ET (free Cboe data). Net gamma -108.58bn per 1%.
+indicator("SPX gamma levels 2026-11-16 16:31", overlay=true, max_labels_count=50)
+hline(7612.88, "Zero gamma (flip) 7612.88", color=color.orange, linestyle=hline.style_dashed, linewidth=2)
+if barstate.islast
+    label.new(bar_index + 2, 7612.88, "Zero gamma (flip) 7612.88", style=label.style_none, textcolor=color.orange, size=size.small)
+hline(7000, "Put wall 7000", color=color.red, linestyle=hline.style_dashed, linewidth=3)
+if barstate.islast
+    label.new(bar_index + 2, 7000, "Put wall 7000", style=label.style_none, textcolor=color.red, size=size.small)
+hline(7500, "Neg gamma 7500", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7500, "Neg gamma 7500", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(7300, "Neg gamma 7300", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7300, "Neg gamma 7300", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(7400, "Neg gamma 7400", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7400, "Neg gamma 7400", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(7415, "Neg gamma 7415", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7415, "Neg gamma 7415", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(7420, "Neg gamma 7420", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7420, "Neg gamma 7420", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(7250, "Neg gamma 7250", color=color.new(color.red, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7250, "Neg gamma 7250", style=label.style_none, textcolor=color.new(color.red, 40), size=size.small)
+hline(7700, "Pos gamma 7700", color=color.new(color.green, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7700, "Pos gamma 7700", style=label.style_none, textcolor=color.new(color.green, 40), size=size.small)
+hline(7750, "Pos gamma 7750", color=color.new(color.green, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7750, "Pos gamma 7750", style=label.style_none, textcolor=color.new(color.green, 40), size=size.small)
+hline(7775, "Pos gamma 7775", color=color.new(color.green, 40), linestyle=hline.style_dashed, linewidth=1)
+if barstate.islast
+    label.new(bar_index + 2, 7775, "Pos gamma 7775", style=label.style_none, textcolor=color.new(color.green, 40), size=size.small)
+</textarea></details>
 </section>
 <footer>Free Cboe delayed data, ~15 min delay. Estimates assume dealers are long calls and short puts.
 Not investment advice. Page refreshes every 5 minutes.</footer></body></html>
