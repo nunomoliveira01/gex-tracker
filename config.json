@@ -28,12 +28,16 @@
     "ES": {
       "yahoo": "ES=F",
       "index": "SPX",
-      "index_yahoo": "^GSPC"
+      "index_yahoo": "^GSPC",
+      "etf": "SPY",
+      "bin": 5
     },
     "NQ": {
       "yahoo": "NQ=F",
       "index": "NDX",
-      "index_yahoo": "^NDX"
+      "index_yahoo": "^NDX",
+      "etf": "QQQ",
+      "bin": 25
     }
   }
 }

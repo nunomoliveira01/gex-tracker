@@ -757,52 +757,117 @@ def yahoo_minutes(sym, period="5d"):
     return px
 
 
+def _legs(df, S, now, to_fut):
+    """One product's options, gamma re-priced at underlying price S, strikes expressed in futures points."""
+    after_close = now.hour >= 16
+    df = df[(df["expiry"] > now.date()) | ((df["expiry"] == now.date()) & (not after_close))]
+    df = df[(df["oi"] > 0) | (df["volume"] > 0)]
+    df = df[(df["strike"] > S * 0.7) & (df["strike"] < S * 1.3) & (df["iv"] > 0.01)].copy()
+    T = years_to_expiry(df["expiry"].to_numpy(), now)
+    K, iv = df["strike"].to_numpy(), df["iv"].to_numpy()
+    g = bs_gamma(S, K, iv, T)
+    sign = np.where(df["type"].to_numpy() == "C", 1.0, -1.0)
+    return pd.DataFrame({"kf": to_fut(K), "type": df["type"].to_numpy(),
+                         "gex": sign * g * df["oi"].to_numpy() * 100 * S * S * 0.01,
+                         "vgex": sign * g * df["volume"].to_numpy() * 100 * S * S * 0.01,
+                         "K": K, "iv": iv, "T": T, "w": sign * df["oi"].to_numpy() * 100})
+
+
 def run_future(f, cfg, now):
-    """Gamma map for ES/NQ: index options (SPX/NDX) re-priced at the futures-implied index level and
-    shifted by the futures basis so every level reads in futures points."""
-    idx = cfg["index"]
-    raw = fetch_chain(CONFIG.get("cboe_symbols", {}).get(idx, idx))
-    idx_cboe, _, df = parse_chain(raw)
+    """Gamma map for ES/NQ in futures points, combining the index options (SPX/NDX) and the ETF options
+    (SPY/QQQ). Each product's gamma is re-priced at the price the futures imply for it right now:
+    index = futures - basis, ETF = futures / ratio (both measured during the last US session)."""
     fut = yahoo_minutes(cfg["yahoo"], "5d")
     if fut.empty:
         raise RuntimeError(f"no Yahoo prices for {cfg['yahoo']}")
-    # basis = futures minus index, measured at the same minute during the last US session
-    try:
-        ix = yahoo_minutes(cfg["index_yahoo"], "5d")
-        both = pd.concat([fut.rename("f"), ix.rename("i")], axis=1, join="inner").dropna()
-        both = both[(both.index.hour * 60 + both.index.minute >= 9 * 60 + 35) &
-                    (both.index.hour * 60 + both.index.minute <= 15 * 60 + 59)]
-        basis = float(both["f"].iloc[-1] - both["i"].iloc[-1])
-    except Exception:
-        basis = float(fut.iloc[-1] - idx_cboe)
     fut_now, fut_time = float(fut.iloc[-1]), fut.index[-1]
-    implied = fut_now - basis
-    row, by_strike = analyse(implied, now, df, reprice=True)
-    row["time_et"] = now.strftime("%Y-%m-%d %H:%M")
-    # session window: from the last 18:00 New York open to the next 17:00 close
+
+    def last_session_pair(other):
+        both = pd.concat([fut.rename("f"), other.rename("o")], axis=1, join="inner").dropna()
+        mins = both.index.hour * 60 + both.index.minute
+        both = both[(mins >= 9 * 60 + 35) & (mins <= 15 * 60 + 59)]
+        return both.iloc[-1]
+
+    parts, info = [], {}
+    # index options: futures = index + basis
+    idx_raw = fetch_chain(CONFIG.get("cboe_symbols", {}).get(cfg["index"], cfg["index"]))
+    idx_cboe, _, idx_df = parse_chain(idx_raw)
+    try:
+        pr = last_session_pair(yahoo_minutes(cfg["index_yahoo"], "5d"))
+        basis = float(pr["f"] - pr["o"])
+    except Exception:
+        basis = fut_now - idx_cboe
+    li = _legs(idx_df, fut_now - basis, now, lambda k: k + basis)
+    parts.append(("index", li, lambda F: F - basis))
+    info["basis"] = round(basis, 2)
+    # ETF options: futures = ETF x ratio
+    if cfg.get("etf"):
+        try:
+            etf_raw = fetch_chain(cfg["etf"])
+            etf_cboe, _, etf_df = parse_chain(etf_raw)
+            try:
+                pr = last_session_pair(yahoo_minutes(cfg["etf"], "5d"))
+                ratio = float(pr["f"] / pr["o"])
+            except Exception:
+                ratio = fut_now / etf_cboe
+            le = _legs(etf_df, fut_now / ratio, now, lambda k: k * ratio)
+            parts.append(("etf", le, lambda F: F / ratio))
+            info["ratio"] = round(ratio, 4)
+        except Exception as e:
+            print(f"  {f}: {cfg['etf']} options not added - {e}", file=sys.stderr)
+
+    allp = pd.concat([p[1] for p in parts], ignore_index=True)
+    info["gex_index_bn"] = round(parts[0][1]["gex"].sum() / 1e9, 3)
+    info["gex_etf_bn"] = round(parts[1][1]["gex"].sum() / 1e9, 3) if len(parts) > 1 else None
+    net = allp["gex"].sum()
+
+    # per-strike view on a common futures grid
+    step = cfg.get("bin", 10)
+    allp["kb"] = (allp["kf"] / step).round() * step
+    near = allp[(allp["kb"] > fut_now * 0.85) & (allp["kb"] < fut_now * 1.15)]
+    by_strike = pd.DataFrame(index=np.sort(near["kb"].unique()))
+    for col, src, typ in [("C", "gex", "C"), ("P", "gex", "P"), ("vC", "vgex", "C"), ("vP", "vgex", "P")]:
+        by_strike[col] = near[near["type"] == typ].groupby("kb")[src].sum()
+    by_strike = by_strike.fillna(0.0)
+    by_strike["net"], by_strike["vnet"] = by_strike["C"] + by_strike["P"], by_strike["vC"] + by_strike["vP"]
+    wb = by_strike[(by_strike.index > fut_now * 0.95) & (by_strike.index < fut_now * 1.05)]
+    above, below = wb[wb.index >= fut_now], wb[wb.index <= fut_now]
+    call_wall = float(above["C"].idxmax()) if len(above) and above["C"].max() > 0 else np.nan
+    put_wall = float(below["P"].idxmin()) if len(below) and below["P"].min() < 0 else np.nan
+
+    # gamma flip: re-price every product over a grid of futures prices
+    grid = np.linspace(fut_now * 0.85, fut_now * 1.15, 241)
+    curve = np.zeros_like(grid)
+    for _, lg, to_under in parts:
+        S = to_under(grid)[:, None]
+        curve += (bs_gamma(S, lg["K"].to_numpy()[None, :], lg["iv"].to_numpy()[None, :], lg["T"].to_numpy()[None, :])
+                  * lg["w"].to_numpy()[None, :]).sum(axis=1) * (S[:, 0] ** 2) * 0.01
+    flip = np.nan
+    cross = np.where(np.diff(np.sign(curve)) != 0)[0]
+    if len(cross):
+        i = cross[np.argmin(np.abs(grid[cross] - fut_now))]
+        flip = float(grid[i] - curve[i] * (grid[i + 1] - grid[i]) / (curve[i + 1] - curve[i]))
+
+    row = {"time_et": now.strftime("%Y-%m-%d %H:%M"), "spot": round(fut_now, 2), "net_gex_bn": round(net / 1e9, 3),
+           "call_wall": call_wall, "put_wall": put_wall, "flip": round(flip, 2) if not np.isnan(flip) else np.nan,
+           "pc_volume_ratio": np.nan, "put_volume": 0, "call_volume": 0}
     open_ = now.normalize() + pd.Timedelta(hours=18)
     if now < open_:
         open_ -= pd.Timedelta(days=1)
-    if open_.weekday() == 5:          # Saturday -> session opened Sunday evening? use Friday's open
-        open_ -= pd.Timedelta(days=1)
     window = (open_, open_ + pd.Timedelta(hours=23))
     prices = fut[fut.index >= open_ - pd.Timedelta(hours=1)]
-    hist_row = {**row, "spot": round(fut_now, 2)}
-    for k in ("flip", "call_wall", "put_wall"):
-        if not pd.isna(hist_row[k]):
-            hist_row[k] = round(hist_row[k] + basis, 2)
-    h = append_history(f, hist_row)
+    h = append_history(f, row)
     st = save_strikes(f, row, by_strike)
     delay = max(0, int((pd.Timestamp.now(tz=ET) - fut_time).total_seconds() // 60))
-    write_live_json(f, row, by_strike, h, st, offset=basis, prices=prices, window=window,
-                    extra={"basis": round(basis, 2), "index": idx, "index_implied": round(implied, 2),
+    write_live_json(f, row, by_strike, h, st, prices=prices, window=window,
+                    extra={**info, "index": cfg["index"], "etf": cfg.get("etf"),
                            "price_time_et": fut_time.strftime("%Y-%m-%d %H:%M"), "price_delay_min": delay,
                            "futures": True,
                            "prev_close": round(float(fut[fut.index < open_].iloc[-1]), 2) if (fut.index < open_).any() else None})
-    print(f"  {f} {row['time_et']}: futures {fut_now:.2f} (price {delay} min old), basis {basis:+.2f}, "
-          f"net gamma {row['net_gex_bn']:+.2f}bn, flip {hist_row['flip']}, put wall {hist_row['put_wall']}, "
-          f"call wall {hist_row['call_wall']}")
-    return hist_row
+    print(f"  {f} {row['time_et']}: futures {fut_now:.2f} (price {delay} min old), net gamma {row['net_gex_bn']:+.2f}bn "
+          f"({cfg['index']} {info['gex_index_bn']:+.2f} + {cfg.get('etf')} {info['gex_etf_bn']}), flip {row['flip']}, "
+          f"put wall {put_wall}, call wall {call_wall}")
+    return row
 
 
 def market_open(now):

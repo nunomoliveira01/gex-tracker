@@ -168,7 +168,9 @@ function renderHead(t) {
     `<span>Flip <b style="color:var(--orange)">${fmt(d.flip)}</b></span>` +
     `<span>Put wall <b style="color:var(--red)">${fmt(d.put_wall,0)}</b></span>` +
     `<span>Call wall <b style="color:var(--green)">${fmt(d.call_wall,0)}</b></span>` +
-    (d.futures ? `<span style="color:#777">base ${d.basis > 0 ? "+" : ""}${fmt(d.basis)} vs ${d.index} · preço com ~${d.price_delay_min} min de atraso · gamma das opções do ${d.index}</span>`
+    (d.futures ? `<span style="color:#777">gamma = opções do ${d.index} (${fmt(d.gex_index_bn,1)}bn)` +
+        (d.etf && d.gex_etf_bn != null ? ` + do ${d.etf} (${fmt(d.gex_etf_bn,1)}bn, ×${fmt(d.ratio,2)})` : "") +
+        ` · preço com ~${d.price_delay_min} min de atraso</span>`
                : `<span style="color:#777">gamma de ${d.time_et} ET</span>`) + staleNote(d);
 }
 
