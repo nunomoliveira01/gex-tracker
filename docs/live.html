@@ -222,7 +222,14 @@ setInterval(() => {
 // ---------- drawing (same layout as the gamma map image)
 function draw(t) {
   const s = state[t], d = s.data, cv = document.getElementById("cv-" + t);
-  if (!d || !d.strikes.length || !(tab === "TODOS" || tab === t)) return;
+  if (!(tab === "TODOS" || tab === t)) return;
+  if (!d || !d.strikes.length) {
+    const g0 = cv.getContext("2d"), dpr0 = window.devicePixelRatio || 1;
+    cv.width = cv.clientWidth * dpr0; cv.height = cv.clientHeight * dpr0; g0.setTransform(dpr0, 0, 0, dpr0, 0, 0);
+    g0.fillStyle = "#888"; g0.font = "14px system-ui"; g0.textAlign = "center";
+    g0.fillText("Ainda sem dados para " + t + " — aparecem na próxima atualização (5 min).", cv.clientWidth / 2, 60);
+    return;
+  }
   const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
   if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -234,7 +241,9 @@ function draw(t) {
   const cur = s.last ?? d.spot;
   let ymin = Math.min(ks[0], cur) - step, ymax = Math.max(ks[ks.length - 1], cur) + step;
   const Y = v => T + (ymax - v) / (ymax - ymin) * ph;
-  const x0 = d.x_start_ms, x1 = d.x_end_ms;
+  let x0 = d.x_start_ms, x1 = d.x_end_ms;
+  if (!x0 || !x1) {   // older data files: assume the 9:30-16:00 New York session of the first price
+    x0 = d.prices.length ? d.prices[0][0] : Date.now() - 6.5 * 3600e3; x1 = x0 + 6.5 * 3600e3; }
   const X = ms => L + (ms - x0) / (x1 - x0) * pw;
 
   // axes + grid
