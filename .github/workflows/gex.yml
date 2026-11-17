@@ -1,16 +1,23 @@
 name: Dealer gamma snapshot
 
+# How it keeps running: every run starts the next one ~5 minutes after it began (GitHub's own
+# timer is unreliable for frequent schedules). The cron below is only a backup that restarts the
+# chain if it ever breaks. The script decides what to do each time:
+#  - US cash market open: SPY, QQQ, SPX, retail gauge, plus ES/NQ futures
+#  - only futures open (Europe/Asia hours): ES/NQ futures only
+#  - everything closed: nothing (and the next check is ~1 hour later)
 on:
   schedule:
-    # every 5 minutes from Sunday 22:00 UTC to Friday night; the script itself decides what to do:
-    #  - US cash market open: SPY, QQQ, SPX, retail gauge, plus ES/NQ futures
-    #  - only futures open (Europe/Asia hours): ES/NQ futures only
-    #  - everything closed: nothing
-    - cron: "*/5 22,23 * * 0"
-    - cron: "*/5 * * * 1-5"
-  workflow_dispatch: {}   # "Run workflow" button (forces a full run)
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Run a full snapshot even if markets are closed"
+        type: boolean
+        default: true
 
 permissions:
+  actions: write
   contents: write
   pages: write
   id-token: write
@@ -22,11 +29,13 @@ concurrency:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 80
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      - name: Note start time
+        run: echo "START=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -45,7 +54,7 @@ jobs:
       - name: Take snapshot
         id: run
         run: |
-          python gex.py ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }} | tee run.log
+          python gex.py ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '--force' || '' }} | tee run.log
           if grep -q "nothing to do" run.log; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
       - name: Save history (data only)
         if: steps.run.outputs.skip != 'true'
@@ -68,3 +77,17 @@ jobs:
       - id: deploy
         if: steps.run.outputs.skip != 'true'
         uses: actions/deploy-pages@v4
+      - name: Start the next run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ steps.run.outputs.skip }}" = "true" ]; then wait=3300; else wait=$(( 300 - ($(date +%s) - START) )); fi
+          if [ "$wait" -gt 0 ]; then sleep "$wait"; fi
+          queued=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/gex.yml/runs?status=queued" --jq '.total_count')
+          pending=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/gex.yml/runs?status=pending" --jq '.total_count')
+          if [ "$queued" = "0" ] && [ "$pending" = "0" ]; then
+            gh workflow run gex.yml --ref main -f force=false && echo "next run started"
+          else
+            echo "another run is already waiting - not starting a new one"
+          fi
