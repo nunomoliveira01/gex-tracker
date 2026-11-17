@@ -5,6 +5,7 @@ option chains (about 15 minutes behind). Each snapshot adds a row to a history f
 
 - **Timeline chart**: price, dealer gamma line, and a put/call "fear" bar per day (like the Marmus chart)
 - **Gamma by strike chart**: where gamma sits right now, with gamma flip, call wall and put wall
+- **Futures (ES, NQ)**: gamma levels from SPX/NDX options shown in futures prices, updated every 5 minutes also during European hours (Sunday 23:00 to Friday 22:00 Lisbon time)
 - **Gamma map**: today's price line drawn over horizontal gamma bars per strike (from open interest and from today's volume), with dots showing where each bar was 5, 15 and 30 minutes earlier
 - **TradingView levels**: a ready-made indicator (`docs/<TICKER>_levels.pine`, also on the web page) that draws the flip, walls and biggest gamma strikes on your TradingView chart
 - **A web page** (`docs/index.html`) showing both charts plus today's key levels

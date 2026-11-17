@@ -23,5 +23,17 @@
   "retail_symbols": [
     "_XSP",
     "XSP"
-  ]
+  ],
+  "futures": {
+    "ES": {
+      "yahoo": "ES=F",
+      "index": "SPX",
+      "index_yahoo": "^GSPC"
+    },
+    "NQ": {
+      "yahoo": "NQ=F",
+      "index": "NDX",
+      "index_yahoo": "^NDX"
+    }
+  }
 }

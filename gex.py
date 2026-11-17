@@ -127,8 +127,16 @@ def bs_gamma(S, K, iv, T):
     return np.exp(-0.5 * d1 ** 2) / (np.sqrt(2 * np.pi) * S * iv * sqrtT)
 
 
-def analyse(spot, now, df):
-    """Work out everything we want from one snapshot."""
+def analyse(spot, now, df, reprice=False):
+    """Work out everything we want from one snapshot. reprice=True recomputes each option's gamma at
+    `spot` (used outside US hours, when Cboe's gamma is from the last close but futures have moved)."""
+    if reprice:
+        df = df.copy()
+        T = years_to_expiry(df["expiry"].to_numpy(), now)
+        ok = (df["iv"] > 0.01).to_numpy()
+        g = np.zeros(len(df))
+        g[ok] = bs_gamma(spot, df["strike"].to_numpy()[ok], df["iv"].to_numpy()[ok], T[ok])
+        df["gamma"] = g
     # put/call volume uses every option that traded today (including ones expiring today)
     pv = df.loc[(df["type"] == "P") & (df["expiry"] >= now.date()), "volume"].sum()
     cv = df.loc[(df["type"] == "C") & (df["expiry"] >= now.date()), "volume"].sum()
@@ -654,8 +662,9 @@ def draw_levels_map(t, row, by_strike, hist, strikes_today):
     return out
 
 
-def write_live_json(t, row, by_strike, hist, strikes_today):
-    """Data for the live web page (docs/live.html): gamma per strike + today's minute prices."""
+def write_live_json(t, row, by_strike, hist, strikes_today, offset=0.0, prices=None, window=None, extra=None):
+    """Data for the live web page (docs/live.html): gamma per strike + today's minute prices.
+    For futures, `row`/`by_strike` are in index points and `offset` (the futures basis) is added to every level."""
     spot, now = row["spot"], pd.Timestamp(row["time_et"]).tz_localize(ET)
     band = spot * 0.03
     if not pd.isna(row["flip"]) and abs(row["flip"] - spot) < spot * 0.05:
@@ -675,20 +684,24 @@ def write_live_json(t, row, by_strike, hist, strikes_today):
                 prior[mins] = dict(zip(snap["strike"], snap["oi_net"]))
     strikes = []
     for k, r in bs.iterrows():
-        item = {"k": float(k), "oi": round(r["net"] / 1e9, 4), "vol": round(r["vnet"] / 1e9, 4)}
+        item = {"k": round(float(k) + offset, 2), "oi": round(r["net"] / 1e9, 4), "vol": round(r["vnet"] / 1e9, 4)}
         for mins, d in prior.items():
             if k in d:
                 item[f"oi{mins}"] = round(d[k] / 1e9, 4)
         strikes.append(item)
-    px = intraday_prices(t, now.date(), hist)
-    clean = lambda v: None if v is None or (isinstance(v, float) and math.isnan(v)) else float(v)
+    px = intraday_prices(t, now.date(), hist) if prices is None else prices
+    clean = lambda v: None if v is None or (isinstance(v, float) and math.isnan(v)) else round(float(v) + offset, 2)
+    if window is None:
+        start = now.normalize() + pd.Timedelta(hours=9, minutes=30)
+        window = (start, start + pd.Timedelta(hours=6, minutes=30))
     out = {
         "ticker": t, "time_et": row["time_et"], "date": str(now.date()),
         "updated_utc": pd.Timestamp.now(tz="UTC").isoformat(),
-        "spot": row["spot"], "net_gex_bn": row["net_gex_bn"], "flip": clean(row["flip"]),
+        "spot": round(row["spot"] + offset, 2), "net_gex_bn": row["net_gex_bn"], "flip": clean(row["flip"]),
         "call_wall": clean(row["call_wall"]), "put_wall": clean(row["put_wall"]),
         "major_pos": clean(major_pos), "major_neg": clean(major_neg),
-        "strikes": strikes,
+        "x_start_ms": int(window[0].timestamp() * 1000), "x_end_ms": int(window[1].timestamp() * 1000),
+        "strikes": strikes, **(extra or {}),
         "prices": [[int(ts.timestamp() * 1000), round(float(p), 2)] for ts, p in px.items()],
     }
     (DOCS / f"{t}_live.json").write_text(json.dumps(out, separators=(",", ":")))
@@ -724,6 +737,70 @@ def write_pine(t, row, by_strike):
 
 
 # ----------------------------------------------------------------------------- main
+# ----------------------------------------------------------------------------- futures (ES / NQ)
+def futures_open(now):
+    """CME equity futures: Sunday 18:00 to Friday 17:00 New York time, with a daily break 17:00-18:00."""
+    wd, mins = now.weekday(), now.hour * 60 + now.minute
+    if wd == 5 or (wd == 6 and mins < 18 * 60) or (wd == 4 and mins >= 17 * 60):
+        return False
+    return not (17 * 60 <= mins < 18 * 60)
+
+
+def yahoo_minutes(sym, period="5d"):
+    import yfinance as yf
+    px = yf.Ticker(sym).history(period=period, interval="1m", prepost=True)["Close"].dropna()
+    px.index = px.index.tz_convert(ET)
+    return px
+
+
+def run_future(f, cfg, now):
+    """Gamma map for ES/NQ: index options (SPX/NDX) re-priced at the futures-implied index level and
+    shifted by the futures basis so every level reads in futures points."""
+    idx = cfg["index"]
+    raw = fetch_chain(CONFIG.get("cboe_symbols", {}).get(idx, idx))
+    idx_cboe, _, df = parse_chain(raw)
+    fut = yahoo_minutes(cfg["yahoo"], "5d")
+    if fut.empty:
+        raise RuntimeError(f"no Yahoo prices for {cfg['yahoo']}")
+    # basis = futures minus index, measured at the same minute during the last US session
+    try:
+        ix = yahoo_minutes(cfg["index_yahoo"], "5d")
+        both = pd.concat([fut.rename("f"), ix.rename("i")], axis=1, join="inner").dropna()
+        both = both[(both.index.hour * 60 + both.index.minute >= 9 * 60 + 35) &
+                    (both.index.hour * 60 + both.index.minute <= 15 * 60 + 59)]
+        basis = float(both["f"].iloc[-1] - both["i"].iloc[-1])
+    except Exception:
+        basis = float(fut.iloc[-1] - idx_cboe)
+    fut_now, fut_time = float(fut.iloc[-1]), fut.index[-1]
+    implied = fut_now - basis
+    row, by_strike = analyse(implied, now, df, reprice=True)
+    row["time_et"] = now.strftime("%Y-%m-%d %H:%M")
+    # session window: from the last 18:00 New York open to the next 17:00 close
+    open_ = now.normalize() + pd.Timedelta(hours=18)
+    if now < open_:
+        open_ -= pd.Timedelta(days=1)
+    if open_.weekday() == 5:          # Saturday -> session opened Sunday evening? use Friday's open
+        open_ -= pd.Timedelta(days=1)
+    window = (open_, open_ + pd.Timedelta(hours=23))
+    prices = fut[fut.index >= open_ - pd.Timedelta(hours=1)]
+    hist_row = {**row, "spot": round(fut_now, 2)}
+    for k in ("flip", "call_wall", "put_wall"):
+        if not pd.isna(hist_row[k]):
+            hist_row[k] = round(hist_row[k] + basis, 2)
+    h = append_history(f, hist_row)
+    st = save_strikes(f, row, by_strike)
+    delay = max(0, int((pd.Timestamp.now(tz=ET) - fut_time).total_seconds() // 60))
+    write_live_json(f, row, by_strike, h, st, offset=basis, prices=prices, window=window,
+                    extra={"basis": round(basis, 2), "index": idx, "index_implied": round(implied, 2),
+                           "price_time_et": fut_time.strftime("%Y-%m-%d %H:%M"), "price_delay_min": delay,
+                           "futures": True,
+                           "prev_close": round(float(fut[fut.index < open_].iloc[-1]), 2) if (fut.index < open_).any() else None})
+    print(f"  {f} {row['time_et']}: futures {fut_now:.2f} (price {delay} min old), basis {basis:+.2f}, "
+          f"net gamma {row['net_gex_bn']:+.2f}bn, flip {hist_row['flip']}, put wall {hist_row['put_wall']}, "
+          f"call wall {hist_row['call_wall']}")
+    return hist_row
+
+
 def market_open(now):
     if now.weekday() >= 5:
         return False
@@ -734,10 +811,22 @@ def market_open(now):
 def run_once(force=False, charts_only=False, file=None):
     DOCS.mkdir(exist_ok=True)
     now = pd.Timestamp.now(tz=ET)
-    if not charts_only and not force and not file and not market_open(now):
-        print(f"US market closed ({now:%a %H:%M} ET) - nothing to do. Use --force to run anyway.")
+    cash, fut_open = market_open(now), futures_open(now)
+    if not charts_only and not force and not file and not (cash or fut_open):
+        print(f"US market and futures closed ({now:%a %H:%M} ET) - nothing to do. Use --force to run anyway.")
         return
     latest = {}
+    if not charts_only and not file:
+        for f, cfg in CONFIG.get("futures", {}).items():
+            try:
+                latest[f] = run_future(f, cfg, now)
+            except Exception as e:
+                print(f"  {f}: FAILED - {e}", file=sys.stderr)
+    if not charts_only and not force and not file and not cash:
+        print("  US cash market closed: futures only this run.")
+        if not latest:
+            sys.exit("No futures could be updated - see errors above.")
+        return
     if not charts_only:
         try:
             rr = snapshot_retail(file)
@@ -745,6 +834,8 @@ def run_once(force=False, charts_only=False, file=None):
         except Exception as e:
             print(f"  retail gauge FAILED - {e}", file=sys.stderr)
     for t in CONFIG["tickers"]:
+        if t in CONFIG.get("futures", {}):
+            continue
         try:
             if charts_only:
                 draw_timeline(t, load_history(t))

@@ -2,13 +2,18 @@ name: Dealer gamma snapshot
 
 on:
   schedule:
-    # every 5 minutes, Mon-Fri, 13:00-21:59 UTC (covers US market hours in summer and winter;
-    # the script itself skips runs when the US market is closed)
-    - cron: "*/5 13-21 * * 1-5"
-  workflow_dispatch: {}   # lets you press "Run workflow" by hand
+    # every 5 minutes from Sunday 22:00 UTC to Friday night; the script itself decides what to do:
+    #  - US cash market open: SPY, QQQ, SPX, retail gauge, plus ES/NQ futures
+    #  - only futures open (Europe/Asia hours): ES/NQ futures only
+    #  - everything closed: nothing
+    - cron: "*/5 22,23 * * 0"
+    - cron: "*/5 * * * 1-5"
+  workflow_dispatch: {}   # "Run workflow" button (forces a full run)
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: gex
@@ -17,7 +22,10 @@ concurrency:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,12 +33,38 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
+      # the web page files (charts, json) are kept between runs in a cache, not in the repo history
+      - name: Restore last web page files
+        uses: actions/cache/restore@v4
+        with:
+          path: docs
+          key: docs-${{ github.run_id }}
+          restore-keys: docs-
+      - name: Keep the page template from the repo
+        run: git checkout -- docs/live.html
       - name: Take snapshot
-        run: python gex.py ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
-      - name: Save history and charts
+        id: run
+        run: |
+          python gex.py ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }} | tee run.log
+          if grep -q "nothing to do" run.log; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Save history (data only)
+        if: steps.run.outputs.skip != 'true'
         run: |
           git config user.name "gex-bot"
           git config user.email "gex-bot@users.noreply.github.com"
-          git add data docs
+          git add data
           git diff --cached --quiet || git commit -m "snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
           git push
+      - name: Save web page files
+        if: steps.run.outputs.skip != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: docs
+          key: docs-${{ github.run_id }}
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.run.outputs.skip != 'true'
+        with:
+          path: docs
+      - id: deploy
+        if: steps.run.outputs.skip != 'true'
+        uses: actions/deploy-pages@v4
