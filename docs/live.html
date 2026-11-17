@@ -154,6 +154,12 @@ async function loadData(t) {
   }
 }
 
+function staleNote(d) {   // warn when the script has not updated this chart for a while
+  if (!d || !d.updated_utc) return "";
+  const mins = Math.round((Date.now() - Date.parse(d.updated_utc)) / 60000);
+  return mins > 15 ? `<span style="color:#ff5a4e;font-weight:700">⚠ dados parados há ${mins >= 120 ? Math.round(mins / 60) + " h" : mins + " min"}` +
+    ` (normal com o mercado fechado)</span>` : "";
+}
 function renderHead(t) {
   const d = state[t].data; if (!d) return;
   const reg = d.net_gex_bn < 0 ? '<span class="down">gamma NEGATIVO</span>' : '<span class="up">gamma POSITIVO</span>';
@@ -163,7 +169,7 @@ function renderHead(t) {
     `<span>Put wall <b style="color:var(--red)">${fmt(d.put_wall,0)}</b></span>` +
     `<span>Call wall <b style="color:var(--green)">${fmt(d.call_wall,0)}</b></span>` +
     (d.futures ? `<span style="color:#777">base ${d.basis > 0 ? "+" : ""}${fmt(d.basis)} vs ${d.index} · preço com ~${d.price_delay_min} min de atraso · gamma das opções do ${d.index}</span>`
-               : `<span style="color:#777">gamma de ${d.time_et} ET</span>`);
+               : `<span style="color:#777">gamma de ${d.time_et} ET</span>`) + staleNote(d);
 }
 
 function updateQuote(t) {
