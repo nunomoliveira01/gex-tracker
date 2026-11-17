@@ -37,6 +37,9 @@
   .card .lbl { color:#888; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
   .ok { color:var(--green); } .no { color:#666; } .warn { color:var(--orange); }
   .muted { color:#888; font-size:12px; }
+  .refresh { background:#00e5ff; color:#000; border:0; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px; font-weight:700; }
+  .refresh:disabled { opacity:.6; cursor:wait; }
+  #refreshmsg { color:#aaa; }
   .tabs { display:flex; flex-wrap:wrap; gap:6px; }
   .tabs button { background:#111; color:#ccc; border:1px solid #333; border-radius:18px; padding:6px 14px; cursor:pointer; font-size:14px; }
   .tabs button.on { background:#00e5ff; color:#000; border-color:#00e5ff; font-weight:700; }
@@ -51,7 +54,8 @@
   <div class="quote"><span class="sym">QQQ</span><span class="px" id="px-QQQ">–</span><span class="chg" id="chg-QQQ"></span></div>
   <div class="quote"><span class="sym">ES</span><span class="px" id="px-ES">–</span><span class="chg" id="chg-ES"></span></div>
   <div class="quote"><span class="sym">NQ</span><span class="px" id="px-NQ">–</span><span class="chg" id="chg-NQ"></span></div>
-  <div class="status"><span class="dot" id="livedot"></span><span id="statustext">a ligar…</span>
+  <div class="status"><button class="refresh" id="refreshbtn" title="Ir buscar os dados mais recentes agora">&#8635; Atualizar</button>
+    <span id="refreshmsg"></span><span class="dot" id="livedot"></span><span id="statustext">a ligar…</span>
     <button class="linkbtn" id="changekey" style="display:none">chave</button></div>
 </header>
 
@@ -61,6 +65,17 @@
   <input id="keyinput" placeholder="chave Finnhub" autocomplete="off">
   <button id="savekey">Guardar</button>
   <span style="color:#888">Sem chave, a página mostra o último preço do script (a cada 5 min).</span>
+</div>
+
+<div class="keybox" id="ghbox" style="display:none">
+  <b>Recalcular agora (opcional):</b> sem isto, o botão <i>Atualizar</i> só vai buscar a última leitura (feita a cada 5 min).
+  Para ele também pedir ao GitHub uma leitura nova na hora, cria uma chave com acesso só a este projeto:<br>
+  1. Abre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a><br>
+  2. Nome: <i>gex refresh</i> · Expiration: o que preferires · Repository access: <b>Only select repositories → gex-tracker</b><br>
+  3. Permissions → Repository permissions → <b>Actions: Read and write</b> → Generate token, copia e cola aqui.<br>
+  <input id="ghinput" placeholder="github_pat_…" autocomplete="off">
+  <button id="ghsave">Guardar</button> <button class="linkbtn" id="ghclose">Fechar</button>
+  <span style="color:#888">Fica guardada só neste browser. Só dá para correr o script deste projeto.</span>
 </div>
 
 <main>
@@ -360,6 +375,59 @@ function renderRule() {
     </div>
     <div class="muted">Gamma e prémio de puts da Cboe (~15 min de atraso), atualizado a cada 5 min. O JP usa só puts de 1 contrato compradas ao ask; aqui conta-se todo o prémio de puts XSP com 5+ dias, que é o mais próximo com dados grátis. Não é aconselhamento de investimento.</div>`;
 }
+
+// ---------- refresh button
+const GH_REPO = "nunomoliveira01/gex-tracker";
+function getGh() { try { return localStorage.getItem("ghToken") || ""; } catch { return ""; } }
+function setGh(k) { try { localStorage.setItem("ghToken", k); } catch {} }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function refreshMsg(t) { document.getElementById("refreshmsg").textContent = t; }
+async function reloadAll() { await Promise.all(TICKERS.map(loadData).concat([loadSignal()])); }
+async function gh(path, opts = {}) {
+  const r = await fetch("https://api.github.com/repos/" + GH_REPO + path, { ...opts,
+    headers: { "Authorization": "Bearer " + getGh(), "Accept": "application/vnd.github+json", ...(opts.headers || {}) } });
+  if (r.status === 401 || r.status === 403 || r.status === 404) throw new Error("chave");
+  return r.status === 204 ? null : r.json();
+}
+let refreshing = false;
+async function manualRefresh() {
+  if (refreshing) return; refreshing = true;
+  const btn = document.getElementById("refreshbtn"); btn.disabled = true;
+  try {
+    refreshMsg("a carregar…"); await reloadAll();
+    if (!getGh()) { refreshMsg("dados recarregados · para leitura nova na hora: ⚙"); return; }
+    const before = new Date().toISOString();
+    refreshMsg("a pedir leitura nova ao GitHub…");
+    await gh("/actions/workflows/gex.yml/dispatches", { method:"POST", body: JSON.stringify({ ref:"main", inputs:{ force:"false" } }) });
+    let run = null;
+    for (let i = 0; i < 20 && !run; i++) { await sleep(3000);
+      const rs = await gh("/actions/workflows/gex.yml/runs?event=workflow_dispatch&per_page=5");
+      run = rs.workflow_runs.find(r => r.created_at >= before.slice(0, 19)); }
+    if (!run) throw new Error("não arrancou");
+    const t0 = Date.now();
+    while (Date.now() - t0 < 6 * 60e3) {
+      await sleep(5000);
+      const jobs = await gh(`/actions/runs/${run.id}/jobs`);
+      const snap = jobs.jobs.find(j => j.name === "snapshot");
+      refreshMsg(`a recalcular… ${Math.round((Date.now() - t0) / 1000)}s` + (snap && snap.status === "queued" ? " (em fila)" : ""));
+      if (snap && snap.status === "completed") {
+        if (snap.conclusion !== "success") throw new Error("a corrida falhou");
+        refreshMsg("a publicar…"); await sleep(25000); await reloadAll();
+        refreshMsg("atualizado " + new Date().toLocaleTimeString("pt-PT", { hour:"2-digit", minute:"2-digit" })); return;
+      }
+    }
+    refreshMsg("está a demorar — os dados aparecem sozinhos quando acabar");
+  } catch (e) {
+    if (e.message === "chave") { refreshMsg("chave do GitHub inválida ou sem permissão"); document.getElementById("ghbox").style.display = "block"; }
+    else refreshMsg("erro: " + e.message);
+  } finally { refreshing = false; btn.disabled = false; }
+}
+document.getElementById("refreshbtn").onclick = manualRefresh;
+document.getElementById("refreshbtn").insertAdjacentHTML("afterend", ' <button class="linkbtn" id="ghopen" title="Chave do GitHub para recalcular na hora">&#9881;</button>');
+document.getElementById("ghopen").onclick = () => { document.getElementById("ghinput").value = getGh(); document.getElementById("ghbox").style.display = "block"; };
+document.getElementById("ghclose").onclick = () => document.getElementById("ghbox").style.display = "none";
+document.getElementById("ghsave").onclick = () => { const k = document.getElementById("ghinput").value.trim(); setGh(k);
+  document.getElementById("ghbox").style.display = "none"; refreshMsg(k ? "chave guardada — carrega em Atualizar" : ""); };
 
 // ---------- start
 document.getElementById("savekey").onclick = () => { const k = document.getElementById("keyinput").value.trim(); if (k) { setKey(k); startLive(); } };
