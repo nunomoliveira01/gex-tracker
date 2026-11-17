@@ -254,7 +254,7 @@ function draw(t) {
     g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(v.toFixed(yStep < 1 ? 1 : 0), L - 6, y);
   }
   g.textAlign = "center"; g.textBaseline = "top";
-  const stepH = (x1 - x0) > 12 * 3600e3 ? 2 : 1;
+  const stepH = Math.max(1, Math.ceil(((x1 - x0) / 3600e3) / Math.max(1, pw / 55)));   // keep labels ~55px apart
   for (let ms = Math.ceil(x0 / 3600e3) * 3600e3; ms <= x1; ms += 3600e3) {
     const hr = +lisbon.format(new Date(ms)).slice(0, 2); if (hr % stepH) continue;
     const x = X(ms); g.fillText(lisbon.format(new Date(ms)), x, T + ph + 6);
@@ -349,7 +349,7 @@ function renderRule() {
   const closed = sg.closed || [], total = closed.reduce((a, c) => a + c.pnl, 0), wins = closed.filter(c => c.pnl > 0).length;
   const hist = closed.length ? `${closed.length} trades fechados · ${wins}/${closed.length} ganhos · total <b class="${total >= 0 ? "up" : "down"}">${total >= 0 ? "+" : ""}${fmt(total)} pontos</b>` +
       closed.slice(-5).reverse().map(c => `<br><span class="muted">${c.entry_time.slice(5)} ${fmt(c.entry)}${c.adds.length ? " + " + c.adds.map(a => fmt(a)).join(", ") : ""} → ${c.exit_time.slice(5)} ${fmt(c.exit)}: <span class="${c.pnl >= 0 ? "up" : "down"}">${c.pnl >= 0 ? "+" : ""}${fmt(c.pnl)}</span></span>`).join("")
-    : `<span class="muted">Ainda sem trades fechados (registo começa a ${sg.time_et.slice(0, 10)} no máximo).</span>`;
+    : `<span class="muted">Ainda sem trades fechados.</span>`;
   document.getElementById("rule").innerHTML = `<h2>Regra do JP (SPY) — entra a ${lvl}bn, reforça ao fecho se houver pânico de retalho abaixo da entrada, sai a 0bn</h2>
     <div class="grid">
       <div class="card"><div class="lbl">Posição</div>${status}<br>${pnlTxt}</div>
