@@ -48,7 +48,7 @@ HEADERS = {
     "Accept": "application/json",
 }
 OPT_RE = re.compile(r"^(?P<root>[A-Z_]+?)(?P<exp>\d{6})(?P<cp>[CP])(?P<strike>\d{8})$")
-HIST_COLS = ["time_et", "spot", "net_gex_bn", "call_wall", "put_wall", "flip",
+HIST_COLS = ["time_et", "spot", "net_gex_bn", "call_wall", "put_wall", "flip", "iv30", "rv5", "rv20", "gex_week_bn",
              "pc_volume_ratio", "put_volume", "call_volume"]
 
 
@@ -186,6 +186,13 @@ def analyse(spot, now, df, reprice=False):
             x0, x1, y0, y1 = grid[i], grid[i + 1], curve[i], curve[i + 1]
             flip = float(x0 - y0 * (x1 - x0) / (y1 - y0))
 
+    # implied volatility ~30 days out, near the money (what the options market expects)
+    dte = np.array([(e - now.date()).days for e in df["expiry"]])
+    sel = (dte >= 20) & (dte <= 45) & (np.abs(df["strike"].to_numpy() / spot - 1) < 0.02) & (df["iv"].to_numpy() > 0.01)
+    iv30 = round(float(df["iv"].to_numpy()[sel].mean()), 4) if sel.any() else np.nan
+    # gamma in options that expire by this Friday (released mechanically at expiry)
+    friday = now.date() + timedelta(days=(4 - now.weekday()) % 7)
+    gex_week = df.loc[df["expiry"] <= friday, "gex"].sum()
     return {
         "time_et": now.strftime("%Y-%m-%d %H:%M"),
         "spot": round(spot, 2),
@@ -196,6 +203,8 @@ def analyse(spot, now, df, reprice=False):
         "pc_volume_ratio": round(pv / cv, 3) if cv else np.nan,
         "put_volume": int(pv),
         "call_volume": int(cv),
+        "iv30": iv30,
+        "gex_week_bn": round(gex_week / 1e9, 3),
     }, by_strike
 
 
@@ -339,6 +348,177 @@ def write_signal_json(t, h, level, note, trades, pos, retail_daily):
                            "adds": [{"time": h["time_et"][a[0]].strftime("%Y-%m-%d %H:%M"), "price": a[1]}
                                     for a in pos["adds"]]}
     (DOCS / f"{t}_signal.json").write_text(json.dumps(out))
+
+
+# ----------------------------------------------------------------------------- quant lab (JP's thesis, measured)
+VARIANTS = [
+    ("A", "JP original", "Entra a -10bn, reforça ao fecho com pânico de retalho abaixo da entrada, sai a 0"),
+    ("B", "Entrada faseada", "1/3 a -10bn, 1/3 quando a gamma deixa de cair, 1/3 no pânico de retalho; sai a 0"),
+    ("C", "Filtro de volatilidade", "Como A, mas só entra/reforça se a volatilidade implícita > realizada (condição do JP)"),
+    ("D", "Saída no vencimento", "Como A, mas sai no fecho da sexta de vencimento se >=50% da gamma negativa expirava nessa semana"),
+    ("E", "Tamanho pela volatilidade", "Como A, mas o tamanho é 15% / volatilidade implícita (menos quando o mercado está mais nervoso)"),
+]
+
+
+def gamma_fuel(h, i, minutes=60):
+    """Change in gamma (bn) per 1% price move over the last ~hour of readings on the same day."""
+    t, d = h["time_et"].iloc[i], h["time_et"].iloc[i].date()
+    prior = h[(h["time_et"].dt.date == d) & (h["time_et"] <= t - pd.Timedelta(minutes=minutes - 5))]
+    if prior.empty:
+        return np.nan
+    j = prior.index[-1]
+    dp = (np.log(h["spot"].iloc[i]) - np.log(h["spot"].iloc[j])) * 100
+    if abs(dp) < 0.15:
+        return np.nan
+    return round(float((h["net_gex_bn"].iloc[i] - h["net_gex_bn"].iloc[j]) / dp), 2)
+
+
+def _num(v):
+    return None if v is None or (isinstance(v, float) and math.isnan(v)) else float(v)
+
+
+def simulate_variant(h, vid, zmap, level, zmin, max_adds):
+    """Paper-trade one variant over the saved readings. P&L in SPY points (sum over units x weight)."""
+    dates = h["time_et"].dt.date
+    last_of_day = set(h.groupby(dates).tail(1).index)
+    pos, trades, realized, equity, prev_g = None, [], 0.0, [], None
+    for i in range(len(h)):
+        r = h.iloc[i]
+        g, p, t = float(r["net_gex_bn"]), float(r["spot"]), r["time_et"]
+        iv, rv = r.get("iv30", np.nan), r.get("rv20", np.nan)
+        vol_ok = pd.isna(iv) or pd.isna(rv) or iv > rv
+        is_close = i in last_of_day and t.hour >= 16
+        exited = False
+        if pos is not None:
+            if t.weekday() == 4 and pos.get("fri") is None and t.date() not in pos.get("fri_skip", ()):
+                gw = r.get("gex_week_bn", np.nan)
+                pos["fri"] = (not pd.isna(gw)) and g < 0 and gw / g >= 0.5
+            exit_now = g >= 0 or (vid == "D" and is_close and t.weekday() == 4 and pos.get("fri"))
+            if exit_now:
+                pnl = sum(w * (p - u) for _, u, w in pos["units"])
+                realized += pnl
+                trades.append({"entry_time": h["time_et"].iloc[pos["units"][0][0]].strftime("%Y-%m-%d %H:%M"),
+                               "entry": pos["units"][0][1], "units": [(round(u, 2), round(w, 2)) for _, u, w in pos["units"]],
+                               "exit_time": t.strftime("%Y-%m-%d %H:%M"), "exit": p, "pnl": round(pnl, 2),
+                               "mae": round(pos["mae"], 2)})
+                pos, exited = None, True
+        if pos is None and not exited and g <= level and (vid != "C" or vol_ok):
+            w = 1 / 3 if vid == "B" else (min(2.0, 0.15 / iv) if vid == "E" and not pd.isna(iv) and iv > 0 else 1.0)
+            pos = {"units": [(i, p, w)], "entry_p": p, "w": w, "minG": g, "turned": False, "adds": 0, "mae": 0.0}
+        elif pos is not None:
+            pos["minG"] = min(pos["minG"], g)
+            if vid == "B" and not pos["turned"] and g <= level and prev_g is not None and g > prev_g \
+                    and g - pos["minG"] >= 0.75:
+                pos["units"].append((i, p, 1 / 3))
+                pos["turned"] = True
+            z = zmap.get(t.date())
+            add_ok = is_close and g <= level and z is not None and not pd.isna(z) and z >= zmin \
+                and p < pos["entry_p"] and pos["adds"] < max_adds and (vid != "C" or vol_ok)
+            if add_ok:
+                pos["units"].append((i, p, 1 / 3 if vid == "B" else pos["w"]))
+                pos["adds"] += 1
+        if pos is not None:
+            open_pnl = sum(w * (p - u) for _, u, w in pos["units"])
+            pos["mae"] = min(pos["mae"], open_pnl)
+        else:
+            open_pnl = 0.0
+        equity.append(realized + open_pnl)
+        prev_g = g
+    eq = np.array(equity) if equity else np.array([0.0])
+    maxdd = float(np.max(np.maximum.accumulate(np.maximum(eq, 0)) - eq)) if len(eq) else 0.0
+    cur = float(h["spot"].iloc[-1])
+    out = {"closed": len(trades), "wins": sum(tr["pnl"] > 0 for tr in trades),
+           "realized": round(realized, 2), "max_drawdown": round(maxdd, 2), "trades": trades[-10:], "open": None}
+    if pos is not None:
+        units = pos["units"]
+        size = sum(w for _, _, w in units)
+        out["open"] = {"since": h["time_et"].iloc[units[0][0]].strftime("%Y-%m-%d %H:%M"),
+                       "units": [{"time": h["time_et"].iloc[k].strftime("%Y-%m-%d %H:%M"), "price": round(u, 2),
+                                  "size": round(w, 2)} for k, u, w in units],
+                       "size": round(size, 2), "avg": round(sum(w * u for _, u, w in units) / size, 2),
+                       "pnl": round(sum(w * (cur - u) for _, u, w in units), 2), "worst": round(pos["mae"], 2)}
+    out["total"] = round(realized + (out["open"]["pnl"] if out["open"] else 0), 2)
+    return out
+
+
+def find_cycles(h, level, zmap):
+    """Every cycle 'gamma reaches level -> back to 0', with the measures at the start and the outcome."""
+    dates = h["time_et"].dt.date
+    days = sorted(dates.unique())
+    lasts = h.groupby(dates).tail(1)
+    lasts = lasts[lasts["time_et"].dt.hour >= 16]          # only finished days count as a close
+    day_close = pd.Series(lasts["spot"].to_numpy(), index=lasts["time_et"].dt.date.to_numpy())
+    cycles, cur = [], None
+    for i in range(len(h)):
+        r = h.iloc[i]
+        g, p = float(r["net_gex_bn"]), float(r["spot"])
+        if cur is None and g <= level:
+            iv, rv = r.get("iv30", np.nan), r.get("rv20", np.nan)
+            gw = r.get("gex_week_bn", np.nan)
+            cur = {"start": r["time_et"].strftime("%Y-%m-%d %H:%M"), "start_px": p, "start_i": i,
+                   "gamma": round(g, 2), "fuel": _num(gamma_fuel(h, i)),
+                   "iv30": _num(iv), "rv20": _num(rv),
+                   "vrp": round((iv - rv) * 100, 1) if not (pd.isna(iv) or pd.isna(rv)) else None,
+                   "week_share": round(gw / g, 2) if not pd.isna(gw) and g < 0 else None,
+                   "retail_z": _num(zmap.get(r["time_et"].date())),
+                   "min_gamma": g, "low": p}
+        elif cur is not None:
+            cur["min_gamma"] = min(cur["min_gamma"], g)
+            cur["low"] = min(cur["low"], p)
+            if g >= 0:
+                cur.update({"end": r["time_et"].strftime("%Y-%m-%d %H:%M"), "end_px": p})
+                cycles.append(cur)
+                cur = None
+    if cur is not None:
+        cur.update({"end": None, "end_px": float(h["spot"].iloc[-1])})
+        cycles.append(cur)
+    for c in cycles:
+        c["return_pct"] = round((c["end_px"] / c["start_px"] - 1) * 100, 2)
+        c["worst_pct"] = round((c["low"] / c["start_px"] - 1) * 100, 2)
+        c["min_gamma"] = round(c["min_gamma"], 2)
+        start_t = pd.Timestamp(c["start"])
+        end_t = pd.Timestamp(c["end"]) if c["end"] else h["time_et"].iloc[-1]
+        c["days"] = round((end_t - start_t).total_seconds() / 86400, 1)
+        d0 = start_t.date()
+        k0 = days.index(d0)
+        for n in (1, 3, 5):
+            dn = days[k0 + n] if k0 + n < len(days) else None
+            c[f"fwd{n}_pct"] = round((day_close[dn] / c["start_px"] - 1) * 100, 2) if dn in day_close.index else None
+        c.pop("start_i", None)
+    return cycles
+
+
+def write_quant(t, h):
+    """Measures now + cycles table + variants A-E, for the live page (docs/<t>_quant.json)."""
+    h = h.reset_index(drop=True)
+    h = h[~h["net_gex_bn"].isna()].reset_index(drop=True)
+    retail = daily_retail()
+    zmap = dict(zip(retail["date"], retail["z"])) if len(retail) else {}
+    level = entry_level(h, t)[0]
+    if level is None:
+        return
+    zmin, max_adds = CONFIG.get("add_min_z", 1.0), CONFIG.get("max_adds", 1)
+    i = len(h) - 1
+    r = h.iloc[i]
+    today = h[h["time_et"].dt.date == r["time_et"].date()]
+    low_today = float(today["net_gex_bn"].min())
+    iv, rv5, rv20, gw = r.get("iv30"), r.get("rv5"), r.get("rv20"), r.get("gex_week_bn")
+    rd = retail.iloc[-1] if len(retail) else None
+    now = {"time_et": r["time_et"].strftime("%Y-%m-%d %H:%M"), "spot": float(r["spot"]), "gamma": float(r["net_gex_bn"]),
+           "fuel": _num(gamma_fuel(h, i)), "gamma_low_today": round(low_today, 2),
+           "off_low": round(float(r["net_gex_bn"]) - low_today, 2),
+           "turning": bool(i > 0 and r["net_gex_bn"] > h["net_gex_bn"].iloc[i - 1] and r["net_gex_bn"] - low_today >= 0.75),
+           "iv30": _num(iv), "rv5": _num(rv5), "rv20": _num(rv20),
+           "vrp20": round((iv - rv20) * 100, 1) if _num(iv) and _num(rv20) else None,
+           "vrp5": round((iv - rv5) * 100, 1) if _num(iv) and _num(rv5) else None,
+           "gex_week": _num(gw), "week_share": round(gw / r["net_gex_bn"], 2) if _num(gw) is not None and r["net_gex_bn"] < 0 else None,
+           "retail_z": _num(rd["z"]) if rd is not None else None, "retail_days": int(len(retail))}
+    out = {"ticker": t, "level": level, "now": now,
+           "variants": [{"id": vid, "name": name, "desc": desc, **simulate_variant(h, vid, zmap, level, zmin, max_adds)}
+                        for vid, name, desc in VARIANTS],
+           "cycles": find_cycles(h, level, zmap)[-15:],
+           "first_reading": h["time_et"].iloc[0].strftime("%Y-%m-%d %H:%M")}
+    (DOCS / f"{t}_quant.json").write_text(json.dumps(out, default=lambda o: None if o is None else float(o)))
 
 
 # ----------------------------------------------------------------------------- charts
@@ -548,6 +728,23 @@ def save_strikes(t, row, by_strike):
 
 
 _PX_CACHE = {}
+_RV_CACHE = {}
+
+
+def realized_vol(t):
+    """Realised (actual) volatility of the last 5 and 20 trading days, annualised, from daily closes."""
+    if t in _RV_CACHE:
+        return _RV_CACHE[t]
+    out = (np.nan, np.nan)
+    try:
+        import yfinance as yf
+        c = yf.Ticker(CONFIG.get("yahoo_symbols", {}).get(t, t)).history(period="3mo", interval="1d")["Close"].dropna()
+        r = np.log(c).diff().dropna()
+        out = (round(float(r.tail(5).std() * np.sqrt(252)), 4), round(float(r.tail(20).std() * np.sqrt(252)), 4))
+    except Exception as e:
+        print(f"  {t}: realised volatility unavailable ({e})")
+    _RV_CACHE[t] = out
+    return out
 
 
 def intraday_prices(t, day, hist):
@@ -913,8 +1110,14 @@ def run_once(force=False, charts_only=False, file=None):
                               file.format(t) if file else None)
             spot, snap_time, df = parse_chain(raw)
             row, by_strike = analyse(spot, snap_time, df)
+            row["rv5"], row["rv20"] = realized_vol(t)
             h = append_history(t, row)
             draw_timeline(t, h)
+            if t == CONFIG.get("signal_ticker", "SPY"):
+                try:
+                    write_quant(t, h)
+                except Exception as e:
+                    print(f"  {t}: quant lab failed - {e}", file=sys.stderr)
             draw_profile(t, row, by_strike)
             try:
                 st = save_strikes(t, row, by_strike)

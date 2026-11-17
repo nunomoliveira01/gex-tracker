@@ -40,6 +40,11 @@
   .refresh { background:#00e5ff; color:#000; border:0; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px; font-weight:700; }
   .refresh:disabled { opacity:.6; cursor:wait; }
   #refreshmsg { color:#aaa; }
+  table.q { width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums; }
+  table.q th, table.q td { border-bottom:1px solid #1f1f1f; padding:5px 6px; text-align:right; white-space:nowrap; }
+  table.q th:first-child, table.q td:first-child { text-align:left; }
+  table.q th { color:#888; font-weight:500; font-size:12px; }
+  .scroll { overflow-x:auto; }
   .tabs { display:flex; flex-wrap:wrap; gap:6px; }
   .tabs button { background:#111; color:#ccc; border:1px solid #333; border-radius:18px; padding:6px 14px; cursor:pointer; font-size:14px; }
   .tabs button.on { background:#00e5ff; color:#000; border-color:#00e5ff; font-weight:700; }
@@ -77,6 +82,7 @@
 
 <main>
   <div class="rule" id="rule"><h2>Regra do JP (SPY)</h2><div class="muted">a carregar…</div></div>
+  <div class="rule" id="quant"><h2>Laboratório quant (SPY)</h2><div class="muted">a carregar…</div></div>
   <nav class="tabs" id="tabs"></nav>
   <div id="charts"></div>
 </main>
@@ -90,11 +96,11 @@
 </footer>
 
 <script>
-const TICKERS = ["SPY", "QQQ", "SPX", "ES", "NQ", "NVDA", "MU", "ASML", "CRCL"];   // charts
-const LIVE = ["SPY", "QQQ", "NVDA", "MU", "ASML", "CRCL"];                         // live second-by-second prices (Finnhub)
-const QUOTES = ["SPY", "QQQ", "ES", "NQ", "NVDA", "MU", "ASML", "CRCL"];            // prices in the header
+const TICKERS = ["SPY", "QQQ", "SPX", "ES", "NQ", "NVDA", "MU", "ASML"];   // charts
+const LIVE = ["SPY", "QQQ", "NVDA", "MU", "ASML"];                         // live second-by-second prices (Finnhub)
+const QUOTES = ["SPY", "QQQ", "ES", "NQ", "NVDA", "MU", "ASML"];            // prices in the header
 const NAMES = { SPY:"SPY", QQQ:"QQQ", SPX:"S&P 500 (SPX)", ES:"Futuros S&P 500 (ES)", NQ:"Futuros Nasdaq 100 (NQ)",
-                NVDA:"Nvidia (NVDA)", MU:"Micron (MU)", ASML:"ASML", CRCL:"Circle (CRCL)" };
+                NVDA:"Nvidia (NVDA)", MU:"Micron (MU)", ASML:"ASML" };
 document.getElementById("quotes").innerHTML = QUOTES.map(t =>
   `<div class="quote"><span class="sym">${t}</span><span class="px" id="px-${t}">–</span><span class="chg" id="chg-${t}"></span></div>`).join("");
 const gx = v => v == null ? "–" : (Math.abs(v) < 1 ? (v > 0 ? "+" : "") + Math.round(v * 1000) + "M" : (v > 0 ? "+" : "") + v.toFixed(2) + "bn");
@@ -239,7 +245,7 @@ setInterval(() => {
     }
     if (tab === "TODOS" || tab === t) draw(t);
   }
-  renderRule();
+  renderRule(); renderQuant();
   if (getKey() && ws && ws.readyState === 1)
     setStatus(true, lastTradeAt && now - lastTradeAt < 10000 ? "ao vivo" : "ligado (sem negócios agora — mercado fechado?)");
 }, 1000);
@@ -386,13 +392,62 @@ function renderRule() {
     <div class="muted">Gamma e prémio de puts da Cboe (~15 min de atraso), atualizado a cada 5 min. O JP usa só puts de 1 contrato compradas ao ask; aqui conta-se todo o prémio de puts XSP com 5+ dias, que é o mais próximo com dados grátis. Não é aconselhamento de investimento.</div>`;
 }
 
+// ---------- quant lab panel
+let quant = null;
+async function loadQuant() {
+  const bust = "?v=" + Date.now();
+  const urls = location.protocol === "file:" ? [REMOTE + "SPY_quant.json" + bust] : ["SPY_quant.json" + bust, REMOTE + "SPY_quant.json" + bust];
+  for (const u of urls) { try { const r = await fetch(u, { cache:"no-store" }); if (r.ok) { quant = await r.json(); renderQuant(); return; } } catch (e) {} }
+}
+const sg = (v, d = 2) => v == null ? "–" : (v > 0 ? "+" : "") + Number(v).toFixed(d);
+const pct = v => v == null ? "–" : (v * 100).toFixed(1) + "%";
+const cls = v => v == null ? "" : v >= 0 ? "up" : "down";
+function renderQuant() {
+  const q = quant; if (!q) return;
+  const n = q.now, live = state.SPY.last ?? n.spot;
+  const turnTxt = n.turning ? '<span class="ok">sim — a gamma já subiu desde o mínimo</span>'
+    : (n.off_low > 0.2 ? `a afastar-se do mínimo (+${n.off_low.toFixed(2)}bn)` : "não — ainda perto do mínimo do dia");
+  const vrpTxt = n.iv30 == null ? "–" : `implícita ${pct(n.iv30)} vs realizada 20d ${pct(n.rv20)} / 5d ${pct(n.rv5)}<br>` +
+    `<b class="${(n.vrp20 ?? 0) > 0 ? "up" : "down"}">${n.vrp20 > 0 ? "implícita acima" : "implícita abaixo"} da realizada (${sg(n.vrp20, 1)} pts)</b>` +
+    `<div class="muted">JP: o ressalto aparece quando o movimento real fica abaixo do que as opções pagam.</div>`;
+  const weekTxt = n.gex_week == null ? "–" : `${sg(n.gex_week)}bn dos ${sg(n.gamma)}bn` +
+    (n.week_share != null ? ` (<b>${Math.round(n.week_share * 100)}%</b>)` : "") +
+    `<div class="muted">Parte da gamma que desaparece sozinha na sexta (vencimento).</div>`;
+  const fuelTxt = n.fuel == null ? "– <span class=muted>(precisa de 1h de leituras e movimento > 0,15%)</span>"
+    : `<b>${sg(n.fuel)}bn</b> por cada 1% de preço na última hora<div class="muted">Quanto a gamma piora por cada 1% de queda. A diminuir = venda a perder força.</div>`;
+  const vrows = q.variants.map(v => {
+    const o = v.open, openPnl = o ? o.units.reduce((a, u) => a + u.size * (live - u.price), 0) : 0;
+    const total = v.realized + openPnl;
+    return `<tr><td><b>${v.id}</b> ${v.name}<div class="muted" style="white-space:normal;text-align:left">${v.desc}</div></td>` +
+      `<td>${v.closed} (${v.wins} ✓)</td><td class="${cls(total)}">${sg(total)}</td><td class="down">${v.max_drawdown ? "−" + v.max_drawdown.toFixed(2) : "0"}</td>` +
+      `<td>${o ? `${o.size}x @ ${fmt(o.avg)}<br><span class="${cls(openPnl)}">${sg(openPnl)}</span>` : "fora"}</td></tr>`;
+  }).join("");
+  const crows = q.cycles.slice().reverse().map(c => `<tr><td>${c.start.slice(5)}</td><td>${fmt(c.start_px)}</td><td>${fmt(c.min_gamma, 1)}</td>` +
+    `<td>${c.fuel == null ? "–" : sg(c.fuel, 1)}</td><td>${c.vrp == null ? "–" : sg(c.vrp, 1)}</td>` +
+    `<td>${c.week_share == null ? "–" : Math.round(c.week_share * 100) + "%"}</td><td>${c.retail_z == null ? "–" : c.retail_z.toFixed(1)}</td>` +
+    `<td class="down">${c.worst_pct.toFixed(2)}%</td><td class="${cls(c.return_pct)}">${c.end ? "" : "(aberto) "}${sg(c.return_pct)}%</td>` +
+    `<td>${c.days}</td><td>${c.fwd1_pct == null ? "–" : sg(c.fwd1_pct) + "%"} / ${c.fwd3_pct == null ? "–" : sg(c.fwd3_pct) + "%"} / ${c.fwd5_pct == null ? "–" : sg(c.fwd5_pct) + "%"}</td></tr>`).join("");
+  document.getElementById("quant").innerHTML = `<h2>Laboratório quant (SPY) — a tese do JP medida, com 5 versões da regra em papel</h2>
+    <div class="grid">
+      <div class="card"><div class="lbl">Gamma agora</div><b>${sg(n.gamma)}bn</b> · mínimo de hoje ${sg(n.gamma_low_today)}bn<br>A virar? ${turnTxt}</div>
+      <div class="card"><div class="lbl">Combustível da venda</div>${fuelTxt}</div>
+      <div class="card"><div class="lbl">Volatilidade implícita vs realizada</div>${vrpTxt}</div>
+      <div class="card"><div class="lbl">Gamma a expirar esta semana</div>${weekTxt}</div>
+    </div>
+    <div class="lbl" style="color:#888;font-size:12px;margin-top:4px">VARIANTES EM PAPEL (pontos de SPY; tamanho 1x = 1 unidade)</div>
+    <div class="scroll"><table class="q"><tr><th>Variante</th><th>Fechadas</th><th>Resultado total</th><th>Pior queda</th><th>Aberta agora</th></tr>${vrows}</table></div>
+    <div class="lbl" style="color:#888;font-size:12px;margin-top:4px">CICLOS (gamma chega a ${q.level}bn → volta a 0)</div>
+    <div class="scroll"><table class="q"><tr><th>Início</th><th>Preço</th><th>Gamma mín.</th><th>Combust.</th><th>Impl−real</th><th>% expira</th><th>Retail z</th><th>Pior</th><th>Resultado</th><th>Dias</th><th>+1d / +3d / +5d</th></tr>${crows || '<tr><td colspan="11" class="muted">ainda sem ciclos</td></tr>'}</table></div>
+    <div class="muted">Registo desde ${q.first_reading} ET. Com poucos ciclos isto não prova nada — serve para comparar as versões ao longo das próximas semanas. Leituras antigas não têm volatilidade nem "% a expirar" (começaram a ser registadas a 17/11). Não é aconselhamento de investimento.</div>`;
+}
+
 // ---------- refresh button
 const GH_REPO = "nunomoliveira01/gex-tracker";
 function getGh() { try { return localStorage.getItem("ghToken") || ""; } catch { return ""; } }
 function setGh(k) { try { localStorage.setItem("ghToken", k); } catch {} }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function refreshMsg(t) { document.getElementById("refreshmsg").textContent = t; }
-async function reloadAll() { await Promise.all(TICKERS.map(loadData).concat([loadSignal()])); }
+async function reloadAll() { await Promise.all(TICKERS.map(loadData).concat([loadSignal(), loadQuant()])); }
 async function gh(path, opts = {}) {
   const r = await fetch("https://api.github.com/repos/" + GH_REPO + path, { ...opts,
     headers: { "Authorization": "Bearer " + getGh(), "Accept": "application/vnd.github+json", ...(opts.headers || {}) } });
@@ -443,8 +498,8 @@ document.getElementById("ghsave").onclick = () => { const k = document.getElemen
 document.getElementById("savekey").onclick = () => { const k = document.getElementById("keyinput").value.trim(); if (k) { setKey(k); startLive(); } };
 document.getElementById("changekey").onclick = () => { document.getElementById("keyinput").value = getKey(); showKeyBox(); };
 window.addEventListener("resize", () => TICKERS.forEach(draw));
-setTab(tab); TICKERS.forEach(loadData); loadSignal();
-setInterval(() => { setTab(tab); TICKERS.forEach(loadData); loadSignal(); }, 60000);   // new gamma every minute check (script updates every 5)
+setTab(tab); TICKERS.forEach(loadData); loadSignal(); loadQuant();
+setInterval(() => { setTab(tab); TICKERS.forEach(loadData); loadSignal(); loadQuant(); }, 60000);   // new gamma every minute check (script updates every 5)
 startLive();
 </script>
 </body>

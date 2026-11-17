@@ -5,8 +5,7 @@
     "SPX",
     "NVDA",
     "MU",
-    "ASML",
-    "CRCL"
+    "ASML"
   ],
   "cboe_symbols": {
     "SPX": "_SPX",
@@ -43,5 +42,6 @@
       "etf": "QQQ",
       "bin": 25
     }
-  }
+  },
+  "signal_ticker": "SPY"
 }
