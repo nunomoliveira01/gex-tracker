@@ -96,7 +96,7 @@ jobs:
           newer=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/gex.yml/runs?per_page=20" \
                   --jq "[.workflow_runs[] | select(.created_at > \"$created\")] | length")
           if [ "$newer" = "0" ]; then
-            gh workflow run gex.yml --ref main -f force=false && echo "next run started"
+            gh workflow run gex.yml -R "$GITHUB_REPOSITORY" --ref main -f force=false && echo "next run started"
           else
             echo "a newer run already exists - it carries on the chain"
           fi
