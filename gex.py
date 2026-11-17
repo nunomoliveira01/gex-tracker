@@ -106,6 +106,10 @@ def parse_chain(raw):
     df = pd.DataFrame(rows)
     if df.empty:
         raise ValueError("Cboe data had no options")
+    # Cboe sometimes briefly serves a chain without open interest (seen 17 Nov 9:42 New York); a reading
+    # built on it shows gamma 0 and would fake an exit signal, so skip it
+    if (df["oi"] > 0).sum() < 50:
+        raise ValueError("Cboe data incomplete (no open interest) - reading skipped")
     if df.loc[df["iv"] > 0, "iv"].median() > 3:  # volatility given in percent -> decimals
         df["iv"] = df["iv"] / 100
     return float(spot), t, df
