@@ -2,7 +2,11 @@
   "tickers": [
     "SPY",
     "QQQ",
-    "SPX"
+    "SPX",
+    "NVDA",
+    "MU",
+    "ASML",
+    "CRCL"
   ],
   "cboe_symbols": {
     "SPX": "_SPX",

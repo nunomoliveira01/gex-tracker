@@ -12,7 +12,7 @@
   h1 { font-size:16px; margin:0; font-weight:600; color:#ccc; }
   .quote { display:flex; align-items:baseline; gap:10px; }
   .quote .sym { font-weight:700; color:#aaa; }
-  .quote .px { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .quote .px { font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; }
   .quote .chg { font-size:14px; font-variant-numeric:tabular-nums; }
   .up { color:var(--green); } .down { color:var(--red); }
   .status { font-size:12px; color:var(--muted); margin-left:auto; display:flex; gap:8px; align-items:center; }
@@ -50,10 +50,7 @@
 <body>
 <header>
   <h1>Ao vivo</h1>
-  <div class="quote"><span class="sym">SPY</span><span class="px" id="px-SPY">–</span><span class="chg" id="chg-SPY"></span></div>
-  <div class="quote"><span class="sym">QQQ</span><span class="px" id="px-QQQ">–</span><span class="chg" id="chg-QQQ"></span></div>
-  <div class="quote"><span class="sym">ES</span><span class="px" id="px-ES">–</span><span class="chg" id="chg-ES"></span></div>
-  <div class="quote"><span class="sym">NQ</span><span class="px" id="px-NQ">–</span><span class="chg" id="chg-NQ"></span></div>
+  <div id="quotes" style="display:contents"></div>
   <div class="status"><button class="refresh" id="refreshbtn" title="Ir buscar os dados mais recentes agora">&#8635; Atualizar</button>
     <span id="refreshmsg"></span><span class="dot" id="livedot"></span><span id="statustext">a ligar…</span>
     <button class="linkbtn" id="changekey" style="display:none">chave</button></div>
@@ -93,9 +90,14 @@
 </footer>
 
 <script>
-const TICKERS = ["SPY", "QQQ", "SPX", "ES", "NQ"];          // charts
-const LIVE = ["SPY", "QQQ"];                                // live second-by-second prices (Finnhub)
-const NAMES = { SPY:"SPY", QQQ:"QQQ", SPX:"S&P 500 (SPX)", ES:"Futuros S&P 500 (ES)", NQ:"Futuros Nasdaq 100 (NQ)" };
+const TICKERS = ["SPY", "QQQ", "SPX", "ES", "NQ", "NVDA", "MU", "ASML", "CRCL"];   // charts
+const LIVE = ["SPY", "QQQ", "NVDA", "MU", "ASML", "CRCL"];                         // live second-by-second prices (Finnhub)
+const QUOTES = ["SPY", "QQQ", "ES", "NQ", "NVDA", "MU", "ASML", "CRCL"];            // prices in the header
+const NAMES = { SPY:"SPY", QQQ:"QQQ", SPX:"S&P 500 (SPX)", ES:"Futuros S&P 500 (ES)", NQ:"Futuros Nasdaq 100 (NQ)",
+                NVDA:"Nvidia (NVDA)", MU:"Micron (MU)", ASML:"ASML", CRCL:"Circle (CRCL)" };
+document.getElementById("quotes").innerHTML = QUOTES.map(t =>
+  `<div class="quote"><span class="sym">${t}</span><span class="px" id="px-${t}">–</span><span class="chg" id="chg-${t}"></span></div>`).join("");
+const gx = v => v == null ? "–" : (Math.abs(v) < 1 ? (v > 0 ? "+" : "") + Math.round(v * 1000) + "M" : (v > 0 ? "+" : "") + v.toFixed(2) + "bn");
 const lisbon = new Intl.DateTimeFormat("pt-PT", { timeZone:"Europe/Lisbon", hour:"2-digit", minute:"2-digit" });
 // build one section per chart and the filter buttons
 document.getElementById("charts").innerHTML = TICKERS.map(t =>
@@ -163,10 +165,10 @@ function renderHead(t) {
   const d = state[t].data; if (!d) return;
   const reg = d.net_gex_bn < 0 ? '<span class="down">gamma NEGATIVO</span>' : '<span class="up">gamma POSITIVO</span>';
   document.getElementById("head-" + t).innerHTML =
-    `<span><b>${NAMES[t]}</b> ${reg}: <b>${d.net_gex_bn > 0 ? "+" : ""}${fmt(d.net_gex_bn)}bn</b> por 1%</span>` +
+    `<span><b>${NAMES[t]}</b> ${reg}: <b>${gx(d.net_gex_bn)}</b> por 1%</span>` +
     `<span>Flip <b style="color:var(--orange)">${fmt(d.flip)}</b></span>` +
-    `<span>Put wall <b style="color:var(--red)">${fmt(d.put_wall,0)}</b></span>` +
-    `<span>Call wall <b style="color:var(--green)">${fmt(d.call_wall,0)}</b></span>` +
+    `<span>Put wall <b style="color:var(--red)">${String(d.put_wall == null ? '–' : +d.put_wall.toFixed(2))}</b></span>` +
+    `<span>Call wall <b style="color:var(--green)">${String(d.call_wall == null ? '–' : +d.call_wall.toFixed(2))}</b></span>` +
     (d.futures ? `<span style="color:#777">gamma = opções do ${d.index} (${fmt(d.gex_index_bn,1)}bn)` +
         (d.etf && d.gex_etf_bn != null ? ` + do ${d.etf} (${fmt(d.gex_etf_bn,1)}bn, ×${fmt(d.ratio,2)})` : "") +
         ` · preço com ~${d.price_delay_min} min de atraso</span>`
@@ -174,6 +176,7 @@ function renderHead(t) {
 }
 
 function updateQuote(t) {
+  if (!document.getElementById("px-" + t)) return;
   const s = state[t]; if (s.last == null) return;
   document.getElementById("px-" + t).textContent = fmt(s.last);
   const el = document.getElementById("chg-" + t);
@@ -298,7 +301,7 @@ function draw(t) {
   }
   g.fillStyle = "#9a9a9a"; g.textAlign = "center"; g.textBaseline = "bottom";
   const xs = niceStep(xmax / 5);
-  for (let v = 0; v <= xmax; v += xs) g.fillText(v.toFixed(xs < 1 ? 1 : 0), L + v / xmax * pw, T - 4);
+  for (let v = 0; v <= xmax; v += xs) g.fillText(v.toFixed(xs < 0.01 ? 3 : xs < 0.1 ? 2 : xs < 1 ? 1 : 0), L + v / xmax * pw, T - 4);
   g.textAlign = "left"; g.fillText("gamma $bn / 1%", L + pw - 90, T - 18);
 
   // level lines

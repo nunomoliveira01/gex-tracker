@@ -1,6 +1,6 @@
 # Dealer gamma tracker (free)
 
-Tracks dealer gamma exposure for **SPY, QQQ and SPX** every 5 minutes using Cboe's free, delayed
+Tracks dealer gamma exposure for **SPY, QQQ, SPX, NVDA, MU, ASML and CRCL** (plus ES/NQ futures) every 5 minutes using Cboe's free, delayed
 option chains (about 15 minutes behind). Each snapshot adds a row to a history file and redraws:
 
 - **Timeline chart**: price, dealer gamma line, and a put/call "fear" bar per day (like the Marmus chart)
