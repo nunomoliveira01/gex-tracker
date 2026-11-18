@@ -429,7 +429,7 @@ function renderMargin() {
     const nm = name === "SPX" ? "S&P 500" : "Nasdaq 100";
     return `<div class="card"><div class="lbl">${nm} · agora ${fmt(px, 0)}</div>
       Preço médio de compra com dinheiro emprestado desde ${mon(m.cycle_start)}: <b>${fmt(b.cycle.entry, 0)}</b>, com juros <b>${fmt(b.cycle.breakeven, 0)}</b>
-      <span class="muted">(${dd > 0 ? "acima" : "abaixo"} do preço, ${sg(dd, 1)}%)</span><br>
+      <span class="muted">(${Math.abs(dd).toFixed(1)}% ${dd > 0 ? "acima" : "abaixo"} do preço atual)</span><br>
       Só o dinheiro novo desde ${mon(m.recent_start)}: <b>${fmt(b.recent.breakeven, 0)}</b> com juros<br>
       A perder agora: <b class="${under >= 50 ? "down" : under >= 25 ? "warn" : "up"}">${fmt(under, 0)}%</b> do dinheiro emprestado novo<br>
       <span class="muted">Fica a perder 25% / 50% / 75% abaixo de ${fmt(b.pain["25"], 0)} / ${fmt(b.pain["50"], 0)} / ${fmt(b.pain["75"], 0)}</span></div>`;
