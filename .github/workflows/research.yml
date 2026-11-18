@@ -12,6 +12,13 @@ on:
         type: choice
         options: [probe, fetch]
         default: probe
+      hours:
+        description: "hours of downloading in this run"
+        default: "5.2"
+      chain:
+        description: "start the next run automatically while days are left"
+        type: boolean
+        default: true
 
 permissions:
   actions: write
@@ -61,7 +68,7 @@ jobs:
           grep -viE "password|@" terminal.log | tail -40 || true
           [ "$up" = 1 ] || { echo "::error::Theta Terminal did not start"; exit 1; }
       - name: Run
-        run: python research/theta_fetch.py ${{ inputs.mode }} --hours 5.2
+        run: python research/theta_fetch.py ${{ inputs.mode }} --hours ${{ inputs.hours }}
       - name: Save derived data
         if: always() && inputs.mode == 'fetch'
         run: |
@@ -70,7 +77,7 @@ jobs:
           git diff --cached --quiet || git commit -m "research: ThetaData daily history"
           for i in 1 2 3; do git pull --rebase --autostash -q && git push && break; sleep 5; done
       - name: Continue if days are left
-        if: success() && inputs.mode == 'fetch'
+        if: success() && inputs.mode == 'fetch' && inputs.chain
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
