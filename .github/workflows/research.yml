@@ -41,6 +41,8 @@ jobs:
           TD_PASSWORD: ${{ secrets.THETADATA_PASSWORD }}
           TD_JAR_URL: ${{ vars.THETADATA_JAR_URL }}
         run: |
+          if [ -z "$TD_EMAIL" ] || [ -z "$TD_PASSWORD" ]; then
+            echo "::error::Secrets THETADATA_EMAIL / THETADATA_PASSWORD are missing or empty (Settings > Secrets and variables > Actions > Repository secrets)"; exit 1; fi
           mkdir -p ~/theta && cd ~/theta
           printf '%s\n%s\n' "$TD_EMAIL" "$TD_PASSWORD" > creds.txt
           ok=0
@@ -50,11 +52,14 @@ jobs:
           done
           [ "$ok" = 1 ] || { echo "Could not download ThetaTerminalv3.jar - set repository variable THETADATA_JAR_URL"; exit 1; }
           nohup java -Xmx6g -jar ThetaTerminalv3.jar --creds-file=creds.txt > terminal.log 2>&1 &
+          up=0
           for i in $(seq 1 60); do
-            curl -s -o /dev/null "http://127.0.0.1:25503/v3/option/list/symbols?format=csv" && { echo "terminal up after ${i}x5s"; break; }
+            curl -s -o /dev/null "http://127.0.0.1:25503/v3/option/list/symbols?format=csv" && { echo "terminal up after ${i}x5s"; up=1; break; }
             sleep 5
           done
-          grep -iE "error|invalid|subscription|connected|tier" terminal.log | grep -viE "password|@" | tail -15 || true
+          # terminal log without anything that looks like an email or password
+          grep -viE "password|@" terminal.log | tail -40 || true
+          [ "$up" = 1 ] || { echo "::error::Theta Terminal did not start"; exit 1; }
       - name: Run
         run: python research/theta_fetch.py ${{ inputs.mode }} --hours 5.2
       - name: Save derived data
