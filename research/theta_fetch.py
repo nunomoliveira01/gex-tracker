@@ -216,7 +216,8 @@ def fetch(hours):
             print(f"  {n} days this run (last {d})")
     left = len(days) - n
     print(f"done this run: {n}; left: {left}")
-    (ROOT / "data" / "remaining.txt").write_text(str(max(left, 0)))
+    # no progress this run (days with no data) -> stop the chain instead of looping
+    (ROOT / "data" / "remaining.txt").write_text(str(max(left, 0) if n else 0))
 
 
 if __name__ == "__main__":
