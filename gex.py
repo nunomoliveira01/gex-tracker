@@ -399,11 +399,11 @@ def write_signal_json(t, h, level, note, trades, pos, retail_daily):
 
 # ----------------------------------------------------------------------------- quant lab (JP's thesis, measured)
 VARIANTS = [
-    ("A", "JP original", "Entra a -10bn, reforça ao fecho com pânico de retalho abaixo da entrada, sai a 0"),
-    ("B", "Entrada faseada", "1/3 a -10bn, 1/3 quando a gamma deixa de cair, 1/3 no pânico de retalho; sai a 0"),
-    ("C", "Filtro de volatilidade", "Como A, mas só entra/reforça se a volatilidade implícita > realizada (condição do JP)"),
-    ("D", "Saída no vencimento", "Como A, mas sai no fecho da sexta de vencimento se >=50% da gamma negativa expirava nessa semana"),
-    ("E", "Tamanho pela volatilidade", "Como A, mas o tamanho é 15% / volatilidade implícita (menos quando o mercado está mais nervoso)"),
+    ("A", "JP original", "Enters at -10bn, adds at the close on retail panic below the entry, exits at 0"),
+    ("B", "Staggered entry", "1/3 at -10bn, 1/3 when gamma stops falling, 1/3 on retail panic; exits at 0"),
+    ("C", "Volatility filter", "Like A, but only enters/adds if implied volatility > realised (JP's condition)"),
+    ("D", "Expiry exit", "Like A, but exits at the expiry-Friday close if >=50% of the negative gamma expired that week"),
+    ("E", "Volatility sizing", "Like A, but size = 15% / implied volatility (smaller when the market is more nervous)"),
 ]
 
 
@@ -756,7 +756,7 @@ def write_page(latest):
 img{{width:100%;margin:8px 0;border:1px solid #eee}}table{{border-collapse:collapse;margin:8px 0}}
 td,th{{border:1px solid #ddd;padding:6px 10px;text-align:center}}.neg{{color:#c0392b;font-weight:600}}
 .pos{{color:#2e7d5b;font-weight:600}}small{{color:#888;font-weight:400}}footer{{color:#888;font-size:12px}}</style></head>
-<body><h1>Dealer gamma tracker</h1><p><a href="live.html"><b>&#9654; Página ao vivo (preço ao segundo)</b></a></p>{''.join(cards)}
+<body><h1>Dealer gamma tracker</h1><p><a href="live.html"><b>&#9654; Live page (second-by-second prices)</b></a></p>{''.join(cards)}
 <footer>Free Cboe delayed data, ~15 min delay. Estimates assume dealers are long calls and short puts.
 Not investment advice. Page refreshes every 5 minutes.</footer></body></html>"""
     (DOCS / "index.html").write_text(html)

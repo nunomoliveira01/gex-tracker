@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gamma do JP — ao vivo</title>
+<title>JP Gamma — live</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -146,23 +146,23 @@
 </head>
 <body>
 <div class="top"><div class="topin">
-  <div class="brand"><div class="logo">γ</div><div>Gamma do JP<small>dealers · margem · sinais</small></div></div>
+  <div class="brand"><div class="logo">γ</div><div>JP Gamma<small>dealers · margin · signals</small></div></div>
   <form class="add" id="addform" autocomplete="off">
-    <input id="addinput" placeholder="Adicionar ticker da Cboe — ex.: IWM, AAPL, RUT" maxlength="8">
-    <button type="submit" title="Adicionar à lista">+ Adicionar</button>
+    <input id="addinput" placeholder="Add a Cboe ticker — e.g. IWM, AAPL, RUT" maxlength="8">
+    <button type="submit" title="Add to the list">+ Add</button>
   </form>
   <div class="actions">
     <span id="msg"></span>
-    <span class="pill"><span class="dot" id="livedot"></span><span id="statustext">a ligar…</span></span>
-    <button class="btn primary" id="refreshbtn" title="Ir buscar os dados mais recentes">&#8635; Atualizar</button>
-    <button class="btn" id="themebtn" title="Tema claro/escuro">☾</button>
-    <button class="btn" id="setbtn" title="Definições: chaves e o que mostrar">⚙</button>
+    <span class="pill"><span class="dot" id="livedot"></span><span id="statustext">connecting…</span></span>
+    <button class="btn primary" id="refreshbtn" title="Fetch the latest data">&#8635; Refresh</button>
+    <button class="btn" id="themebtn" title="Light/dark theme">☾</button>
+    <button class="btn" id="setbtn" title="Settings: keys and what to show">⚙</button>
   </div>
 </div></div>
 
 <div class="wrap">
   <div>
-    <div class="striphead"><h3>A minha lista</h3><button class="btn" id="editbtn" style="padding:3px 10px;font-size:12.5px">Editar lista</button>
+    <div class="striphead"><h3>My list</h3><button class="btn" id="editbtn" style="padding:3px 10px;font-size:12.5px">Edit list</button>
       <span class="muted" id="poolnote"></span></div>
     <div class="strip" id="strip" style="margin-top:8px"></div>
   </div>
@@ -171,47 +171,47 @@
     <div id="chartcol"><div class="chartsgrid" id="charts"></div></div>
     <aside class="side">
       <div class="panel" data-block="rule" id="rule-panel">
-        <div class="ph"><h2>Regra do JP · SPY</h2><span class="sub" id="rule-sub"></span>
-          <div class="tools"><button class="ib" data-collapse="rule" title="Fechar/abrir"><span class="chev">▾</span></button><button class="ib" data-hide="rule" title="Esconder (volta em ⚙)">✕</button></div></div>
-        <div class="pb"><div id="rule"><span class="muted">a carregar…</span></div></div>
+        <div class="ph"><h2>JP rule · SPY</h2><span class="sub" id="rule-sub"></span>
+          <div class="tools"><button class="ib" data-collapse="rule" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="rule" title="Hide (bring back in ⚙)">✕</button></div></div>
+        <div class="pb"><div id="rule"><span class="muted">loading…</span></div></div>
       </div>
     </aside>
   </div>
 
   <div class="panel" data-block="margin" id="margin-panel">
-    <div class="ph"><h2>Dinheiro emprestado (margem)</h2><span class="sub">método do JP — "o comprador marginal"</span>
-      <div class="tools"><button class="ib" data-collapse="margin" title="Fechar/abrir"><span class="chev">▾</span></button><button class="ib" data-hide="margin" title="Esconder (volta em ⚙)">✕</button></div></div>
-    <div class="pb"><div id="margin"><span class="muted">a carregar…</span></div></div>
+    <div class="ph"><h2>Borrowed money (margin)</h2><span class="sub">JP's method — "the marginal buyer"</span>
+      <div class="tools"><button class="ib" data-collapse="margin" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="margin" title="Hide (bring back in ⚙)">✕</button></div></div>
+    <div class="pb"><div id="margin"><span class="muted">loading…</span></div></div>
   </div>
 
   <div class="panel" data-block="quant" id="quant-panel">
-    <div class="ph"><h2>Laboratório quant · SPY</h2><span class="sub">a tese do JP medida, 5 versões da regra em papel</span>
-      <div class="tools"><button class="ib" data-collapse="quant" title="Fechar/abrir"><span class="chev">▾</span></button><button class="ib" data-hide="quant" title="Esconder (volta em ⚙)">✕</button></div></div>
-    <div class="pb"><div id="quant"><span class="muted">a carregar…</span></div></div>
+    <div class="ph"><h2>Quant lab · SPY</h2><span class="sub">JP's thesis measured, 5 paper versions of the rule</span>
+      <div class="tools"><button class="ib" data-collapse="quant" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="quant" title="Hide (bring back in ⚙)">✕</button></div></div>
+    <div class="pb"><div id="quant"><span class="muted">loading…</span></div></div>
   </div>
 </div>
 
-<footer>Gamma da Cboe (~15 min de atraso), recalculada a cada 5 min. Preço ao segundo via Finnhub (ações e ETFs); índices e futuros pelo Yahoo (~10–15 min de atraso). Horas de Lisboa. Não é aconselhamento de investimento.</footer>
+<footer>Gamma from Cboe (~15 min delay), recalculated every 5 min. Second-by-second prices from Finnhub (stocks and ETFs); indices and futures from Yahoo (~10–15 min delay). Lisbon time. Not investment advice.</footer>
 
 <div class="shade" id="shade"></div>
 <div class="drawer" id="drawer">
-  <div class="ph"><h2>Definições</h2><div class="tools"><button class="ib" id="setclose">✕</button></div></div>
+  <div class="ph"><h2>Settings</h2><div class="tools"><button class="ib" id="setclose">✕</button></div></div>
   <div class="pb">
-    <div class="group"><h4>O que mostrar</h4><div class="muted" style="margin-bottom:6px">Desliga partes da página ou cartões dos sinais. Também podes fechar cada cartão no ✕ que aparece ao passar o rato.</div>
+    <div class="group"><h4>What to show</h4><div class="muted" style="margin-bottom:6px">Turn off parts of the page or individual signal cards. You can also close any card with the ✕ that appears when you hover over it.</div>
       <div id="blocklist"></div>
-      <button class="btn" id="resetview" style="margin-top:8px">Mostrar tudo outra vez</button></div>
-    <div class="group"><h4>Preço ao segundo (Finnhub)</h4>
-      <div class="muted">Chave grátis em <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a>. Fica só neste browser.</div>
-      <input type="password" id="keyinput" placeholder="chave Finnhub"><button class="btn" id="savekey" style="margin-top:6px">Guardar</button></div>
-    <div class="group"><h4>Chave do GitHub (para mudar a lista e recalcular na hora)</h4>
+      <button class="btn" id="resetview" style="margin-top:8px">Show everything again</button></div>
+    <div class="group"><h4>Second-by-second prices (Finnhub)</h4>
+      <div class="muted">Free key at <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a>. Stored only in this browser.</div>
+      <input type="password" id="keyinput" placeholder="Finnhub key"><button class="btn" id="savekey" style="margin-top:6px">Save</button></div>
+    <div class="group"><h4>GitHub key (to change the list and recalculate on demand)</h4>
       <ol>
-        <li>Abre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> (ou edita a chave que já tens).</li>
+        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> (or edit the key you already have).</li>
         <li>Repository access: <b>Only select repositories → gex-tracker</b>.</li>
         <li>Permissions → Repository: <b>Actions: Read and write</b> e <b>Contents: Read and write</b>.</li>
-        <li>Generate token, copia e cola aqui.</li>
+        <li>Generate token, copy it and paste it here.</li>
       </ol>
-      <input type="password" id="ghinput" placeholder="github_pat_…"><button class="btn" id="ghsave" style="margin-top:6px">Guardar</button>
-      <div class="muted" style="margin-top:4px">Fica só neste browser. Só mexe neste projeto.</div></div>
+      <input type="password" id="ghinput" placeholder="github_pat_…"><button class="btn" id="ghsave" style="margin-top:6px">Save</button>
+      <div class="muted" style="margin-top:4px">Stored only in this browser. It can only touch this project.</div></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -224,9 +224,9 @@ const SIGNAL = "SPY";                                     // the JP rule runs on
 const DEFAULT_POOL = { tickers:["SPY","QQQ","SPX","NVDA","MU","ASML"], futures:["ES","NQ"] };
 const FUTURES_ALL = ["ES", "NQ"];
 let INDEXES = ["SPX","NDX","RUT","VIX","XSP","DJX","OEX","XEO","MRUT","XND"];
-const NAMES = { SPY:"S&P 500 ETF", QQQ:"Nasdaq 100 ETF", SPX:"Índice S&P 500", NDX:"Índice Nasdaq 100", ES:"Futuros S&P 500", NQ:"Futuros Nasdaq 100",
-  RUT:"Índice Russell 2000", IWM:"Russell 2000 ETF", VIX:"Volatilidade", DIA:"Dow ETF", NVDA:"Nvidia", MU:"Micron", ASML:"ASML",
-  AAPL:"Apple", MSFT:"Microsoft", TSLA:"Tesla", AMZN:"Amazon", META:"Meta", GOOGL:"Alphabet", AMD:"AMD", TLT:"Obrigações 20a+", GLD:"Ouro" };
+const NAMES = { SPY:"S&P 500 ETF", QQQ:"Nasdaq 100 ETF", SPX:"S&P 500 index", NDX:"Nasdaq 100 index", ES:"S&P 500 futures", NQ:"Nasdaq 100 futures",
+  RUT:"Russell 2000 index", IWM:"Russell 2000 ETF", VIX:"Volatility", DIA:"Dow ETF", NVDA:"Nvidia", MU:"Micron", ASML:"ASML",
+  AAPL:"Apple", MSFT:"Microsoft", TSLA:"Tesla", AMZN:"Amazon", META:"Meta", GOOGL:"Alphabet", AMD:"AMD", TLT:"20y+ Treasuries", GLD:"Gold" };
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
                 set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 const $ = id => document.getElementById(id);
@@ -236,7 +236,7 @@ const pct = v => v == null ? "–" : (v * 100).toFixed(1) + "%";
 const cls = v => v == null ? "" : v >= 0 ? "up" : "down";
 const gx = v => v == null ? "–" : (Math.abs(v) < 1 ? (v > 0 ? "+" : "") + Math.round(v * 1000) + "M" : (v > 0 ? "+" : "") + v.toFixed(1) + "bn");
 const money = v => v == null ? "–" : "$" + Math.round(v).toLocaleString("en-US");
-const lisbon = new Intl.DateTimeFormat("pt-PT", { timeZone:"Europe/Lisbon", hour:"2-digit", minute:"2-digit" });
+const lisbon = new Intl.DateTimeFormat("en-GB", { timeZone:"Europe/Lisbon", hour:"2-digit", minute:"2-digit" });
 const url = f => (location.protocol === "file:" ? [REMOTE + f] : [f, REMOTE + f]).map(u => u + "?v=" + Date.now());
 async function getJSON(f) { for (const u of url(f)) { try { const r = await fetch(u, { cache:"no-store" }); if (r.ok) return await r.json(); } catch {} } return null; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -250,10 +250,10 @@ $("themebtn").onclick = () => { const d = document.documentElement.classList.tog
 // ===================================================================== show / hide blocks
 // every panel and every signal card has an id; hidden = gone until turned on in ⚙; collapsed = only its title shows
 const BLOCKS = [
-  ["chart", "Gráfico de gamma", [["chart.stats", "Números por cima do gráfico"], ["chart.legend", "Botões das linhas"]]],
-  ["rule", "Regra do JP", [["rule.pos", "Posição"], ["rule.gamma", "Gamma SPY"], ["rule.retail", "Pânico de retalho"], ["rule.adds", "Condições para o reforço"], ["rule.hist", "Histórico de trades"]]],
-  ["margin", "Margem", [["margin.debt", "Dívida de margem"], ["margin.SPX", "S&P 500"], ["margin.NDX", "Nasdaq 100"], ["margin.fx", "Sinal do dólar"]]],
-  ["quant", "Laboratório quant", [["quant.now", "Gamma agora / a virar"], ["quant.fuel", "Combustível da venda"], ["quant.vol", "Volatilidade"], ["quant.week", "Gamma a expirar"], ["quant.variants", "Variantes em papel"], ["quant.cycles", "Tabela de ciclos"]]],
+  ["chart", "Gamma chart", [["chart.stats", "Numbers above the chart"], ["chart.legend", "Line buttons"]]],
+  ["rule", "JP rule", [["rule.pos", "Position"], ["rule.gamma", "SPY gamma"], ["rule.retail", "Retail panic"], ["rule.adds", "Add-on conditions"], ["rule.hist", "Trade history"]]],
+  ["margin", "Margin", [["margin.debt", "Margin debt"], ["margin.SPX", "S&P 500"], ["margin.NDX", "Nasdaq 100"], ["margin.fx", "Dollar signal"]]],
+  ["quant", "Quant lab", [["quant.now", "Gamma now / turning"], ["quant.fuel", "Selling fuel"], ["quant.vol", "Volatility"], ["quant.week", "Expiring gamma"], ["quant.variants", "Paper variants"], ["quant.cycles", "Cycles table"]]],
 ];
 let hidden = new Set(store.get("hidden", [])), collapsed = new Set(store.get("collapsed", []));
 const isOn = id => !hidden.has(id);
@@ -267,11 +267,11 @@ function renderBlockList() {
   $("blocklist").innerHTML = BLOCKS.map(([id, name, kids]) =>
     `<label><input type="checkbox" data-blk="${id}" ${isOn(id) ? "checked" : ""}><b>${name}</b></label>` +
     `<div style="padding-left:24px">${kids.map(([k, n]) => `<label><input type="checkbox" data-blk="${k}" ${isOn(k) ? "checked" : ""} ${isOn(id) ? "" : "disabled"}>${n}</label>`).join("")}</div>`).join("") +
-    `<label style="margin-top:6px"><b>Linhas no gráfico</b></label><div style="padding-left:24px">` +
+    `<label style="margin-top:6px"><b>Chart lines</b></label><div style="padding-left:24px">` +
     LINES.map(([k, n]) => `<label><input type="checkbox" data-line="${k}" ${lineOn(k) ? "checked" : ""}>${n}</label>`).join("") + `</div>`;
 }
 document.addEventListener("click", e => {
-  const h = e.target.closest("[data-hide]"); if (h) { hidden.add(h.dataset.hide); saveView(); toast("Escondido — volta em ⚙ Definições"); return; }
+  const h = e.target.closest("[data-hide]"); if (h) { hidden.add(h.dataset.hide); saveView(); toast("Hidden — bring it back in ⚙ Settings"); return; }
   const c = e.target.closest("[data-collapse]"); if (c) { const b = c.dataset.collapse; collapsed.has(b) ? collapsed.delete(b) : collapsed.add(b); saveView(); return; }
   const l = e.target.closest("[data-tog]"); if (l) { toggleLine(l.dataset.tog); return; }
 });
@@ -283,11 +283,11 @@ $("blocklist").addEventListener("change", e => {
 $("resetview").onclick = () => { hidden.clear(); collapsed.clear(); lineOff.clear(); store.set("lineOff", []); saveView(); drawAll(); };
 // a card with its own close button
 const card = (id, label, html, extra = "") => isOn(id)
-  ? `<div class="card" ${extra}><button class="ib close" data-hide="${id}" title="Esconder este cartão">✕</button><div class="lbl">${label}</div>${html}</div>` : "";
+  ? `<div class="card" ${extra}><button class="ib close" data-hide="${id}" title="Hide this card">✕</button><div class="lbl">${label}</div>${html}</div>` : "";
 
 // chart lines that can be switched on/off
-const LINES = [["flip", "Flip (onde a gamma muda de sinal)"], ["walls", "Call wall / put wall"], ["majors", "Maiores barras +γ / −γ"],
-  ["margin", "Níveis da margem (M dez22 / M jun25)"], ["entry", "Entrada do JP"], ["vol", "Barras de volume de hoje"], ["dots", "Pontos 5/15/30 min"]];
+const LINES = [["flip", "Flip (where total gamma changes sign)"], ["walls", "Call wall / put wall"], ["majors", "Biggest +γ / −γ bars"],
+  ["margin", "Margin levels (M Dec22 / M Jun25)"], ["entry", "JP entry"], ["vol", "Today's volume bars"], ["dots", "5/15/30 min dots"]];
 let lineOff = new Set(store.get("lineOff", []));
 const lineOn = k => !lineOff.has(k);
 function toggleLine(k) { lineOff.has(k) ? lineOff.delete(k) : lineOff.add(k); store.set("lineOff", [...lineOff]); renderBlockList(); TICKERS.forEach(renderHead); drawAll(); }
@@ -321,24 +321,24 @@ async function loadPool() {   // the list lives in watchlist.json in the repo
 }
 async function loadStatus() { const tk = await getJSON("tickers.json"); if (tk) { status = tk.status || {}; if (tk.indexes) INDEXES = tk.indexes; renderStrip(); } }
 let poolSha = null, editing = false;
-$("editbtn").onclick = () => { editing = !editing; $("strip").classList.toggle("editing", editing); $("editbtn").textContent = editing ? "Concluído" : "Editar lista"; };
+$("editbtn").onclick = () => { editing = !editing; $("strip").classList.toggle("editing", editing); $("editbtn").textContent = editing ? "Done" : "Edit list"; };
 
 async function savePool(next, what) {
-  if (!getGh()) { openSettings(); toast("Para mudar a lista, cola a chave do GitHub (com Contents: Read and write)", 6000); return false; }
+  if (!getGh()) { openSettings(); toast("To change the list, paste your GitHub key (with Contents: Read and write)", 6000); return false; }
   try {
-    msg("a guardar a lista…");
+    msg("saving the list…");
     const cur = await gh("/contents/watchlist.json?ref=main");
     const body = JSON.stringify({ tickers:next.tickers, futures:next.futures }, null, 1) + "\n";
     await gh("/contents/watchlist.json", { method:"PUT", body:JSON.stringify({
       message:"watchlist: " + what, content:btoa(body), sha:cur.sha, branch:"main" }) });
     setPool(next); msg("");
-    toast("Lista guardada. A calcular — demora 1–3 minutos.");
+    toast("List saved. Calculating — takes 1–3 minutes.");
     runNow(true);
     return true;
   } catch (e) {
     msg("");
-    if (e.message === "chave") { openSettings(); toast("A chave do GitHub não tem permissão Contents: Read and write", 6000); }
-    else toast("Erro ao guardar: " + e.message, 6000);
+    if (e.message === "chave") { openSettings(); toast("The GitHub key lacks the Contents: Read and write permission", 6000); }
+    else toast("Could not save: " + e.message, 6000);
     return false;
   }
 }
@@ -352,8 +352,8 @@ $("addform").onsubmit = async e => {
   if (await savePool(next, "add " + t)) { $("addinput").value = ""; setTab(t); }
 };
 async function removeTicker(t) {
-  if (t === SIGNAL) { toast("O SPY fica sempre — é dele que sai a regra do JP."); return; }
-  if (!confirm(`Tirar ${t} da lista? Deixa de ser calculado (o histórico fica guardado).`)) return;
+  if (t === SIGNAL) { toast("SPY always stays — JP's rule runs on it."); return; }
+  if (!confirm(`Remove ${t} from the list? It will stop being calculated (its history is kept).`)) return;
   await savePool({ tickers:pool.tickers.filter(x => x !== t), futures:pool.futures.filter(x => x !== t) }, "remove " + t);
 }
 
@@ -368,17 +368,17 @@ function renderStrip() {
     if (d) {
       const dist = d.flip ? (px / d.flip - 1) * 100 : null;
       meta = `<span class="badge ${d.net_gex_bn < 0 ? "neg" : "pos"}">γ ${gx(d.net_gex_bn)}</span>` +
-        (dist != null ? `<span title="distância ao flip">flip ${sg(dist, 1)}%</span>` : "");
-    } else if (st && !st.ok) meta = `<span class="badge amb" title="${(st.error || "").replace(/"/g, "'")}">⚠ sem dados da Cboe</span>`;
-    else meta = `<span class="badge off">a calcular…</span>`;
+        (dist != null ? `<span title="distance to the flip">flip ${sg(dist, 1)}%</span>` : "");
+    } else if (st && !st.ok) meta = `<span class="badge amb" title="${(st.error || "").replace(/"/g, "'")}">⚠ no Cboe data</span>`;
+    else meta = `<span class="badge off">calculating…</span>`;
     return `<div class="tk ${tab === t ? "on" : ""}" data-tab="${t}">
-      ${t === SIGNAL ? "" : `<button class="x" data-rm="${t}" title="Tirar da lista">✕</button>`}
-      <div><span class="s">${t}</span><span class="n">${NAMES[t] || (isIdx(t) ? "índice" : "")}</span></div>
+      ${t === SIGNAL ? "" : `<button class="x" data-rm="${t}" title="Remove from the list">✕</button>`}
+      <div><span class="s">${t}</span><span class="n">${NAMES[t] || (isIdx(t) ? "index" : "")}</span></div>
       <div><span class="p" id="px-${t}">${px == null ? "–" : fmt(px)}</span>${chg}</div>
       <div class="meta">${meta}</div></div>`;
-  }).join("") + `<div class="tk all ${tab === "TODOS" ? "on" : ""}" data-tab="TODOS">▦ Ver todos</div>`;
+  }).join("") + `<div class="tk all ${tab === "TODOS" ? "on" : ""}" data-tab="TODOS">▦ View all</div>`;
   setHTML("strip", cards);
-  $("poolnote").textContent = editing ? "Carrega no ✕ para tirar. Para juntar, escreve o símbolo em cima." : "";
+  $("poolnote").textContent = editing ? "Click ✕ to remove. To add, type the symbol at the top." : "";
 }
 $("strip").addEventListener("click", e => {
   const rm = e.target.closest("[data-rm]"); if (rm) { e.stopPropagation(); removeTicker(rm.dataset.rm); return; }
@@ -408,7 +408,7 @@ function buildCharts() {
     $("charts").insertAdjacentHTML("beforeend",
       `<div class="panel" id="sec-${t}" data-block="chart">
         <div class="ph"><h2>${t} <span class="sub">${NAMES[t] || ""}</span></h2><span id="reg-${t}"></span>
-          <div class="tools"><button class="ib" data-collapse="chart" title="Fechar/abrir"><span class="chev">▾</span></button></div></div>
+          <div class="tools"><button class="ib" data-collapse="chart" title="Collapse/expand"><span class="chev">▾</span></button></div></div>
         <div class="legend" id="head-${t}"></div>
         <div class="cvwrap"><canvas id="cv-${t}"></canvas><div class="tip" id="tip-${t}"></div></div>
       </div>`);
@@ -424,22 +424,22 @@ function buildCharts() {
 function staleNote(d) {
   if (!d || !d.updated_utc) return "";
   const mins = Math.round((Date.now() - Date.parse(d.updated_utc)) / 60000);
-  return mins > 15 ? `<span class="stale">⚠ sem atualização há ${mins >= 120 ? Math.round(mins / 60) + " h" : mins + " min"} (normal com o mercado fechado)</span>` : "";
+  return mins > 15 ? `<span class="stale">⚠ not updated for ${mins >= 120 ? Math.round(mins / 60) + " h" : mins + " min"} (normal while the market is closed)</span>` : "";
 }
 function renderHead(t) {
   const d = state[t].data; if (!d || !$("head-" + t)) return;
   setHTML("reg-" + t, d.net_gex_bn < 0
-    ? `<span class="badge neg" title="Os dealers compram na subida e vendem na descida: amplificam os movimentos">gamma negativa ${gx(d.net_gex_bn)}</span>`
-    : `<span class="badge pos" title="Os dealers vendem na subida e compram na descida: travam os movimentos">gamma positiva ${gx(d.net_gex_bn)}</span>`);
+    ? `<span class="badge neg" title="Dealers buy as price rises and sell as it falls: they amplify moves">negative gamma ${gx(d.net_gex_bn)}</span>`
+    : `<span class="badge pos" title="Dealers sell as price rises and buy as it falls: they dampen moves">positive gamma ${gx(d.net_gex_bn)}</span>`);
   const px = state[t].last ?? d.spot, dist = d.flip ? (px / d.flip - 1) * 100 : null;
   const stats = isOn("chart.stats") ? `<div class="stats" style="width:100%">
-      <span class="chip" title="Preço onde a gamma total passa de negativa a positiva">Flip <b style="color:var(--amber)">${fmt(d.flip)}</b>${dist != null ? ` <span class="muted">(${sg(dist, 1)}%)</span>` : ""}</span>
-      <span class="chip" title="Strike com mais gamma de puts abaixo do preço — costuma travar quedas">Put wall <b class="down">${d.put_wall == null ? "–" : +d.put_wall.toFixed(2)}</b></span>
-      <span class="chip" title="Strike com mais gamma de calls acima do preço — costuma travar subidas">Call wall <b class="up">${d.call_wall == null ? "–" : +d.call_wall.toFixed(2)}</b></span>
-      <span class="chip muted">${d.futures ? `opções do ${d.index}${d.etf ? " + " + d.etf : ""} · preço ~${d.price_delay_min} min atrasado` : `gamma de ${d.time_et.slice(11, 16)} Nova Iorque`}</span>
+      <span class="chip" title="Price where total gamma turns from negative to positive">Flip <b style="color:var(--amber)">${fmt(d.flip)}</b>${dist != null ? ` <span class="muted">(${sg(dist, 1)}%)</span>` : ""}</span>
+      <span class="chip" title="Strike with the most put gamma below the price — tends to slow falls">Put wall <b class="down">${d.put_wall == null ? "–" : +d.put_wall.toFixed(2)}</b></span>
+      <span class="chip" title="Strike with the most call gamma above the price — tends to slow rallies">Call wall <b class="up">${d.call_wall == null ? "–" : +d.call_wall.toFixed(2)}</b></span>
+      <span class="chip muted">${d.futures ? `${d.index}${d.etf ? " + " + d.etf : ""} options · price ~${d.price_delay_min} min delayed` : `gamma as of ${d.time_et.slice(11, 16)} New York`}</span>
       ${staleNote(d)}</div>` : "";
   const legend = isOn("chart.legend") ? [["flip", "Flip", "var(--amber)"], ["walls", "Walls", "var(--green)"], ["majors", "+γ / −γ", "var(--red)"],
-      ["margin", "Margem", "var(--purple)"], ["entry", "Entrada JP", "var(--blue)"], ["vol", "Volume", "var(--orange)"], ["dots", "5/15/30 min", "var(--muted)"]]
+      ["margin", "Margin", "var(--purple)"], ["entry", "JP entry", "var(--blue)"], ["vol", "Volume", "var(--orange)"], ["dots", "5/15/30 min", "var(--muted)"]]
     .filter(([k]) => k !== "margin" || MARGIN_IDX[t]).filter(([k]) => k !== "entry" || t === SIGNAL)
     .map(([k, n, c]) => `<span class="tog ${lineOn(k) ? "" : "off"}" data-tog="${k}"><i style="background:${c}"></i>${n}</span>`).join("") : "";
   setHTML("head-" + t, stats + legend);
@@ -461,14 +461,14 @@ function getKey() { return store.get("finnhubKey", "") || ""; }
 function getGh() { return store.get("ghToken", "") || ""; }
 let ws, wsRetry = 1000, lastTradeAt = 0, subscribed = new Set();
 async function startLive() {
-  if (!getKey()) { setStatus(false, "sem preço ao segundo — ⚙"); return; }
+  if (!getKey()) { setStatus(false, "no live prices — ⚙"); return; }
   for (const t of LIVE()) await quote(t);
   connectWS();
 }
 async function quote(t) {
   try {
     const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${t}&token=${encodeURIComponent(getKey())}`);
-    if (r.status === 401 || r.status === 403) { setStatus(false, "chave Finnhub inválida"); return; }
+    if (r.status === 401 || r.status === 403) { setStatus(false, "invalid Finnhub key"); return; }
     const q = await r.json();
     if (q.pc) ensure(t).prevClose = q.pc;
     if (q.c) ensure(t).last = q.c;
@@ -482,12 +482,12 @@ function connectWS() {
   if (ws) try { ws.close(); } catch {}
   subscribed = new Set();
   ws = new WebSocket("wss://ws.finnhub.io?token=" + encodeURIComponent(getKey()));
-  ws.onopen = () => { wsRetry = 1000; subscribeLive(); setStatus(true, "ligado"); };
+  ws.onopen = () => { wsRetry = 1000; subscribeLive(); setStatus(true, "connected"); };
   ws.onmessage = ev => {
     const m = JSON.parse(ev.data); if (m.type !== "trade" || !m.data) return;
     for (const tr of m.data) { const s = state[tr.s]; if (!s) continue; s.last = tr.p; s.lastTime = tr.t; lastTradeAt = Date.now(); }
   };
-  ws.onclose = () => { setStatus(false, "a religar…"); setTimeout(connectWS, wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
+  ws.onclose = () => { setStatus(false, "reconnecting…"); setTimeout(connectWS, wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
   ws.onerror = () => { try { ws.close(); } catch {} };
 }
 function setStatus(on, text) { $("livedot").className = "dot" + (on ? " live" : ""); $("statustext").textContent = text; }
@@ -504,7 +504,7 @@ setInterval(() => {   // once per second: live line, prices, panels
   }
   renderStrip(); refreshPanels();
   if (getKey() && ws && ws.readyState === 1)
-    setStatus(true, lastTradeAt && now - lastTradeAt < 10000 ? "ao vivo" : "ligado · sem negócios agora");
+    setStatus(true, lastTradeAt && now - lastTradeAt < 10000 ? "live" : "connected · no trades right now");
 }, 1000);
 
 // ===================================================================== chart drawing
@@ -526,11 +526,11 @@ function draw(t) {
   if (!d || !d.strikes.length) {
     const st = status[t];
     g.fillStyle = C.muted; g.textAlign = "center";
-    g.fillText(st && !st.ok ? `Sem dados para ${t} na Cboe — confirma o símbolo (${(st.error || "").slice(0, 70)})`
-                            : `A calcular ${t}… aparece na próxima leitura (até 5 min).`, W / 2, 60);
+    g.fillText(st && !st.ok ? `No Cboe data for ${t} — check the symbol (${(st.error || "").slice(0, 70)})`
+                            : `Calculating ${t}… it appears with the next reading (up to 5 min).`, W / 2, 60);
     return;
   }
-  const L = 56, R = 92, T = 34, B = 26, pw = W - L - R, ph = H - T - B;
+  const L = 56, R = 106, T = 34, B = 26, pw = W - L - R, ph = H - T - B;
   const ks = d.strikes.map(x => x.k);
   const step = ks.length > 1 ? Math.min(...ks.slice(1).map((k, i) => k - ks[i])) : 1;
   const cur = s.last ?? d.spot;
@@ -569,7 +569,7 @@ function draw(t) {
   g.fillStyle = C.muted; g.textAlign = "center"; g.textBaseline = "bottom";
   const xs = niceStep(xmax / Math.max(2, Math.floor(pw / 90)));
   for (let v = xs; v <= xmax; v += xs) g.fillText(v.toFixed(xs < 0.01 ? 3 : xs < 0.1 ? 2 : xs < 1 ? 1 : 0), L + v / xmax * pw, T - 5);
-  g.textAlign = "left"; g.fillText("barras: gamma dos dealers, $bn por 1%", L, T - 19);
+  g.textAlign = "left"; g.fillText("bars: dealer gamma, $bn per 1%", L, T - 19);
 
   // level lines with tags on the right
   const tags = [];
@@ -582,8 +582,8 @@ function draw(t) {
   if (lineOn("majors")) { lvl(d.major_pos, alpha(C.green, .8), "+γ " + d.major_pos, [8, 3]); lvl(d.major_neg, alpha(C.red, .8), "−γ " + d.major_neg, [8, 3]); }
   if (lineOn("margin")) (marginLevels(t) || []).forEach(([v, c, label]) => lvl(v, c === "a" ? C.purple : C.pink, label, [3, 3]));
   if (lineOn("entry") && t === SIGNAL && signal && signal.position) {
-    lvl(signal.position.entry, C.blue, "entrada JP " + fmt(signal.position.entry), [10, 3]);
-    signal.position.adds.forEach(a => lvl(a.price, C.orange, "reforço " + fmt(a.price), [10, 3])); }
+    lvl(signal.position.entry, C.blue, "JP entry " + fmt(signal.position.entry), [10, 3]);
+    signal.position.adds.forEach(a => lvl(a.price, C.orange, "add-on " + fmt(a.price), [10, 3])); }
   // place tags without overlapping
   const right = tags.filter(x => !x[3]).sort((a, b) => a[0] - b[0]); let lastY = -1e9;
   right.forEach(tg => { tg[0] = Math.max(tg[0], lastY + 14); lastY = tg[0];
@@ -620,9 +620,9 @@ function draw(t) {
     const p = today.length ? today.reduce((a, b) => Math.abs(b[0] - ms) < Math.abs(a[0] - ms) ? b : a) : null;
     const showP = p && Math.abs(p[0] - ms) < 10 * 60e3;
     if (showP) { g.fillStyle = C.blue; g.beginPath(); g.arc(X(p[0]), Y(p[1]), 4, 0, 7); g.fill(); }
-    tip.innerHTML = `<b>${lisbon.format(new Date(ms))}</b>${showP ? ` · preço ${fmt(p[1])}` : ""}<br>nível ${fmt(price)}<br>` +
-      `strike ${near.k}: gamma <b>${gx(near.oi)}</b> (OI) · ${gx(near.vol)} (vol. hoje)` +
-      (near.oi5 != null ? `<br>há 5 min ${gx(near.oi5)}${near.oi30 != null ? ` · há 30 min ${gx(near.oi30)}` : ""}` : "");
+    tip.innerHTML = `<b>${lisbon.format(new Date(ms))}</b>${showP ? ` · price ${fmt(p[1])}` : ""}<br>level ${fmt(price)}<br>` +
+      `strike ${near.k}: gamma <b>${gx(near.oi)}</b> (OI) · ${gx(near.vol)} (today's volume)` +
+      (near.oi5 != null ? `<br>5 min ago ${gx(near.oi5)}${near.oi30 != null ? ` · 30 min ago ${gx(near.oi30)}` : ""}` : "");
     tip.style.display = "block";
     const tw = tip.offsetWidth; tip.style.left = (hx + 30 + tw > W ? hx - tw - 6 : hx + 30) + "px"; tip.style.top = Math.max(4, hy - 60) + "px";
   } else if (tip) tip.style.display = "none";
@@ -641,36 +641,36 @@ const tick = (ok, txt) => `<div class="check ${ok ? "ok" : "no"}">${ok ? "✔" :
 function renderRule() {
   const sgn = signal; if (!sgn) return;
   const live = state.SPY?.last ?? sgn.spot, pos = sgn.position, lvl = sgn.level, g = sgn.gamma, rt = sgn.retail;
-  $("rule-sub").innerHTML = pos ? `<span class="badge blue">em posição</span>` : `<span class="badge off">fora</span>`;
+  $("rule-sub").innerHTML = pos ? `<span class="badge blue">in position</span>` : `<span class="badge off">flat</span>`;
   let posTxt;
   if (pos) {
     const units = [pos.entry].concat(pos.adds.map(a => a.price)), pnl = units.reduce((a, u) => a + (live - u), 0);
-    posTxt = `<div class="big ${cls(pnl)}">Comprado ${units.length}x · ${sg(pnl)} pts</div>` +
-      `<div class="stat"><span>Entrada</span><b>${fmt(pos.entry)}</b></div><div class="muted">${pos.entry_time} Nova Iorque</div>` +
-      pos.adds.map(a => `<div class="stat"><span>Reforço</span><b>${fmt(a.price)}</b></div><div class="muted">${a.time}</div>`).join("") +
-      `<div class="stat"><span>SPY agora</span><b>${fmt(live)}</b></div>`;
-  } else posTxt = `<div class="big" style="color:var(--muted)">Fora</div>` +
-    (lvl == null ? `<div class="muted">Nível de entrada ainda por definir.</div>` : `<div>Entra quando a gamma chegar a <b>${lvl}bn</b>.</div>`);
+    posTxt = `<div class="big ${cls(pnl)}">Long ${units.length}x · ${sg(pnl)} pts</div>` +
+      `<div class="stat"><span>Entry</span><b>${fmt(pos.entry)}</b></div><div class="muted">${pos.entry_time} New York</div>` +
+      pos.adds.map(a => `<div class="stat"><span>Add-on</span><b>${fmt(a.price)}</b></div><div class="muted">${a.time}</div>`).join("") +
+      `<div class="stat"><span>SPY now</span><b>${fmt(live)}</b></div>`;
+  } else posTxt = `<div class="big" style="color:var(--muted)">Flat</div>` +
+    (lvl == null ? `<div class="muted">Entry level not set yet.</div>` : `<div>Enters when gamma reaches <b>${lvl}bn</b>.</div>`);
   // gamma meter: from the entry level (left) to the exit at 0 (right)
   const span = Math.abs(lvl || 10) * 2, fill = Math.max(0, Math.min(1, (g - (lvl || -10) * 2) / span));
-  const gammaTxt = `<div class="stat"><span>Agora</span><b class="${cls(g)}">${sg(g)}bn</b></div>
-    <div class="meter" title="Esquerda: ${2 * lvl}bn · meio: entrada ${lvl}bn · direita: saída 0bn"><i style="width:${fill * 100}%;background:${g < lvl ? "var(--red)" : g < 0 ? "var(--amber)" : "var(--green)"}"></i></div>
-    <div class="muted">entrada ${lvl}bn · saída 0bn${pos ? (g >= 0 ? " · <b class=ok>saída: gamma voltou a zero</b>" : ` · faltam ${fmt(-g)}bn`) : ""}</div>`;
-  const zTxt = rt.z == null ? `<span class="muted">a juntar histórico (${rt.days} de 10 dias)</span>`
-    : `z = <b class="${rt.z >= sgn.add_min_z ? "warn" : ""}">${fmt(rt.z)}</b>${rt.complete ? "" : ' <span class="muted">(dia a decorrer)</span>'}`;
-  const retailTxt = `<div class="stat"><span>Puts XSP hoje</span><b>${money(rt.premium)}</b></div><div class="stat"><span>Fasquia (z=${sgn.add_min_z})</span><b>${money(rt.bar)}</b></div>${zTxt}`;
+  const gammaTxt = `<div class="stat"><span>Now</span><b class="${cls(g)}">${sg(g)}bn</b></div>
+    <div class="meter" title="Left: ${2 * lvl}bn · middle: entry ${lvl}bn · right: exit 0bn"><i style="width:${fill * 100}%;background:${g < lvl ? "var(--red)" : g < 0 ? "var(--amber)" : "var(--green)"}"></i></div>
+    <div class="muted">entry ${lvl}bn · exit 0bn${pos ? (g >= 0 ? " · <b class=ok>exit: gamma is back to zero</b>" : ` · ${fmt(-g)}bn to go`) : ""}</div>`;
+  const zTxt = rt.z == null ? `<span class="muted">building history (${rt.days} of 10 days)</span>`
+    : `z = <b class="${rt.z >= sgn.add_min_z ? "warn" : ""}">${fmt(rt.z)}</b>${rt.complete ? "" : ' <span class="muted">(day in progress)</span>'}`;
+  const retailTxt = `<div class="stat"><span>XSP puts today</span><b>${money(rt.premium)}</b></div><div class="stat"><span>Threshold (z=${sgn.add_min_z})</span><b>${money(rt.bar)}</b></div>${zTxt}`;
   const below = pos && live < pos.entry, addsLeft = pos && pos.adds.length < sgn.max_adds;
-  const addChecks = pos ? tick(g <= lvl, `gamma ≤ ${lvl}bn`) + tick(rt.z != null && rt.z >= sgn.add_min_z, `pânico de retalho (z ≥ ${sgn.add_min_z})`) +
-      tick(below, `preço abaixo da entrada`) + tick(addsLeft, "reforço ainda por usar") + `<div class="muted">Avaliado ao fecho (21:00 Lisboa).</div>`
-    : `<div class="muted">Só conta com posição aberta.</div>`;
+  const addChecks = pos ? tick(g <= lvl, `gamma ≤ ${lvl}bn`) + tick(rt.z != null && rt.z >= sgn.add_min_z, `retail panic (z ≥ ${sgn.add_min_z})`) +
+      tick(below, `price below the entry`) + tick(addsLeft, "add-on still unused") + `<div class="muted">Checked at the close (21:00 Lisbon).</div>`
+    : `<div class="muted">Only applies with an open position.</div>`;
   const closed = sgn.closed || [], total = closed.reduce((a, c) => a + c.pnl, 0), wins = closed.filter(c => c.pnl > 0).length;
-  const hist = closed.length ? `<div class="stat"><span>${closed.length} fechados · ${wins} ganhos</span><b class="${cls(total)}">${sg(total)} pts</b></div>` +
+  const hist = closed.length ? `<div class="stat"><span>${closed.length} closed · ${wins} won</span><b class="${cls(total)}">${sg(total)} pts</b></div>` +
       closed.slice(-5).reverse().map(c => `<div class="stat muted"><span>${c.entry_time.slice(5, 10)} → ${c.exit_time.slice(5, 10)}</span><span class="${cls(c.pnl)}">${sg(c.pnl)}</span></div>`).join("")
-    : `<span class="muted">Ainda sem trades fechados.</span>`;
+    : `<span class="muted">No closed trades yet.</span>`;
   setHTML("rule", `<div class="cards">
-      ${card("rule.pos", "Posição", posTxt)}${card("rule.gamma", "Gamma do SPY", gammaTxt)}${card("rule.retail", "Pânico de retalho", retailTxt)}
-      ${card("rule.adds", "Condições para o reforço", addChecks)}${card("rule.hist", "Histórico", hist)}</div>
-    <details class="how" style="margin-top:10px"><summary>Como funciona</summary>Entra quando a gamma do SPY chega a ${lvl}bn; reforça uma vez ao fecho se o preço estiver abaixo da entrada e houver pânico de retalho (compra de puts XSP muito acima do normal); sai quando a gamma volta a 0. O JP usa só puts de 1 contrato compradas ao ask; aqui conta-se todo o prémio de puts XSP com 5+ dias (o mais próximo com dados grátis).</details>`);
+      ${card("rule.pos", "Position", posTxt)}${card("rule.gamma", "SPY gamma", gammaTxt)}${card("rule.retail", "Retail panic", retailTxt)}
+      ${card("rule.adds", "Add-on conditions", addChecks)}${card("rule.hist", "History", hist)}</div>
+    <details class="how" style="margin-top:10px"><summary>How it works</summary>Enters when SPY gamma reaches ${lvl}bn; adds once at the close if the price is below the entry and there is retail panic (XSP put buying far above normal); exits when gamma is back to 0. JP uses only 1-lot XSP puts bought at the ask; here all XSP put premium with 5+ days to expiry is counted (the closest match with free data).</details>`);
 }
 
 // ---------- margin (FINRA margin debt, JP method)
@@ -682,37 +682,37 @@ function marginLevels(t) {
   if (!margin || !MARGIN_IDX[t]) return null;
   const b = margin.indexes[MARGIN_IDX[t]], rt = margin.ratio[t]; if (!b || !rt) return null;
   const k = v => v == null ? null : v * rt, d = t === "SPY" || t === "QQQ" ? 1 : 0;
-  return [[k(b.cycle && b.cycle.breakeven), "a", "M dez22 " + fmt(k(b.cycle && b.cycle.breakeven), d)],
-          [k(b.recent && b.recent.breakeven), "b", "M jun25 " + fmt(k(b.recent && b.recent.breakeven), d)]];
+  return [[k(b.cycle && b.cycle.breakeven), "a", "M Dec22 " + fmt(k(b.cycle && b.cycle.breakeven), d)],
+          [k(b.recent && b.recent.breakeven), "b", "M Jun25 " + fmt(k(b.recent && b.recent.breakeven), d)]];
 }
-const mon = s => { const [y, mm] = s.split("-"); return ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+mm - 1] + "-" + y.slice(2); };
+const mon = s => { const [y, mm] = s.split("-"); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+mm - 1] + "-" + y.slice(2); };
 function renderMargin() {
   const m = margin; if (!m) return;
   const idxCard = name => {
     const b = m.indexes[name]; if (!b || !b.cycle) return "";
     const px = idxLive(name), under = underAt(b.lots, px), col = under >= 50 ? "var(--red)" : under >= 25 ? "var(--amber)" : "var(--green)";
-    return card("margin." + name, (name === "SPX" ? "S&P 500" : "Nasdaq 100") + " · agora " + fmt(px, 0),
-      `<div class="stat"><span>Dinheiro novo a perder</span><b style="color:${col}">${fmt(under, 0)}%</b></div>
+    return card("margin." + name, (name === "SPX" ? "S&P 500" : "Nasdaq 100") + " · now " + fmt(px, 0),
+      `<div class="stat"><span>New borrowed money losing</span><b style="color:${col}">${fmt(under, 0)}%</b></div>
        <div class="meter"><i style="width:${under}%;background:${col}"></i></div>
-       <div class="stat"><span>Fica a zero (desde ${mon(m.cycle_start)})</span><b>${fmt(b.cycle.breakeven, 0)}</b></div>
-       <div class="stat"><span>Fica a zero (desde ${mon(m.recent_start)})</span><b>${fmt(b.recent.breakeven, 0)}</b></div>
-       <div class="stat muted"><span>Preço médio sem juros</span><span>${fmt(b.cycle.entry, 0)}</span></div>
-       <div class="stat muted"><span>25% / 50% / 75% a perder abaixo de</span><span>${fmt(b.pain["25"], 0)} / ${fmt(b.pain["50"], 0)} / ${fmt(b.pain["75"], 0)}</span></div>`);
+       <div class="stat"><span>Breakeven (since ${mon(m.cycle_start)})</span><b>${fmt(b.cycle.breakeven, 0)}</b></div>
+       <div class="stat"><span>Breakeven (since ${mon(m.recent_start)})</span><b>${fmt(b.recent.breakeven, 0)}</b></div>
+       <div class="stat muted"><span>Average price, no interest</span><span>${fmt(b.cycle.entry, 0)}</span></div>
+       <div class="stat muted"><span>25% / 50% / 75% losing below</span><span>${fmt(b.pain["25"], 0)} / ${fmt(b.pain["50"], 0)} / ${fmt(b.pain["75"], 0)}</span></div>`);
   };
   const fx = m.fx || {}, h = fx.history;
-  const fxTxt = !fx.eurusd ? "–" : `<div class="stat"><span>Dólar vs euro, 6 meses</span><b class="${fx.signal ? "down" : ""}">${sg(fx.eurusd.usd_chg_6m_pct, 1)}%</b></div>
+  const fxTxt = !fx.eurusd ? "–" : `<div class="stat"><span>Dollar vs euro, 6 months</span><b class="${fx.signal ? "down" : ""}">${sg(fx.eurusd.usd_chg_6m_pct, 1)}%</b></div>
       <div class="stat muted"><span>EUR/USD</span><span>${fx.eurusd.six_months_ago} → ${fx.eurusd.now}</span></div>
-      <div class="stat muted"><span>Dólar vs iene</span><span>${fx.usdjpy ? sg(fx.usdjpy.usd_chg_6m_pct, 1) + "%" : "–"}</span></div>
-      <div style="margin-top:4px">${fx.signal ? `<span class="badge neg">Sinal ligado</span>` : `<span class="badge off">Sinal desligado</span>`} <span class="muted">dispara com +${fx.threshold_pct}%</span></div>
-      ${h ? `<div class="muted" style="margin-top:4px">Desde ${h.since}: depois do sinal o S&P fez ${sg(h.spx_3m_avg_after_signal_pct, 1)}% em 3 meses e caiu ${fmt(h.spx_3m_down_share_after_signal_pct, 0)}% das vezes (normal: ${sg(h.spx_3m_avg_all_pct, 1)}%, cai ${fmt(h.spx_3m_down_share_all_pct, 0)}%).</div>` : ""}`;
+      <div class="stat muted"><span>Dollar vs yen</span><span>${fx.usdjpy ? sg(fx.usdjpy.usd_chg_6m_pct, 1) + "%" : "–"}</span></div>
+      <div style="margin-top:4px">${fx.signal ? `<span class="badge neg">Signal on</span>` : `<span class="badge off">Signal off</span>`} <span class="muted">triggers at +${fx.threshold_pct}%</span></div>
+      ${h ? `<div class="muted" style="margin-top:4px">Since ${h.since}: after the signal the S&P did ${sg(h.spx_3m_avg_after_signal_pct, 1)}% over 3 months and fell ${fmt(h.spx_3m_down_share_after_signal_pct, 0)}% of the time (normal: ${sg(h.spx_3m_avg_all_pct, 1)}%, falls ${fmt(h.spx_3m_down_share_all_pct, 0)}%).</div>` : ""}`;
   setHTML("margin", `<div class="cards">
-      ${card("margin.debt", "Dívida de margem · FINRA " + mon(m.finra_month),
-        `<div class="big">$${fmt(m.debt_bn, 0)}bn</div><div class="stat"><span>Num ano</span><b class="${cls(m.yoy_pct)}">${sg(m.yoy_pct, 0)}%</b></div>
-         <div class="stat"><span>Voltar ao pico de 2021 ($${fmt(m.peak_2021_bn, 0)}bn)</span><b class="down">${fmt(m.drop_to_2021_pct, 0)}%</b></div>
-         <div class="muted">Dinheiro emprestado pelas corretoras para comprar ações. Sai ~3 semanas depois do fim do mês.</div>`)}
+      ${card("margin.debt", "Margin debt · FINRA " + mon(m.finra_month),
+        `<div class="big">$${fmt(m.debt_bn, 0)}bn</div><div class="stat"><span>Over a year</span><b class="${cls(m.yoy_pct)}">${sg(m.yoy_pct, 0)}%</b></div>
+         <div class="stat"><span>Back to the 2021 peak ($${fmt(m.peak_2021_bn, 0)}bn)</span><b class="down">${fmt(m.drop_to_2021_pct, 0)}%</b></div>
+         <div class="muted">Money borrowed from brokers to buy shares. Published ~3 weeks after month end.</div>`)}
       ${idxCard("SPX")}${idxCard("NDX")}
-      ${card("margin.fx", "Sinal do dólar", fxTxt)}</div>
-    <details class="how" style="margin-top:10px"><summary>Como se calcula</summary>Em cada mês em que a dívida subiu desde ${mon(m.cycle_start)}, esse dinheiro novo comprou ao preço médio desse mês; soma-se o juro (${(m.rate * 100).toFixed(1)}%/ano) desde então. Quando a dívida desce, todos os lotes encolhem por igual. Abaixo destes níveis, quem comprou com dinheiro emprestado está a perder — e é o primeiro obrigado a vender (chamadas de margem). Aparecem como linhas roxas nos gráficos de SPY, SPX, ES, QQQ e NQ.</details>`);
+      ${card("margin.fx", "Dollar signal", fxTxt)}</div>
+    <details class="how" style="margin-top:10px"><summary>How it is calculated</summary>For each month margin debt rose since ${mon(m.cycle_start)}, that new money is assumed to have bought at that month's average price; interest (${(m.rate * 100).toFixed(1)}%/year) is added since then. When debt falls, every batch shrinks by the same share. Below these levels, people who bought with borrowed money are losing — and they are the first forced to sell (margin calls). Shown as purple lines on the SPY, SPX, ES, QQQ and NQ charts.</details>`);
 }
 
 // ---------- quant lab
@@ -720,33 +720,33 @@ let quant = null;
 function renderQuant() {
   const q = quant; if (!q) return;
   const n = q.now, live = state.SPY?.last ?? n.spot;
-  const nowTxt = `<div class="stat"><span>Gamma</span><b class="${cls(n.gamma)}">${sg(n.gamma)}bn</b></div><div class="stat muted"><span>Mínimo de hoje</span><span>${sg(n.gamma_low_today)}bn</span></div>
-    <div style="margin-top:4px">${n.turning ? '<span class="badge pos">a virar</span> subiu desde o mínimo' : n.off_low > 0.2 ? `<span class="badge amb">a afastar-se</span> +${n.off_low.toFixed(2)}bn do mínimo` : '<span class="badge off">ainda no mínimo</span>'}</div>`;
-  const fuelTxt = n.fuel == null ? `<span class="muted">precisa de 1h de leituras e movimento &gt; 0,15%</span>`
-    : `<div class="big">${sg(n.fuel)}bn</div><div class="muted">por cada 1% de preço na última hora. A encolher = venda a perder força.</div>`;
-  const volTxt = n.iv30 == null ? "–" : `<div class="stat"><span>Implícita (30d)</span><b>${pct(n.iv30)}</b></div><div class="stat"><span>Realizada 20d / 5d</span><b>${pct(n.rv20)} / ${pct(n.rv5)}</b></div>
-    <div style="margin-top:4px"><span class="badge ${(n.vrp20 ?? 0) > 0 ? "pos" : "neg"}">${n.vrp20 > 0 ? "implícita acima" : "implícita abaixo"} ${sg(n.vrp20, 1)} pts</span></div>`;
+  const nowTxt = `<div class="stat"><span>Gamma</span><b class="${cls(n.gamma)}">${sg(n.gamma)}bn</b></div><div class="stat muted"><span>Today's low</span><span>${sg(n.gamma_low_today)}bn</span></div>
+    <div style="margin-top:4px">${n.turning ? '<span class="badge pos">turning</span> up from the low' : n.off_low > 0.2 ? `<span class="badge amb">moving off</span> +${n.off_low.toFixed(2)}bn from the low` : '<span class="badge off">still at the low</span>'}</div>`;
+  const fuelTxt = n.fuel == null ? `<span class="muted">needs 1h of readings and a move &gt; 0.15%</span>`
+    : `<div class="big">${sg(n.fuel)}bn</div><div class="muted">per 1% of price over the last hour. Shrinking = selling losing steam.</div>`;
+  const volTxt = n.iv30 == null ? "–" : `<div class="stat"><span>Implied (30d)</span><b>${pct(n.iv30)}</b></div><div class="stat"><span>Realised 20d / 5d</span><b>${pct(n.rv20)} / ${pct(n.rv5)}</b></div>
+    <div style="margin-top:4px"><span class="badge ${(n.vrp20 ?? 0) > 0 ? "pos" : "neg"}">${n.vrp20 > 0 ? "implied above" : "implied below"} ${sg(n.vrp20, 1)} pts</span></div>`;
   const weekTxt = n.gex_week == null ? "–" : `<div class="big">${n.week_share != null ? Math.round(n.week_share * 100) + "%" : gx(n.gex_week)}</div>
-    <div class="muted">${sg(n.gex_week)}bn dos ${sg(n.gamma)}bn vencem esta semana e desaparecem sozinhos.</div>`;
+    <div class="muted">${sg(n.gex_week)}bn of the ${sg(n.gamma)}bn expires this week and disappears on its own.</div>`;
   const vrows = q.variants.map(v => {
     const o = v.open, openPnl = o ? o.units.reduce((a, u) => a + u.size * (live - u.price), 0) : 0, total = v.realized + openPnl;
     return `<tr><td><b>${v.id}</b> ${v.name}<div class="muted" style="white-space:normal">${v.desc}</div></td><td>${v.closed} (${v.wins} ✓)</td>` +
       `<td class="${cls(total)}"><b>${sg(total)}</b></td><td class="down">${v.max_drawdown ? "−" + v.max_drawdown.toFixed(2) : "0"}</td>` +
-      `<td>${o ? `${o.size}x @ ${fmt(o.avg)}<br><span class="${cls(openPnl)}">${sg(openPnl)}</span>` : '<span class="muted">fora</span>'}</td></tr>`;
+      `<td>${o ? `${o.size}x @ ${fmt(o.avg)}<br><span class="${cls(openPnl)}">${sg(openPnl)}</span>` : '<span class="muted">flat</span>'}</td></tr>`;
   }).join("");
   const crows = q.cycles.slice().reverse().map(c => `<tr><td>${c.start.slice(5)}</td><td>${fmt(c.start_px)}</td><td>${fmt(c.min_gamma, 1)}</td>` +
     `<td>${c.fuel == null ? "–" : sg(c.fuel, 1)}</td><td>${c.vrp == null ? "–" : sg(c.vrp, 1)}</td><td>${c.week_share == null ? "–" : Math.round(c.week_share * 100) + "%"}</td>` +
     `<td>${c.retail_z == null ? "–" : c.retail_z.toFixed(1)}</td><td>${c.margin_under == null ? "–" : Math.round(c.margin_under) + "%"}</td><td class="down">${c.worst_pct.toFixed(2)}%</td>` +
-    `<td class="${cls(c.return_pct)}">${c.end ? "" : '<span class="badge blue">aberto</span> '}${sg(c.return_pct)}%</td><td>${c.days}</td>` +
+    `<td class="${cls(c.return_pct)}">${c.end ? "" : '<span class="badge blue">open</span> '}${sg(c.return_pct)}%</td><td>${c.days}</td>` +
     `<td>${c.fwd1_pct == null ? "–" : sg(c.fwd1_pct) + "%"} / ${c.fwd3_pct == null ? "–" : sg(c.fwd3_pct) + "%"} / ${c.fwd5_pct == null ? "–" : sg(c.fwd5_pct) + "%"}</td></tr>`).join("");
-  setHTML("quant", `<div class="cards">${card("quant.now", "Gamma agora", nowTxt)}${card("quant.fuel", "Combustível da venda", fuelTxt)}
-      ${card("quant.vol", "Volatilidade implícita vs realizada", volTxt)}${card("quant.week", "Gamma a expirar esta semana", weekTxt)}</div>
-    ${isOn("quant.variants") ? `<div class="sublbl">Variantes em papel (pontos de SPY) <button class="ib" data-hide="quant.variants" title="Esconder">✕</button></div>
-      <div class="scroll"><table class="q"><tr><th>Variante</th><th>Fechadas</th><th>Total</th><th>Pior queda</th><th>Aberta agora</th></tr>${vrows}</table></div>` : ""}
-    ${isOn("quant.cycles") ? `<div class="sublbl">Ciclos: gamma chega a ${q.level}bn → volta a 0 <button class="ib" data-hide="quant.cycles" title="Esconder">✕</button></div>
-      <div class="scroll"><table class="q"><tr><th>Início</th><th>Preço</th><th>Gamma mín.</th><th title="combustível da venda">Combust.</th><th title="implícita menos realizada">Impl−real</th><th>% expira</th><th>Retalho z</th><th title="% do dinheiro emprestado novo a perder no início">Margem a perder</th><th>Pior</th><th>Resultado</th><th>Dias</th><th>+1d / +3d / +5d</th></tr>
-      ${crows || '<tr><td colspan="12" class="muted">ainda sem ciclos</td></tr>'}</table></div>` : ""}
-    <details class="how" style="margin-top:10px"><summary>Como ler</summary>Registo desde ${q.first_reading} (Nova Iorque). Com poucos ciclos isto não prova nada — serve para comparar as versões ao longo das próximas semanas. Leituras antigas não têm volatilidade nem "% a expirar" (começaram a 17/11).</details>`);
+  setHTML("quant", `<div class="cards">${card("quant.now", "Gamma now", nowTxt)}${card("quant.fuel", "Selling fuel", fuelTxt)}
+      ${card("quant.vol", "Implied vs realised volatility", volTxt)}${card("quant.week", "Gamma expiring this week", weekTxt)}</div>
+    ${isOn("quant.variants") ? `<div class="sublbl">Paper variants (SPY points) <button class="ib" data-hide="quant.variants" title="Hide">✕</button></div>
+      <div class="scroll"><table class="q"><tr><th>Variant</th><th>Closed</th><th>Total</th><th>Worst drawdown</th><th>Open now</th></tr>${vrows}</table></div>` : ""}
+    ${isOn("quant.cycles") ? `<div class="sublbl">Cycles: gamma reaches ${q.level}bn → back to 0 <button class="ib" data-hide="quant.cycles" title="Hide">✕</button></div>
+      <div class="scroll"><table class="q"><tr><th>Start</th><th>Price</th><th>Min gamma</th><th title="selling fuel">Fuel</th><th title="implied minus realised">Impl−real</th><th>% expiring</th><th>Retail z</th><th title="% of new borrowed money losing at the start">Margin losing</th><th>Worst</th><th>Result</th><th>Days</th><th>+1d / +3d / +5d</th></tr>
+      ${crows || '<tr><td colspan="12" class="muted">no cycles yet</td></tr>'}</table></div>` : ""}
+    <details class="how" style="margin-top:10px"><summary>How to read it</summary>Recorded since ${q.first_reading} (New York). With so few cycles this proves nothing — it is for comparing the versions over the coming weeks. Older readings have no volatility or "% expiring" (recorded from 17 Nov).</details>`);
 }
 
 // ===================================================================== refresh / GitHub
@@ -768,30 +768,30 @@ let refreshing = false;
 async function runNow(force) {   // ask GitHub for a new reading now and wait for it
   if (refreshing) return; refreshing = true; $("refreshbtn").disabled = true;
   try {
-    msg("a carregar…"); await reloadAll();
-    if (!getGh()) { msg("recarregado · para recalcular na hora: ⚙"); return; }
+    msg("loading…"); await reloadAll();
+    if (!getGh()) { msg("reloaded · to recalculate now: ⚙"); return; }
     const before = new Date().toISOString();
-    msg("a pedir leitura nova…");
+    msg("requesting a new reading…");
     await gh("/actions/workflows/gex.yml/dispatches", { method:"POST", body:JSON.stringify({ ref:"main", inputs:{ force:force ? "true" : "false" } }) });
     let run = null;
     for (let i = 0; i < 20 && !run; i++) { await sleep(3000);
       const rs = await gh("/actions/workflows/gex.yml/runs?event=workflow_dispatch&per_page=5");
       run = rs.workflow_runs.find(r => r.created_at >= before.slice(0, 19)); }
-    if (!run) throw new Error("não arrancou");
+    if (!run) throw new Error("did not start");
     const t0 = Date.now();
     while (Date.now() - t0 < 6 * 60e3) {
       await sleep(5000);
       const jobs = await gh(`/actions/runs/${run.id}/jobs`), snap = jobs.jobs.find(j => j.name === "snapshot");
-      msg(`a recalcular… ${Math.round((Date.now() - t0) / 1000)}s` + (snap && snap.status === "queued" ? " (em fila)" : ""));
+      msg(`recalculating… ${Math.round((Date.now() - t0) / 1000)}s` + (snap && snap.status === "queued" ? " (queued)" : ""));
       if (snap && snap.status === "completed") {
-        if (snap.conclusion !== "success") throw new Error("a corrida falhou");
-        msg("a publicar…"); await sleep(25000); await reloadAll();
-        msg("atualizado " + new Date().toLocaleTimeString("pt-PT", { hour:"2-digit", minute:"2-digit" })); setTimeout(() => msg(""), 20000); return;
+        if (snap.conclusion !== "success") throw new Error("the run failed");
+        msg("publishing…"); await sleep(25000); await reloadAll();
+        msg("updated " + new Date().toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" })); setTimeout(() => msg(""), 20000); return;
       }
     }
-    msg("está a demorar — aparece sozinho quando acabar");
+    msg("taking a while — it will appear when done");
   } catch (e) {
-    if (e.message === "chave") { msg("chave do GitHub sem permissão"); openSettings(); } else msg("erro: " + e.message);
+    if (e.message === "chave") { msg("GitHub key lacks permission"); openSettings(); } else msg("error: " + e.message);
   } finally { refreshing = false; $("refreshbtn").disabled = false; }
 }
 $("refreshbtn").onclick = () => runNow(false);
@@ -800,8 +800,8 @@ $("refreshbtn").onclick = () => runNow(false);
 function openSettings() { $("keyinput").value = getKey(); $("ghinput").value = getGh(); renderBlockList(); $("drawer").classList.add("open"); $("shade").classList.add("open"); }
 function closeSettings() { $("drawer").classList.remove("open"); $("shade").classList.remove("open"); }
 $("setbtn").onclick = openSettings; $("setclose").onclick = closeSettings; $("shade").onclick = closeSettings;
-$("savekey").onclick = () => { store.set("finnhubKey", $("keyinput").value.trim()); toast("Chave Finnhub guardada"); startLive(); };
-$("ghsave").onclick = () => { store.set("ghToken", $("ghinput").value.trim()); toast("Chave do GitHub guardada"); loadPool(); };
+$("savekey").onclick = () => { store.set("finnhubKey", $("keyinput").value.trim()); toast("Finnhub key saved"); startLive(); };
+$("ghsave").onclick = () => { store.set("ghToken", $("ghinput").value.trim()); toast("GitHub key saved"); loadPool(); };
 
 // ===================================================================== start
 // keys saved by the old version of the page (plain strings)
