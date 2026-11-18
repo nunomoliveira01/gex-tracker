@@ -2,13 +2,9 @@
  "tickers": [
   "SPY",
   "QQQ",
-  "SPX",
-  "NVDA",
-  "MU",
-  "ASML"
+  "EURUSD"
  ],
  "futures": [
-  "ES",
   "NQ"
  ]
 }
