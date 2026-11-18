@@ -1,8 +1,7 @@
 {
  "tickers": [
   "SPY",
-  "QQQ",
-  "EURUSD"
+  "QQQ"
  ],
  "futures": [
   "NQ"
