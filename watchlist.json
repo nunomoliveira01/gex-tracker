@@ -1,0 +1,14 @@
+{
+ "tickers": [
+  "SPY",
+  "QQQ",
+  "SPX",
+  "NVDA",
+  "MU",
+  "ASML"
+ ],
+ "futures": [
+  "ES",
+  "NQ"
+ ]
+}

@@ -42,6 +42,51 @@ DATA = ROOT / "data"
 DOCS = ROOT / "docs"
 ET = ZoneInfo("America/New_York")
 CONFIG = json.loads((ROOT / "config.json").read_text())
+# Indices on Cboe are "_SPX", "_RUT"...; on Yahoo "^GSPC", "^RUT"...
+INDEXES = {"SPX", "NDX", "RUT", "VIX", "XSP", "DJX", "OEX", "XEO", "MRUT", "XND"}
+WATCHLIST = ROOT / "watchlist.json"   # the ticker pool, edited from the web page
+
+
+def apply_watchlist():
+    """Tickers to compute come from watchlist.json (edited on the web page); config.json is the fallback."""
+    if WATCHLIST.exists():
+        try:
+            w = json.loads(WATCHLIST.read_text())
+            ticks = []
+            for t in w.get("tickers", []):
+                t = re.sub(r"[^A-Z.]", "", str(t).upper())[:8]
+                if t and t not in ticks and t not in CONFIG.get("futures", {}):
+                    ticks.append(t)
+            sig = CONFIG.get("signal_ticker", "SPY")
+            if sig not in ticks:
+                ticks.insert(0, sig)   # the JP rule needs it
+            CONFIG["tickers"] = ticks
+            if "futures" in w:
+                CONFIG["futures"] = {k: v for k, v in CONFIG.get("futures", {}).items() if k in w["futures"]}
+        except Exception as e:
+            print(f"watchlist.json unreadable ({e}) - using config.json", file=sys.stderr)
+    for t in CONFIG["tickers"]:
+        if t in INDEXES:
+            CONFIG.setdefault("cboe_symbols", {}).setdefault(t, "_" + t)
+            CONFIG.setdefault("yahoo_symbols", {}).setdefault(t, "^" + t)
+
+
+apply_watchlist()
+STATUS = {}
+
+
+def write_tickers():
+    """docs/tickers.json: the pool and whether each ticker's last attempt worked (for the web page)."""
+    path = DOCS / "tickers.json"
+    try:
+        old = json.loads(path.read_text()).get("status", {})
+    except Exception:
+        old = {}
+    old.update(STATUS)
+    out = {"updated_utc": pd.Timestamp.now(tz="UTC").isoformat(), "pool": CONFIG["tickers"],
+           "futures": list(CONFIG.get("futures", {})), "indexes": sorted(INDEXES), "status": old}
+    DOCS.mkdir(exist_ok=True)
+    path.write_text(json.dumps(out, separators=(",", ":")))
 
 CBOE_URL = "https://cdn.cboe.com/api/global/delayed_quotes/options/{}.json"
 HEADERS = {
@@ -1084,6 +1129,14 @@ def market_open(now):
 
 
 def run_once(force=False, charts_only=False, file=None):
+    try:
+        _run_once(force, charts_only, file)
+    finally:
+        if not charts_only:
+            write_tickers()
+
+
+def _run_once(force=False, charts_only=False, file=None):
     DOCS.mkdir(exist_ok=True)
     now = pd.Timestamp.now(tz=ET)
     cash, fut_open = market_open(now), futures_open(now)
@@ -1099,7 +1152,9 @@ def run_once(force=False, charts_only=False, file=None):
         for f, cfg in CONFIG.get("futures", {}).items():
             try:
                 latest[f] = run_future(f, cfg, now)
+                STATUS[f] = {"ok": True, "utc": pd.Timestamp.now(tz="UTC").isoformat()}
             except Exception as e:
+                STATUS[f] = {"ok": False, "error": str(e)[:160], "utc": pd.Timestamp.now(tz="UTC").isoformat()}
                 print(f"  {f}: FAILED - {e}", file=sys.stderr)
     if not charts_only and not force and not file and not cash:
         print("  US cash market closed: futures only this run.")
@@ -1140,9 +1195,11 @@ def run_once(force=False, charts_only=False, file=None):
             except Exception as e:
                 print(f"  {t}: gamma map failed - {e}", file=sys.stderr)
             latest[t] = row
+            STATUS[t] = {"ok": True, "utc": pd.Timestamp.now(tz="UTC").isoformat()}
             print(f"  {t} {row['time_et']}: price {row['spot']}, net gamma {row['net_gex_bn']:+.2f}bn, "
                   f"flip {row['flip']}, call wall {row['call_wall']}, put wall {row['put_wall']}")
         except Exception as e:
+            STATUS[t] = {"ok": False, "error": str(e)[:160], "utc": pd.Timestamp.now(tz="UTC").isoformat()}
             print(f"  {t}: FAILED - {e}", file=sys.stderr)
     write_page(latest)
     print(f"Open {DOCS / 'index.html'} to see the charts.")

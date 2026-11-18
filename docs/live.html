@@ -3,529 +3,774 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SPY & QQQ ao vivo + gamma</title>
+<title>Gamma do JP — ao vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#000; --fg:#e8e8e8; --muted:#8a8a8a; --cyan:#00e5ff; --red:#ff5a4e; --green:#7ee07e; --orange:#ffb000; }
+  :root {
+    --bg:#f4f6fb; --card:#fff; --ink:#1b2240; --muted:#6b7393; --line:#e7eaf3; --soft:#f0f3fb;
+    --blue:#3654e0; --blue-soft:#e8ecfd; --orange:#f2683a; --green:#13a26b; --green-soft:#e3f6ee;
+    --red:#e5484d; --red-soft:#fdeceb; --amber:#d48a00; --amber-soft:#fdf3dc; --purple:#8b5cf6; --pink:#d6409f;
+    --shadow:0 1px 2px rgba(27,34,64,.05),0 4px 16px rgba(27,34,64,.06); --chart-bg:#fff; --grid:#eef0f6;
+  }
+  :root.dark {
+    --bg:#0d1020; --card:#151a2e; --ink:#e7e9f5; --muted:#8d94b3; --line:#252b45; --soft:#1b2139;
+    --blue:#6e86ff; --blue-soft:#232b55; --green:#3fcf8e; --green-soft:#16362a; --red:#ff6b6f; --red-soft:#3a1a1f;
+    --amber:#f5b83d; --amber-soft:#3a2f14; --shadow:none; --chart-bg:#151a2e; --grid:#20263f;
+  }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,sans-serif; }
-  header { display:flex; flex-wrap:wrap; gap:12px 28px; align-items:center; padding:14px 18px; border-bottom:1px solid #222; }
-  h1 { font-size:16px; margin:0; font-weight:600; color:#ccc; }
-  .quote { display:flex; align-items:baseline; gap:10px; }
-  .quote .sym { font-weight:700; color:#aaa; }
-  .quote .px { font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; }
-  .quote .chg { font-size:14px; font-variant-numeric:tabular-nums; }
-  .up { color:var(--green); } .down { color:var(--red); }
-  .status { font-size:12px; color:var(--muted); margin-left:auto; display:flex; gap:8px; align-items:center; }
-  .dot { width:9px; height:9px; border-radius:50%; background:#555; display:inline-block; }
-  .dot.live { background:#2ecc71; box-shadow:0 0 6px #2ecc71; }
-  main { padding:10px 14px 30px; display:grid; gap:18px; }
-  section { border:1px solid #1d1d1d; border-radius:8px; padding:8px 8px 4px; }
-  .sechead { display:flex; flex-wrap:wrap; gap:6px 18px; font-size:13px; color:#bbb; padding:2px 6px 6px; }
-  .sechead b { color:#fff; }
-  canvas { width:100%; height:560px; display:block; }
-  .keybox { background:#111; border:1px solid #333; border-radius:8px; padding:12px 14px; margin:12px 14px 0; font-size:14px; line-height:1.5; }
-  .keybox input { background:#000; color:#fff; border:1px solid #444; border-radius:6px; padding:6px 8px; width:260px; max-width:100%; }
-  .keybox button, .linkbtn { background:#1f6feb; color:#fff; border:0; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px; }
-  .linkbtn { background:#333; }
-  a { color:#6cb6ff; }
-  footer { color:var(--muted); font-size:12px; padding:0 18px 20px; line-height:1.5; }
-  .rule { border:1px solid #2a2a2a; border-radius:8px; padding:10px 14px; display:grid; gap:8px; font-size:14px; }
-  .rule h2 { font-size:15px; margin:0; color:#ddd; }
-  .rule .big { font-size:20px; font-weight:700; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
-  .card { background:#0b0b0b; border:1px solid #1f1f1f; border-radius:6px; padding:8px 10px; line-height:1.5; }
-  .card .lbl { color:#888; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
-  .ok { color:var(--green); } .no { color:#666; } .warn { color:var(--orange); }
-  .muted { color:#888; font-size:12px; }
-  .refresh { background:#00e5ff; color:#000; border:0; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px; font-weight:700; }
-  .refresh:disabled { opacity:.6; cursor:wait; }
-  #refreshmsg { color:#aaa; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 Nunito,system-ui,-apple-system,Segoe UI,sans-serif; }
+  button, input { font:inherit; color:inherit; }
+  a { color:var(--blue); }
+  .up { color:var(--green); } .down { color:var(--red); } .warn { color:var(--amber); } .no { color:var(--muted); } .ok { color:var(--green); }
+  .muted { color:var(--muted); font-size:13px; }
+  .num { font-variant-numeric:tabular-nums; }
+
+  /* top bar */
+  .top { position:sticky; top:0; z-index:20; background:var(--card); border-bottom:1px solid var(--line); box-shadow:var(--shadow); }
+  .topin { max-width:1400px; margin:0 auto; display:flex; gap:14px; align-items:center; padding:10px 18px; flex-wrap:wrap; }
+  .brand { display:flex; gap:10px; align-items:center; font-weight:800; font-size:19px; margin-right:6px; }
+  .logo { width:34px; height:34px; border-radius:10px; background:var(--blue); color:#fff; display:grid; place-items:center; font-size:20px; font-weight:800; }
+  .brand small { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-top:-3px; }
+  .add { display:flex; flex:1; min-width:220px; max-width:420px; background:var(--soft); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .add input { flex:1; border:0; background:transparent; padding:9px 12px; outline:none; text-transform:uppercase; }
+  .add input::placeholder { text-transform:none; color:var(--muted); }
+  .add button { border:0; background:var(--blue); color:#fff; padding:0 14px; font-weight:700; cursor:pointer; }
+  .actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
+  .btn { border:1px solid var(--line); background:var(--card); border-radius:10px; padding:7px 12px; cursor:pointer; font-weight:700; font-size:14px; }
+  .btn:hover { border-color:var(--blue); color:var(--blue); }
+  .btn.primary { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .btn.primary:hover { filter:brightness(1.08); color:#fff; }
+  .btn:disabled { opacity:.6; cursor:wait; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); background:var(--soft); border-radius:20px; padding:4px 10px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#aab; }
+  .dot.live { background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
+  #msg { font-size:13px; color:var(--muted); }
+
+  .wrap { max-width:1400px; margin:0 auto; padding:16px 18px 40px; display:grid; gap:16px; }
+
+  /* ticker strip */
+  .striphead { display:flex; align-items:center; gap:10px; }
+  .striphead h3 { margin:0; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .strip { display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:10px; }
+  .tk { position:relative; background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:10px 12px; cursor:pointer; box-shadow:var(--shadow); transition:border-color .15s, transform .15s; }
+  .tk:hover { border-color:var(--blue); transform:translateY(-1px); }
+  .tk.on { border-color:var(--blue); background:linear-gradient(0deg,var(--card),var(--card)) padding-box; box-shadow:0 0 0 3px var(--blue-soft); }
+  .tk .s { font-weight:800; font-size:15px; }
+  .tk .n { font-size:11px; color:var(--muted); margin-left:4px; }
+  .tk .p { font-weight:800; font-size:19px; font-variant-numeric:tabular-nums; }
+  .tk .c { font-size:12px; font-weight:700; margin-left:4px; }
+  .tk .x { position:absolute; top:6px; right:8px; border:0; background:transparent; color:var(--muted); cursor:pointer; font-size:16px; display:none; }
+  .editing .tk .x { display:block; }
+  .tk .x:hover { color:var(--red); }
+  .badge { display:inline-block; border-radius:8px; padding:1px 8px; font-size:12px; font-weight:800; }
+  .badge.neg { background:var(--red-soft); color:var(--red); } .badge.pos { background:var(--green-soft); color:var(--green); }
+  .badge.off { background:var(--soft); color:var(--muted); } .badge.amb { background:var(--amber-soft); color:var(--amber); }
+  .badge.blue { background:var(--blue-soft); color:var(--blue); }
+  .tk .meta { display:flex; gap:6px; align-items:center; margin-top:4px; font-size:12px; color:var(--muted); flex-wrap:wrap; }
+  .tk.all { display:grid; place-items:center; color:var(--muted); font-weight:800; min-height:84px; }
+  .tk.all.on { color:var(--blue); }
+
+  /* panels */
+  .layout { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:16px; align-items:start; }
+  @media (max-width:1050px) { .layout { grid-template-columns:1fr; } }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); }
+  .ph { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .ph h2 { margin:0; font-size:16px; font-weight:800; }
+  .ph .sub { font-size:13px; color:var(--muted); }
+  .ph .tools { margin-left:auto; display:flex; gap:4px; }
+  .ib { border:0; background:transparent; color:var(--muted); cursor:pointer; width:28px; height:28px; border-radius:8px; font-size:15px; }
+  .ib:hover { background:var(--soft); color:var(--ink); }
+  .pb { padding:14px 16px; }
+  .panel.collapsed .pb, .panel.collapsed .legend { display:none; }
+  .panel.collapsed .ph { border-bottom:0; }
+  .panel.collapsed .chev { transform:rotate(-90deg); }
+  .chev { transition:transform .15s; display:inline-block; }
+  .hidden { display:none !important; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
+  .side .cards { grid-template-columns:1fr; }
+  .card { position:relative; background:var(--soft); border-radius:12px; padding:10px 12px; font-size:14px; }
+  .card .lbl { font-size:11.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:3px; padding-right:22px; }
+  .card .close { position:absolute; top:6px; right:6px; width:22px; height:22px; font-size:13px; opacity:0; }
+  .card:hover .close { opacity:1; }
+  .big { font-size:22px; font-weight:800; }
+  .stat { display:flex; justify-content:space-between; gap:10px; }
+  .stat b { font-variant-numeric:tabular-nums; }
+  .check { font-size:13.5px; }
+  .meter { height:8px; border-radius:6px; background:var(--line); overflow:hidden; margin:6px 0 2px; }
+  .meter i { display:block; height:100%; border-radius:6px; }
+
+  /* chart */
+  .stats { display:flex; gap:8px; flex-wrap:wrap; }
+  .chip { display:inline-flex; align-items:center; gap:6px; background:var(--soft); border-radius:10px; padding:4px 10px; font-size:13px; }
+  .chip b { font-variant-numeric:tabular-nums; }
+  .legend { display:flex; gap:6px; flex-wrap:wrap; padding:10px 16px 0; }
+  .tog { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:var(--card); border-radius:20px; padding:3px 10px; font-size:12.5px; font-weight:700; cursor:pointer; user-select:none; }
+  .tog i { width:14px; height:3px; border-radius:2px; display:inline-block; }
+  .tog.off { opacity:.45; text-decoration:line-through; }
+  .cvwrap { position:relative; padding:6px 8px 8px; }
+  canvas { width:100%; height:540px; display:block; cursor:crosshair; }
+  .multi canvas { height:380px; }
+  .chartsgrid { display:grid; gap:16px; }
+  .multi .chartsgrid { grid-template-columns:repeat(auto-fit,minmax(520px,1fr)); }
+  @media (max-width:700px){ canvas{height:440px;} .multi .chartsgrid { grid-template-columns:1fr; } }
+  .tip { position:absolute; pointer-events:none; background:var(--ink); color:var(--card); font-size:12.5px; border-radius:10px; padding:7px 10px; line-height:1.45; display:none; white-space:nowrap; z-index:5; box-shadow:0 6px 18px rgba(0,0,0,.18); }
+  .stale { color:var(--red); font-weight:700; font-size:13px; }
+
   table.q { width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums; }
-  table.q th, table.q td { border-bottom:1px solid #1f1f1f; padding:5px 6px; text-align:right; white-space:nowrap; }
+  table.q th, table.q td { border-bottom:1px solid var(--line); padding:7px 8px; text-align:right; white-space:nowrap; }
   table.q th:first-child, table.q td:first-child { text-align:left; }
-  table.q th { color:#888; font-weight:500; font-size:12px; }
+  table.q th { color:var(--muted); font-weight:700; font-size:12px; }
+  table.q tr:hover td { background:var(--soft); }
   .scroll { overflow-x:auto; }
-  .tabs { display:flex; flex-wrap:wrap; gap:6px; }
-  .tabs button { background:#111; color:#ccc; border:1px solid #333; border-radius:18px; padding:6px 14px; cursor:pointer; font-size:14px; }
-  .tabs button.on { background:#00e5ff; color:#000; border-color:#00e5ff; font-weight:700; }
-  .tabs .note { color:#777; font-size:12px; align-self:center; margin-left:6px; }
-  @media (max-width:700px){ canvas{height:480px;} .quote .px{font-size:22px;} }
+  .sublbl { font-size:12px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:14px 0 4px; }
+
+  /* settings drawer */
+  .drawer { position:fixed; top:0; right:0; bottom:0; width:min(440px,100%); background:var(--card); border-left:1px solid var(--line); box-shadow:-10px 0 30px rgba(0,0,0,.12); z-index:50; transform:translateX(105%); transition:transform .2s; overflow:auto; }
+  .drawer.open { transform:none; }
+  .drawer .pb { display:grid; gap:18px; }
+  .drawer h4 { margin:0 0 6px; font-size:14px; }
+  .drawer input[type=text], .drawer input[type=password] { width:100%; border:1px solid var(--line); background:var(--soft); border-radius:10px; padding:8px 10px; }
+  .drawer label { display:flex; gap:8px; align-items:center; font-size:14px; padding:2px 0; cursor:pointer; }
+  .drawer ol { margin:4px 0; padding-left:20px; font-size:13.5px; }
+  .group { border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+  .shade { position:fixed; inset:0; background:rgba(10,14,30,.25); z-index:40; display:none; }
+  .shade.open { display:block; }
+  .toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:var(--card); padding:10px 16px; border-radius:12px; font-size:14px; z-index:60; display:none; max-width:90vw; }
+  details.how { font-size:13.5px; color:var(--muted); }
+  details.how summary { cursor:pointer; font-weight:700; color:var(--ink); }
+  footer { max-width:1400px; margin:0 auto; padding:0 18px 30px; font-size:12.5px; color:var(--muted); }
 </style>
 </head>
 <body>
-<header>
-  <h1>Ao vivo</h1>
-  <div id="quotes" style="display:contents"></div>
-  <div class="status"><button class="refresh" id="refreshbtn" title="Ir buscar os dados mais recentes agora">&#8635; Atualizar</button>
-    <span id="refreshmsg"></span><span class="dot" id="livedot"></span><span id="statustext">a ligar…</span>
-    <button class="linkbtn" id="changekey" style="display:none">chave</button></div>
-</header>
+<div class="top"><div class="topin">
+  <div class="brand"><div class="logo">γ</div><div>Gamma do JP<small>dealers · margem · sinais</small></div></div>
+  <form class="add" id="addform" autocomplete="off">
+    <input id="addinput" placeholder="Adicionar ticker da Cboe — ex.: IWM, AAPL, RUT" maxlength="8">
+    <button type="submit" title="Adicionar à lista">+ Adicionar</button>
+  </form>
+  <div class="actions">
+    <span id="msg"></span>
+    <span class="pill"><span class="dot" id="livedot"></span><span id="statustext">a ligar…</span></span>
+    <button class="btn primary" id="refreshbtn" title="Ir buscar os dados mais recentes">&#8635; Atualizar</button>
+    <button class="btn" id="themebtn" title="Tema claro/escuro">☾</button>
+    <button class="btn" id="setbtn" title="Definições: chaves e o que mostrar">⚙</button>
+  </div>
+</div></div>
 
-<div class="keybox" id="keybox" style="display:none">
-  <b>Preço ao segundo:</b> cria uma chave grátis em <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a>
-  (30 segundos, sem cartão) e cola-a aqui. Fica guardada só neste browser.<br>
-  <input id="keyinput" placeholder="chave Finnhub" autocomplete="off">
-  <button id="savekey">Guardar</button>
-  <span style="color:#888">Sem chave, a página mostra o último preço do script (a cada 5 min).</span>
+<div class="wrap">
+  <div>
+    <div class="striphead"><h3>A minha lista</h3><button class="btn" id="editbtn" style="padding:3px 10px;font-size:12.5px">Editar lista</button>
+      <span class="muted" id="poolnote"></span></div>
+    <div class="strip" id="strip" style="margin-top:8px"></div>
+  </div>
+
+  <div class="layout" id="layout">
+    <div id="chartcol"><div class="chartsgrid" id="charts"></div></div>
+    <aside class="side">
+      <div class="panel" data-block="rule" id="rule-panel">
+        <div class="ph"><h2>Regra do JP · SPY</h2><span class="sub" id="rule-sub"></span>
+          <div class="tools"><button class="ib" data-collapse="rule" title="Fechar/abrir"><span class="chev">▾</span></button><button class="ib" data-hide="rule" title="Esconder (volta em ⚙)">✕</button></div></div>
+        <div class="pb"><div id="rule"><span class="muted">a carregar…</span></div></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="panel" data-block="margin" id="margin-panel">
+    <div class="ph"><h2>Dinheiro emprestado (margem)</h2><span class="sub">método do JP — "o comprador marginal"</span>
+      <div class="tools"><button class="ib" data-collapse="margin" title="Fechar/abrir"><span class="chev">▾</span></button><button class="ib" data-hide="margin" title="Esconder (volta em ⚙)">✕</button></div></div>
+    <div class="pb"><div id="margin"><span class="muted">a carregar…</span></div></div>
+  </div>
+
+  <div class="panel" data-block="quant" id="quant-panel">
+    <div class="ph"><h2>Laboratório quant · SPY</h2><span class="sub">a tese do JP medida, 5 versões da regra em papel</span>
+      <div class="tools"><button class="ib" data-collapse="quant" title="Fechar/abrir"><span class="chev">▾</span></button><button class="ib" data-hide="quant" title="Esconder (volta em ⚙)">✕</button></div></div>
+    <div class="pb"><div id="quant"><span class="muted">a carregar…</span></div></div>
+  </div>
 </div>
 
-<div class="keybox" id="ghbox" style="display:none">
-  <b>Recalcular agora (opcional):</b> sem isto, o botão <i>Atualizar</i> só vai buscar a última leitura (feita a cada 5 min).
-  Para ele também pedir ao GitHub uma leitura nova na hora, cria uma chave com acesso só a este projeto:<br>
-  1. Abre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a><br>
-  2. Nome: <i>gex refresh</i> · Expiration: o que preferires · Repository access: <b>Only select repositories → gex-tracker</b><br>
-  3. Permissions → Repository permissions → <b>Actions: Read and write</b> → Generate token, copia e cola aqui.<br>
-  <input id="ghinput" placeholder="github_pat_…" autocomplete="off">
-  <button id="ghsave">Guardar</button> <button class="linkbtn" id="ghclose">Fechar</button>
-  <span style="color:#888">Fica guardada só neste browser. Só dá para correr o script deste projeto.</span>
+<footer>Gamma da Cboe (~15 min de atraso), recalculada a cada 5 min. Preço ao segundo via Finnhub (ações e ETFs); índices e futuros pelo Yahoo (~10–15 min de atraso). Horas de Lisboa. Não é aconselhamento de investimento.</footer>
+
+<div class="shade" id="shade"></div>
+<div class="drawer" id="drawer">
+  <div class="ph"><h2>Definições</h2><div class="tools"><button class="ib" id="setclose">✕</button></div></div>
+  <div class="pb">
+    <div class="group"><h4>O que mostrar</h4><div class="muted" style="margin-bottom:6px">Desliga partes da página ou cartões dos sinais. Também podes fechar cada cartão no ✕ que aparece ao passar o rato.</div>
+      <div id="blocklist"></div>
+      <button class="btn" id="resetview" style="margin-top:8px">Mostrar tudo outra vez</button></div>
+    <div class="group"><h4>Preço ao segundo (Finnhub)</h4>
+      <div class="muted">Chave grátis em <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a>. Fica só neste browser.</div>
+      <input type="password" id="keyinput" placeholder="chave Finnhub"><button class="btn" id="savekey" style="margin-top:6px">Guardar</button></div>
+    <div class="group"><h4>Chave do GitHub (para mudar a lista e recalcular na hora)</h4>
+      <ol>
+        <li>Abre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> (ou edita a chave que já tens).</li>
+        <li>Repository access: <b>Only select repositories → gex-tracker</b>.</li>
+        <li>Permissions → Repository: <b>Actions: Read and write</b> e <b>Contents: Read and write</b>.</li>
+        <li>Generate token, copia e cola aqui.</li>
+      </ol>
+      <input type="password" id="ghinput" placeholder="github_pat_…"><button class="btn" id="ghsave" style="margin-top:6px">Guardar</button>
+      <div class="muted" style="margin-top:4px">Fica só neste browser. Só mexe neste projeto.</div></div>
+  </div>
 </div>
-
-<main>
-  <div class="rule" id="rule"><h2>Regra do JP (SPY)</h2><div class="muted">a carregar…</div></div>
-  <div class="rule" id="margin"><h2>Dinheiro emprestado (margem) — método do JP</h2><div class="muted">a carregar…</div></div>
-  <div class="rule" id="quant"><h2>Laboratório quant (SPY)</h2><div class="muted">a carregar…</div></div>
-  <nav class="tabs" id="tabs"></nav>
-  <div id="charts"></div>
-</main>
-
-<footer>
-  Linha azul: preço (minuto a minuto até à última leitura do script, depois ao segundo via Finnhub).
-  Barras: gamma dos dealers por strike — larga/escura = open interest, fina/clara = volume de hoje; vermelho = negativo
-  (dealers amplificam movimentos), verde = positivo (travam). Pontos: onde estava a barra há 5 / 15 / 30 min.
-  Gamma vem da Cboe (dados ~15 min atrasados), atualizado a cada 5 min. ES e NQ: níveis das opções do SPX + SPY (ES) e do NDX + QQQ (NQ), todos convertidos para preço de futuros; preço dos futuros do Yahoo, com ~10-15 min de atraso,
-  atualizado a cada 5 min, incluindo de manhã na Europa. Linhas roxas M dez22 / M jun25: preço a que o dinheiro emprestado (margem) desde dez-2022 / jun-2025 fica a zero, já com juros. Horas de Lisboa. Não é aconselhamento de investimento.
-</footer>
+<div class="toast" id="toast"></div>
 
 <script>
-const TICKERS = ["SPY", "QQQ", "SPX", "ES", "NQ", "NVDA", "MU", "ASML"];   // charts
-const LIVE = ["SPY", "QQQ", "NVDA", "MU", "ASML"];                         // live second-by-second prices (Finnhub)
-const QUOTES = ["SPY", "QQQ", "ES", "NQ", "NVDA", "MU", "ASML"];            // prices in the header
-const NAMES = { SPY:"SPY", QQQ:"QQQ", SPX:"S&P 500 (SPX)", ES:"Futuros S&P 500 (ES)", NQ:"Futuros Nasdaq 100 (NQ)",
-                NVDA:"Nvidia (NVDA)", MU:"Micron (MU)", ASML:"ASML" };
-document.getElementById("quotes").innerHTML = QUOTES.map(t =>
-  `<div class="quote"><span class="sym">${t}</span><span class="px" id="px-${t}">–</span><span class="chg" id="chg-${t}"></span></div>`).join("");
-const gx = v => v == null ? "–" : (Math.abs(v) < 1 ? (v > 0 ? "+" : "") + Math.round(v * 1000) + "M" : (v > 0 ? "+" : "") + v.toFixed(2) + "bn");
+// ===================================================================== setup
+const REMOTE = "https://nunomoliveira01.github.io/gex-tracker/";   // used when the page is opened as a local file
+const GH_REPO = "nunomoliveira01/gex-tracker";
+const SIGNAL = "SPY";                                     // the JP rule runs on this one; can't be removed
+const DEFAULT_POOL = { tickers:["SPY","QQQ","SPX","NVDA","MU","ASML"], futures:["ES","NQ"] };
+const FUTURES_ALL = ["ES", "NQ"];
+let INDEXES = ["SPX","NDX","RUT","VIX","XSP","DJX","OEX","XEO","MRUT","XND"];
+const NAMES = { SPY:"S&P 500 ETF", QQQ:"Nasdaq 100 ETF", SPX:"Índice S&P 500", NDX:"Índice Nasdaq 100", ES:"Futuros S&P 500", NQ:"Futuros Nasdaq 100",
+  RUT:"Índice Russell 2000", IWM:"Russell 2000 ETF", VIX:"Volatilidade", DIA:"Dow ETF", NVDA:"Nvidia", MU:"Micron", ASML:"ASML",
+  AAPL:"Apple", MSFT:"Microsoft", TSLA:"Tesla", AMZN:"Amazon", META:"Meta", GOOGL:"Alphabet", AMD:"AMD", TLT:"Obrigações 20a+", GLD:"Ouro" };
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 2) => v == null || isNaN(v) ? "–" : Number(v).toFixed(d);
+const sg = (v, d = 2) => v == null ? "–" : (v > 0 ? "+" : "") + Number(v).toFixed(d);
+const pct = v => v == null ? "–" : (v * 100).toFixed(1) + "%";
+const cls = v => v == null ? "" : v >= 0 ? "up" : "down";
+const gx = v => v == null ? "–" : (Math.abs(v) < 1 ? (v > 0 ? "+" : "") + Math.round(v * 1000) + "M" : (v > 0 ? "+" : "") + v.toFixed(1) + "bn");
+const money = v => v == null ? "–" : "$" + Math.round(v).toLocaleString("en-US");
 const lisbon = new Intl.DateTimeFormat("pt-PT", { timeZone:"Europe/Lisbon", hour:"2-digit", minute:"2-digit" });
-// build one section per chart and the filter buttons
-document.getElementById("charts").innerHTML = TICKERS.map(t =>
-  `<section id="sec-${t}"><div class="sechead" id="head-${t}"></div><canvas id="cv-${t}"></canvas></section>`).join("");
-function getTab() { const h = location.hash.slice(1).toUpperCase(); if (TICKERS.includes(h) || h === "TODOS") return h;
-  try { const v = localStorage.getItem("tab"); if (v) return v; } catch {} return defaultTab(); }
+const url = f => (location.protocol === "file:" ? [REMOTE + f] : [f, REMOTE + f]).map(u => u + "?v=" + Date.now());
+async function getJSON(f) { for (const u of url(f)) { try { const r = await fetch(u, { cache:"no-store" }); if (r.ok) return await r.json(); } catch {} } return null; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function toast(t, ms = 3500) { const el = $("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => el.style.display = "none", ms); }
+function setHTML(id, html) { const el = $(id); if (el && el._h !== html) { el.innerHTML = html; el._h = html; } }   // only touch the page when something changed
+
+// theme
+if (store.get("theme", "light") === "dark") document.documentElement.classList.add("dark");
+$("themebtn").onclick = () => { const d = document.documentElement.classList.toggle("dark"); store.set("theme", d ? "dark" : "light"); drawAll(); };
+
+// ===================================================================== show / hide blocks
+// every panel and every signal card has an id; hidden = gone until turned on in ⚙; collapsed = only its title shows
+const BLOCKS = [
+  ["chart", "Gráfico de gamma", [["chart.stats", "Números por cima do gráfico"], ["chart.legend", "Botões das linhas"]]],
+  ["rule", "Regra do JP", [["rule.pos", "Posição"], ["rule.gamma", "Gamma SPY"], ["rule.retail", "Pânico de retalho"], ["rule.adds", "Condições para o reforço"], ["rule.hist", "Histórico de trades"]]],
+  ["margin", "Margem", [["margin.debt", "Dívida de margem"], ["margin.SPX", "S&P 500"], ["margin.NDX", "Nasdaq 100"], ["margin.fx", "Sinal do dólar"]]],
+  ["quant", "Laboratório quant", [["quant.now", "Gamma agora / a virar"], ["quant.fuel", "Combustível da venda"], ["quant.vol", "Volatilidade"], ["quant.week", "Gamma a expirar"], ["quant.variants", "Variantes em papel"], ["quant.cycles", "Tabela de ciclos"]]],
+];
+let hidden = new Set(store.get("hidden", [])), collapsed = new Set(store.get("collapsed", []));
+const isOn = id => !hidden.has(id);
+function saveView() { store.set("hidden", [...hidden]); store.set("collapsed", [...collapsed]); applyView(); renderBlockList(); refreshPanels(true); }
+function applyView() {
+  document.querySelectorAll("[data-block]").forEach(el => {
+    const b = el.dataset.block; el.classList.toggle("hidden", hidden.has(b)); el.classList.toggle("collapsed", collapsed.has(b)); });
+  $("layout").style.gridTemplateColumns = hidden.has("rule") ? "1fr" : "";
+}
+function renderBlockList() {
+  $("blocklist").innerHTML = BLOCKS.map(([id, name, kids]) =>
+    `<label><input type="checkbox" data-blk="${id}" ${isOn(id) ? "checked" : ""}><b>${name}</b></label>` +
+    `<div style="padding-left:24px">${kids.map(([k, n]) => `<label><input type="checkbox" data-blk="${k}" ${isOn(k) ? "checked" : ""} ${isOn(id) ? "" : "disabled"}>${n}</label>`).join("")}</div>`).join("") +
+    `<label style="margin-top:6px"><b>Linhas no gráfico</b></label><div style="padding-left:24px">` +
+    LINES.map(([k, n]) => `<label><input type="checkbox" data-line="${k}" ${lineOn(k) ? "checked" : ""}>${n}</label>`).join("") + `</div>`;
+}
+document.addEventListener("click", e => {
+  const h = e.target.closest("[data-hide]"); if (h) { hidden.add(h.dataset.hide); saveView(); toast("Escondido — volta em ⚙ Definições"); return; }
+  const c = e.target.closest("[data-collapse]"); if (c) { const b = c.dataset.collapse; collapsed.has(b) ? collapsed.delete(b) : collapsed.add(b); saveView(); return; }
+  const l = e.target.closest("[data-tog]"); if (l) { toggleLine(l.dataset.tog); return; }
+});
+$("blocklist").addEventListener("change", e => {
+  const b = e.target.dataset.blk, l = e.target.dataset.line;
+  if (b) { e.target.checked ? hidden.delete(b) : hidden.add(b); saveView(); }
+  if (l) toggleLine(l);
+});
+$("resetview").onclick = () => { hidden.clear(); collapsed.clear(); lineOff.clear(); store.set("lineOff", []); saveView(); drawAll(); };
+// a card with its own close button
+const card = (id, label, html, extra = "") => isOn(id)
+  ? `<div class="card" ${extra}><button class="ib close" data-hide="${id}" title="Esconder este cartão">✕</button><div class="lbl">${label}</div>${html}</div>` : "";
+
+// chart lines that can be switched on/off
+const LINES = [["flip", "Flip (onde a gamma muda de sinal)"], ["walls", "Call wall / put wall"], ["majors", "Maiores barras +γ / −γ"],
+  ["margin", "Níveis da margem (M dez22 / M jun25)"], ["entry", "Entrada do JP"], ["vol", "Barras de volume de hoje"], ["dots", "Pontos 5/15/30 min"]];
+let lineOff = new Set(store.get("lineOff", []));
+const lineOn = k => !lineOff.has(k);
+function toggleLine(k) { lineOff.has(k) ? lineOff.delete(k) : lineOff.add(k); store.set("lineOff", [...lineOff]); renderBlockList(); TICKERS.forEach(renderHead); drawAll(); }
+
+// ===================================================================== ticker pool
+let pool = store.get("pool", DEFAULT_POOL), TICKERS = [], status = {};
+const state = {};
+const isFut = t => FUTURES_ALL.includes(t);
+const isIdx = t => INDEXES.includes(t);
+const LIVE = () => TICKERS.filter(t => !isFut(t) && !isIdx(t));        // Finnhub has stocks and ETFs only
+function ensure(t) { return state[t] || (state[t] = { data:null, live:[], last:null, prevClose:null, lastSecond:0, hover:null }); }
+function setPool(p) {
+  pool = { tickers:[...new Set(p.tickers)], futures:(p.futures || []).filter(isFut) };
+  if (!pool.tickers.includes(SIGNAL)) pool.tickers.unshift(SIGNAL);
+  store.set("pool", pool);
+  const t = pool.tickers.slice(), i = t.indexOf("SPX");   // futures next to the index they follow
+  t.splice(i >= 0 ? i + 1 : t.length, 0, ...pool.futures);
+  TICKERS = t; TICKERS.forEach(ensure);
+  buildCharts(); renderStrip();
+  if (!TICKERS.includes(tab) && tab !== "TODOS") setTab(defaultTab()); else setTab(tab);
+  subscribeLive();
+}
+async function loadPool() {   // the list lives in watchlist.json in the repo
+  try {
+    const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/watchlist.json?ref=main&t=${Date.now()}`,
+      { headers: getGh() ? { Authorization:"Bearer " + getGh() } : {} , cache:"no-store" });
+    if (r.ok) { const j = await r.json(); poolSha = j.sha; setPool(JSON.parse(atob(j.content.replace(/\n/g, "")))); return; }
+  } catch {}
+  const tk = await getJSON("tickers.json");
+  if (tk) { status = tk.status || {}; if (tk.indexes) INDEXES = tk.indexes; setPool({ tickers:tk.pool, futures:tk.futures }); }
+}
+async function loadStatus() { const tk = await getJSON("tickers.json"); if (tk) { status = tk.status || {}; if (tk.indexes) INDEXES = tk.indexes; renderStrip(); } }
+let poolSha = null, editing = false;
+$("editbtn").onclick = () => { editing = !editing; $("strip").classList.toggle("editing", editing); $("editbtn").textContent = editing ? "Concluído" : "Editar lista"; };
+
+async function savePool(next, what) {
+  if (!getGh()) { openSettings(); toast("Para mudar a lista, cola a chave do GitHub (com Contents: Read and write)", 6000); return false; }
+  try {
+    msg("a guardar a lista…");
+    const cur = await gh("/contents/watchlist.json?ref=main");
+    const body = JSON.stringify({ tickers:next.tickers, futures:next.futures }, null, 1) + "\n";
+    await gh("/contents/watchlist.json", { method:"PUT", body:JSON.stringify({
+      message:"watchlist: " + what, content:btoa(body), sha:cur.sha, branch:"main" }) });
+    setPool(next); msg("");
+    toast("Lista guardada. A calcular — demora 1–3 minutos.");
+    runNow(true);
+    return true;
+  } catch (e) {
+    msg("");
+    if (e.message === "chave") { openSettings(); toast("A chave do GitHub não tem permissão Contents: Read and write", 6000); }
+    else toast("Erro ao guardar: " + e.message, 6000);
+    return false;
+  }
+}
+$("addform").onsubmit = async e => {
+  e.preventDefault();
+  let t = $("addinput").value.toUpperCase().replace(/^[\^_$]/, "").replace(/[^A-Z.]/g, "");
+  if (!t) return;
+  if (TICKERS.includes(t)) { setTab(t); $("addinput").value = ""; return; }
+  const next = { tickers:pool.tickers.slice(), futures:pool.futures.slice() };
+  if (isFut(t)) next.futures.push(t); else next.tickers.push(t);
+  if (await savePool(next, "add " + t)) { $("addinput").value = ""; setTab(t); }
+};
+async function removeTicker(t) {
+  if (t === SIGNAL) { toast("O SPY fica sempre — é dele que sai a regra do JP."); return; }
+  if (!confirm(`Tirar ${t} da lista? Deixa de ser calculado (o histórico fica guardado).`)) return;
+  await savePool({ tickers:pool.tickers.filter(x => x !== t), futures:pool.futures.filter(x => x !== t) }, "remove " + t);
+}
+
+// ===================================================================== strip of ticker cards
+function renderStrip() {
+  const cards = TICKERS.map(t => {
+    const s = ensure(t), d = s.data, st = status[t];
+    const px = s.last ?? (d && d.spot);
+    let chg = "";
+    if (px != null && s.prevClose) { const p = (px / s.prevClose - 1) * 100; chg = `<span class="c ${cls(p)}">${sg(p)}%</span>`; }
+    let meta;
+    if (d) {
+      const dist = d.flip ? (px / d.flip - 1) * 100 : null;
+      meta = `<span class="badge ${d.net_gex_bn < 0 ? "neg" : "pos"}">γ ${gx(d.net_gex_bn)}</span>` +
+        (dist != null ? `<span title="distância ao flip">flip ${sg(dist, 1)}%</span>` : "");
+    } else if (st && !st.ok) meta = `<span class="badge amb" title="${(st.error || "").replace(/"/g, "'")}">⚠ sem dados da Cboe</span>`;
+    else meta = `<span class="badge off">a calcular…</span>`;
+    return `<div class="tk ${tab === t ? "on" : ""}" data-tab="${t}">
+      ${t === SIGNAL ? "" : `<button class="x" data-rm="${t}" title="Tirar da lista">✕</button>`}
+      <div><span class="s">${t}</span><span class="n">${NAMES[t] || (isIdx(t) ? "índice" : "")}</span></div>
+      <div><span class="p" id="px-${t}">${px == null ? "–" : fmt(px)}</span>${chg}</div>
+      <div class="meta">${meta}</div></div>`;
+  }).join("") + `<div class="tk all ${tab === "TODOS" ? "on" : ""}" data-tab="TODOS">▦ Ver todos</div>`;
+  setHTML("strip", cards);
+  $("poolnote").textContent = editing ? "Carrega no ✕ para tirar. Para juntar, escreve o símbolo em cima." : "";
+}
+$("strip").addEventListener("click", e => {
+  const rm = e.target.closest("[data-rm]"); if (rm) { e.stopPropagation(); removeTicker(rm.dataset.rm); return; }
+  const c = e.target.closest("[data-tab]"); if (c) setTab(c.dataset.tab);
+});
+
+// ===================================================================== tabs / charts
 function defaultTab() {   // SPY while the US market is open, ES otherwise (Europe/Asia hours)
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone:"America/New_York", weekday:"short", hour:"numeric", minute:"numeric", hour12:false })
     .formatToParts(new Date()).map(x => [x.type, x.value]));
   const m = (+p.hour % 24) * 60 + (+p.minute), wk = !["Sat", "Sun"].includes(p.weekday);
-  return wk && m >= 570 && m < 960 ? "SPY" : "ES";
+  return wk && m >= 570 && m < 960 ? "SPY" : (TICKERS.includes("ES") ? "ES" : "SPY");
 }
-let tab = getTab();
-function setTab(t) { tab = t; try { localStorage.setItem("tab", t); } catch {} if (location.hash.slice(1).toUpperCase() !== t) location.hash = t.toLowerCase();
-  document.getElementById("tabs").innerHTML = TICKERS.concat(["TODOS"]).map(x =>
-    `<button class="${x === tab ? "on" : ""}" data-t="${x}">${x === "TODOS" ? "Todos" : x}</button>`).join("") +
-    `<span class="note">horas de Lisboa</span>`;
-  document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => setTab(b.dataset.t));
-  TICKERS.forEach(x => { document.getElementById("sec-" + x).style.display = (tab === "TODOS" || tab === x) ? "" : "none"; draw(x); });
+let tab = (() => { const h = location.hash.slice(1).toUpperCase(); return h || store.get("tab", null) || "SPY"; })();
+function setTab(t) {
+  tab = t; store.set("tab", t);
+  if (location.hash.slice(1).toUpperCase() !== t) history.replaceState(null, "", "#" + t.toLowerCase());
+  $("chartcol").classList.toggle("multi", t === "TODOS");
+  TICKERS.forEach(x => { const el = $("sec-" + x); if (el) el.style.display = (t === "TODOS" || t === x) ? "" : "none"; });
+  renderStrip(); drawAll();
 }
 window.addEventListener("hashchange", () => { const h = location.hash.slice(1).toUpperCase(); if (h && h !== tab && (TICKERS.includes(h) || h === "TODOS")) setTab(h); });
-const REMOTE = "https://nunomoliveira01.github.io/gex-tracker/";   // used when the page is opened as a local file
-const state = {};
-TICKERS.forEach(t => state[t] = { data:null, live:[], last:null, prevClose:null, lastSecond:0 });
-
-// ---------- helpers
-const etFmt = new Intl.DateTimeFormat("en-US", { timeZone:"America/New_York", hour:"numeric", minute:"numeric", second:"numeric", hour12:false });
-function etMinutes(ms) {
-  const p = Object.fromEntries(etFmt.formatToParts(new Date(ms)).map(x => [x.type, x.value]));
-  return (+p.hour % 24) * 60 + (+p.minute) + (+p.second) / 60;
+function buildCharts() {
+  const have = new Set([...$("charts").children].map(c => c.id.slice(4)));
+  TICKERS.forEach(t => {
+    if (have.has(t)) return;
+    $("charts").insertAdjacentHTML("beforeend",
+      `<div class="panel" id="sec-${t}" data-block="chart">
+        <div class="ph"><h2>${t} <span class="sub">${NAMES[t] || ""}</span></h2><span id="reg-${t}"></span>
+          <div class="tools"><button class="ib" data-collapse="chart" title="Fechar/abrir"><span class="chev">▾</span></button></div></div>
+        <div class="legend" id="head-${t}"></div>
+        <div class="cvwrap"><canvas id="cv-${t}"></canvas><div class="tip" id="tip-${t}"></div></div>
+      </div>`);
+    const cv = $("cv-" + t);
+    cv.addEventListener("mousemove", e => { const r = cv.getBoundingClientRect(); state[t].hover = [e.clientX - r.left, e.clientY - r.top]; draw(t); });
+    cv.addEventListener("mouseleave", () => { state[t].hover = null; $("tip-" + t).style.display = "none"; draw(t); });
+  });
+  [...$("charts").children].forEach(c => { if (!TICKERS.includes(c.id.slice(4))) c.remove(); });
+  // keep the order of the list
+  TICKERS.forEach(t => $("charts").appendChild($("sec-" + t)));
+  applyView();
 }
-const fmt = (v, d=2) => v == null ? "–" : Number(v).toFixed(d);
-function getKey() { try { return localStorage.getItem("finnhubKey") || ""; } catch { return ""; } }
-function setKey(k) { try { localStorage.setItem("finnhubKey", k); } catch {} }
-
-// ---------- gamma data from the script (every 5 min)
-async function loadData(t) {
-  const bust = "?v=" + Date.now();
-  const urls = location.protocol === "file:" ? [REMOTE + t + "_live.json" + bust]
-                                             : [t + "_live.json" + bust, REMOTE + t + "_live.json" + bust];
-  for (const u of urls) {
-    try {
-      const r = await fetch(u, { cache:"no-store" });
-      if (r.ok) {
-        const d = await r.json();
-        const s = state[t];
-        if (s.data && s.data.date !== d.date) s.live = [];
-        s.data = d;
-        if (!s.last || d.futures) s.last = d.prices.length ? d.prices[d.prices.length - 1][1] : d.spot;
-        if (d.futures && d.prev_close) s.prevClose = d.prev_close;
-        renderHead(t); draw(t); updateQuote(t);
-        return;
-      }
-    } catch (e) { /* try next */ }
-  }
-}
-
-function staleNote(d) {   // warn when the script has not updated this chart for a while
+function staleNote(d) {
   if (!d || !d.updated_utc) return "";
   const mins = Math.round((Date.now() - Date.parse(d.updated_utc)) / 60000);
-  return mins > 15 ? `<span style="color:#ff5a4e;font-weight:700">⚠ dados parados há ${mins >= 120 ? Math.round(mins / 60) + " h" : mins + " min"}` +
-    ` (normal com o mercado fechado)</span>` : "";
+  return mins > 15 ? `<span class="stale">⚠ sem atualização há ${mins >= 120 ? Math.round(mins / 60) + " h" : mins + " min"} (normal com o mercado fechado)</span>` : "";
 }
 function renderHead(t) {
-  const d = state[t].data; if (!d) return;
-  const reg = d.net_gex_bn < 0 ? '<span class="down">gamma NEGATIVO</span>' : '<span class="up">gamma POSITIVO</span>';
-  document.getElementById("head-" + t).innerHTML =
-    `<span><b>${NAMES[t]}</b> ${reg}: <b>${gx(d.net_gex_bn)}</b> por 1%</span>` +
-    `<span>Flip <b style="color:var(--orange)">${fmt(d.flip)}</b></span>` +
-    `<span>Put wall <b style="color:var(--red)">${String(d.put_wall == null ? '–' : +d.put_wall.toFixed(2))}</b></span>` +
-    `<span>Call wall <b style="color:var(--green)">${String(d.call_wall == null ? '–' : +d.call_wall.toFixed(2))}</b></span>` +
-    (d.futures ? `<span style="color:#777">gamma = opções do ${d.index} (${fmt(d.gex_index_bn,1)}bn)` +
-        (d.etf && d.gex_etf_bn != null ? ` + do ${d.etf} (${fmt(d.gex_etf_bn,1)}bn, ×${fmt(d.ratio,2)})` : "") +
-        ` · preço com ~${d.price_delay_min} min de atraso</span>`
-               : `<span style="color:#777">gamma de ${d.time_et} ET</span>`) + staleNote(d);
+  const d = state[t].data; if (!d || !$("head-" + t)) return;
+  setHTML("reg-" + t, d.net_gex_bn < 0
+    ? `<span class="badge neg" title="Os dealers compram na subida e vendem na descida: amplificam os movimentos">gamma negativa ${gx(d.net_gex_bn)}</span>`
+    : `<span class="badge pos" title="Os dealers vendem na subida e compram na descida: travam os movimentos">gamma positiva ${gx(d.net_gex_bn)}</span>`);
+  const px = state[t].last ?? d.spot, dist = d.flip ? (px / d.flip - 1) * 100 : null;
+  const stats = isOn("chart.stats") ? `<div class="stats" style="width:100%">
+      <span class="chip" title="Preço onde a gamma total passa de negativa a positiva">Flip <b style="color:var(--amber)">${fmt(d.flip)}</b>${dist != null ? ` <span class="muted">(${sg(dist, 1)}%)</span>` : ""}</span>
+      <span class="chip" title="Strike com mais gamma de puts abaixo do preço — costuma travar quedas">Put wall <b class="down">${d.put_wall == null ? "–" : +d.put_wall.toFixed(2)}</b></span>
+      <span class="chip" title="Strike com mais gamma de calls acima do preço — costuma travar subidas">Call wall <b class="up">${d.call_wall == null ? "–" : +d.call_wall.toFixed(2)}</b></span>
+      <span class="chip muted">${d.futures ? `opções do ${d.index}${d.etf ? " + " + d.etf : ""} · preço ~${d.price_delay_min} min atrasado` : `gamma de ${d.time_et.slice(11, 16)} Nova Iorque`}</span>
+      ${staleNote(d)}</div>` : "";
+  const legend = isOn("chart.legend") ? [["flip", "Flip", "var(--amber)"], ["walls", "Walls", "var(--green)"], ["majors", "+γ / −γ", "var(--red)"],
+      ["margin", "Margem", "var(--purple)"], ["entry", "Entrada JP", "var(--blue)"], ["vol", "Volume", "var(--orange)"], ["dots", "5/15/30 min", "var(--muted)"]]
+    .filter(([k]) => k !== "margin" || MARGIN_IDX[t]).filter(([k]) => k !== "entry" || t === SIGNAL)
+    .map(([k, n, c]) => `<span class="tog ${lineOn(k) ? "" : "off"}" data-tog="${k}"><i style="background:${c}"></i>${n}</span>`).join("") : "";
+  setHTML("head-" + t, stats + legend);
 }
 
-function updateQuote(t) {
-  if (!document.getElementById("px-" + t)) return;
-  const s = state[t]; if (s.last == null) return;
-  document.getElementById("px-" + t).textContent = fmt(s.last);
-  const el = document.getElementById("chg-" + t);
-  if (s.prevClose) {
-    const c = s.last - s.prevClose, p = c / s.prevClose * 100;
-    el.textContent = `${c >= 0 ? "+" : ""}${fmt(c)} (${p >= 0 ? "+" : ""}${fmt(p)}%)`;
-    el.className = "chg " + (c >= 0 ? "up" : "down");
-  }
+// ===================================================================== data from the script (every 5 min)
+async function loadData(t) {
+  const d = await getJSON(t + "_live.json"); if (!d) return;
+  const s = ensure(t);
+  if (s.data && s.data.date !== d.date) s.live = [];
+  s.data = d;
+  if (!s.last || d.futures || !LIVE().includes(t) || !getKey()) s.last = d.prices.length ? d.prices[d.prices.length - 1][1] : d.spot;
+  if (d.prev_close) s.prevClose = s.prevClose || d.prev_close;
+  renderHead(t); draw(t); renderStrip();
 }
 
-// ---------- live prices from Finnhub (every trade, drawn once per second)
-let ws, wsRetry = 1000, lastTradeAt = 0;
+// ===================================================================== live prices (Finnhub)
+function getKey() { return store.get("finnhubKey", "") || ""; }
+function getGh() { return store.get("ghToken", "") || ""; }
+let ws, wsRetry = 1000, lastTradeAt = 0, subscribed = new Set();
 async function startLive() {
-  const key = getKey();
-  document.getElementById("keybox").style.display = key ? "none" : "block";
-  document.getElementById("changekey").style.display = key ? "inline-block" : "none";
-  if (!key) { setStatus(false, "sem preço ao vivo (falta a chave)"); return; }
-  for (const t of LIVE) {
-    try {
-      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${t}&token=${encodeURIComponent(key)}`);
-      if (r.status === 401 || r.status === 403) { setStatus(false, "chave Finnhub inválida"); showKeyBox(); return; }
-      const q = await r.json();
-      if (q.pc) state[t].prevClose = q.pc;
-      if (q.c) { state[t].last = q.c; updateQuote(t); }
-    } catch (e) {}
-  }
-  connectWS(key);
+  if (!getKey()) { setStatus(false, "sem preço ao segundo — ⚙"); return; }
+  for (const t of LIVE()) await quote(t);
+  connectWS();
 }
-function connectWS(key) {
+async function quote(t) {
+  try {
+    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${t}&token=${encodeURIComponent(getKey())}`);
+    if (r.status === 401 || r.status === 403) { setStatus(false, "chave Finnhub inválida"); return; }
+    const q = await r.json();
+    if (q.pc) ensure(t).prevClose = q.pc;
+    if (q.c) ensure(t).last = q.c;
+  } catch {}
+}
+function subscribeLive() {
+  if (!ws || ws.readyState !== 1) return;
+  LIVE().forEach(t => { if (!subscribed.has(t)) { ws.send(JSON.stringify({ type:"subscribe", symbol:t })); subscribed.add(t); quote(t); } });
+}
+function connectWS() {
   if (ws) try { ws.close(); } catch {}
-  ws = new WebSocket("wss://ws.finnhub.io?token=" + encodeURIComponent(key));
-  ws.onopen = () => { wsRetry = 1000; LIVE.forEach(t => ws.send(JSON.stringify({ type:"subscribe", symbol:t }))); setStatus(true, "ligado"); };
+  subscribed = new Set();
+  ws = new WebSocket("wss://ws.finnhub.io?token=" + encodeURIComponent(getKey()));
+  ws.onopen = () => { wsRetry = 1000; subscribeLive(); setStatus(true, "ligado"); };
   ws.onmessage = ev => {
-    const m = JSON.parse(ev.data);
-    if (m.type !== "trade" || !m.data) return;
-    for (const tr of m.data) {
-      const s = state[tr.s]; if (!s) continue;
-      s.last = tr.p; s.lastTime = tr.t; lastTradeAt = Date.now();
-    }
+    const m = JSON.parse(ev.data); if (m.type !== "trade" || !m.data) return;
+    for (const tr of m.data) { const s = state[tr.s]; if (!s) continue; s.last = tr.p; s.lastTime = tr.t; lastTradeAt = Date.now(); }
   };
-  ws.onclose = () => { setStatus(false, "a religar…"); setTimeout(() => connectWS(key), wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
+  ws.onclose = () => { setStatus(false, "a religar…"); setTimeout(connectWS, wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
   ws.onerror = () => { try { ws.close(); } catch {} };
 }
-function setStatus(on, text) {
-  document.getElementById("livedot").className = "dot" + (on ? " live" : "");
-  document.getElementById("statustext").textContent = text;
-}
-function showKeyBox() { document.getElementById("keybox").style.display = "block"; }
+function setStatus(on, text) { $("livedot").className = "dot" + (on ? " live" : ""); $("statustext").textContent = text; }
 
-// once per second: add a point to the live line and redraw
-setInterval(() => {
+setInterval(() => {   // once per second: live line, prices, panels
   const now = Date.now();
   for (const t of TICKERS) {
-    const s = state[t];
-    if (s.last == null) continue;
-    updateQuote(t);
-    if (s.lastTime && now - s.lastTime < 120000) {   // only plot real recent trades
+    const s = state[t]; if (s.last == null) continue;
+    if (s.lastTime && now - s.lastTime < 120000) {
       const sec = Math.floor(s.lastTime / 1000);
       if (sec !== s.lastSecond) { s.live.push([s.lastTime, s.last]); s.lastSecond = sec; if (s.live.length > 30000) s.live.shift(); }
     }
-    if (tab === "TODOS" || tab === t) draw(t);
+    if ((tab === "TODOS" || tab === t) && !s.hover) draw(t);
   }
-  renderRule(); renderQuant(); renderMargin();
+  renderStrip(); refreshPanels();
   if (getKey() && ws && ws.readyState === 1)
-    setStatus(true, lastTradeAt && now - lastTradeAt < 10000 ? "ao vivo" : "ligado (sem negócios agora — mercado fechado?)");
+    setStatus(true, lastTradeAt && now - lastTradeAt < 10000 ? "ao vivo" : "ligado · sem negócios agora");
 }, 1000);
 
-// ---------- drawing (same layout as the gamma map image)
+// ===================================================================== chart drawing
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function alpha(hex, a) { const h = hex.replace("#", ""); const n = parseInt(h.length === 3 ? h.split("").map(c => c + c).join("") : h, 16);
+  return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+function drawAll() { TICKERS.forEach(draw); }
 function draw(t) {
-  const s = state[t], d = s.data, cv = document.getElementById("cv-" + t);
-  if (!(tab === "TODOS" || tab === t)) return;
-  if (!d || !d.strikes.length) {
-    const g0 = cv.getContext("2d"), dpr0 = window.devicePixelRatio || 1;
-    cv.width = cv.clientWidth * dpr0; cv.height = cv.clientHeight * dpr0; g0.setTransform(dpr0, 0, 0, dpr0, 0, 0);
-    g0.fillStyle = "#888"; g0.font = "14px system-ui"; g0.textAlign = "center";
-    g0.fillText("Ainda sem dados para " + t + " — aparecem na próxima atualização (5 min).", cv.clientWidth / 2, 60);
-    return;
-  }
-  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  const s = state[t], cv = $("cv-" + t); if (!s || !cv) return;
+  if (!(tab === "TODOS" || tab === t) || hidden.has("chart") || collapsed.has("chart")) return;
+  const d = s.data, dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (!W) return;
   if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
-  const L = 58, R = 100, T = 34, B = 28, pw = W - L - R, ph = H - T - B;
-
+  const C = { bg:css("--chart-bg"), grid:css("--grid"), ink:css("--ink"), muted:css("--muted"), blue:css("--blue"), red:css("--red"),
+    green:css("--green"), amber:css("--amber"), purple:css("--purple"), pink:css("--pink"), orange:css("--orange"), line:css("--line") };
+  g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+  g.font = "12px Nunito, system-ui";
+  if (!d || !d.strikes.length) {
+    const st = status[t];
+    g.fillStyle = C.muted; g.textAlign = "center";
+    g.fillText(st && !st.ok ? `Sem dados para ${t} na Cboe — confirma o símbolo (${(st.error || "").slice(0, 70)})`
+                            : `A calcular ${t}… aparece na próxima leitura (até 5 min).`, W / 2, 60);
+    return;
+  }
+  const L = 56, R = 92, T = 34, B = 26, pw = W - L - R, ph = H - T - B;
   const ks = d.strikes.map(x => x.k);
   const step = ks.length > 1 ? Math.min(...ks.slice(1).map((k, i) => k - ks[i])) : 1;
   const cur = s.last ?? d.spot;
-  let ymin = Math.min(ks[0], cur) - step, ymax = Math.max(ks[ks.length - 1], cur) + step;
-  const Y = v => T + (ymax - v) / (ymax - ymin) * ph;
+  const ymin = Math.min(ks[0], cur) - step, ymax = Math.max(ks[ks.length - 1], cur) + step;
+  const Y = v => T + (ymax - v) / (ymax - ymin) * ph, V = y => ymax - (y - T) / ph * (ymax - ymin);
   let x0 = d.x_start_ms, x1 = d.x_end_ms;
-  if (!x0 || !x1) {   // older data files: assume the 9:30-16:00 New York session of the first price
-    x0 = d.prices.length ? d.prices[0][0] : Date.now() - 6.5 * 3600e3; x1 = x0 + 6.5 * 3600e3; }
-  const X = ms => L + (ms - x0) / (x1 - x0) * pw;
+  if (!x0 || !x1) { x0 = d.prices.length ? d.prices[0][0] : Date.now() - 6.5 * 3600e3; x1 = x0 + 6.5 * 3600e3; }
+  const X = ms => L + (ms - x0) / (x1 - x0) * pw, M = x => x0 + (x - L) / pw * (x1 - x0);
 
-  // axes + grid
-  g.font = "11px system-ui"; g.fillStyle = "#9a9a9a"; g.strokeStyle = "#1c1c1c"; g.lineWidth = 1;
-  const yStep = niceStep((ymax - ymin) / 10);
+  // grid
+  g.strokeStyle = C.grid; g.lineWidth = 1; g.fillStyle = C.muted;
+  const yStep = niceStep((ymax - ymin) / 9);
   for (let v = Math.ceil(ymin / yStep) * yStep; v <= ymax; v += yStep) {
     const y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke();
-    g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(v.toFixed(yStep < 1 ? 1 : 0), L - 6, y);
-  }
+    g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(v.toFixed(yStep < 1 ? 1 : 0), L - 8, y); }
   g.textAlign = "center"; g.textBaseline = "top";
-  const stepH = Math.max(1, Math.ceil(((x1 - x0) / 3600e3) / Math.max(1, pw / 55)));   // keep labels ~55px apart
+  const stepH = Math.max(1, Math.ceil(((x1 - x0) / 3600e3) / Math.max(1, pw / 60)));
   for (let ms = Math.ceil(x0 / 3600e3) * 3600e3; ms <= x1; ms += 3600e3) {
     const hr = +lisbon.format(new Date(ms)).slice(0, 2); if (hr % stepH) continue;
-    const x = X(ms); g.fillText(lisbon.format(new Date(ms)), x, T + ph + 6);
+    const x = X(ms); g.fillText(lisbon.format(new Date(ms)), x, T + ph + 7);
     g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + ph); g.stroke(); }
 
-  // gamma bars (top axis)
+  // gamma bars: wide/pale = open interest, thin/strong = today's volume
   const oiMax = Math.max(...d.strikes.map(x => Math.abs(x.oi)), 1e-9);
-  const volQ = quantile(d.strikes.map(x => Math.abs(x.vol)), 0.9);
+  const volQ = lineOn("vol") ? quantile(d.strikes.map(x => Math.abs(x.vol)), 0.9) : 0;
   const xmax = Math.max(oiMax * 1.3, volQ * 1.1);
   const BX = v => L + Math.min(Math.abs(v) / xmax, 1) * pw;
-  const bh = Math.max(2, Math.abs(Y(0) - Y(step)) * 0.8);
+  const bh = Math.max(2, Math.abs(Y(0) - Y(step)) * 0.78);
   for (const x of d.strikes) {
     const y = Y(x.k);
-    g.fillStyle = x.oi < 0 ? "#7a1c1c" : "#2f7d32"; g.fillRect(L, y - bh / 2, BX(x.oi) - L, bh);
-    g.fillStyle = x.vol < 0 ? "#ff5a4e" : "#7ee07e"; g.fillRect(L, y - bh * 0.18, BX(x.vol) - L, bh * 0.36);
-    [["oi30", "#2e86de"], ["oi15", "#7fc8ff"], ["oi5", "#ffffff"]].forEach(([f, c]) => {
-      if (x[f] != null) { g.fillStyle = c; g.beginPath(); g.arc(BX(x[f]), y, 2.2, 0, 7); g.fill(); }
-    });
+    g.fillStyle = alpha(x.oi < 0 ? C.red : C.green, 0.28); roundRect(g, L, y - bh / 2, Math.max(1, BX(x.oi) - L), bh, Math.min(3, bh / 2)); g.fill();
+    if (lineOn("vol")) { g.fillStyle = alpha(x.vol < 0 ? C.red : C.green, 0.85); g.fillRect(L, y - bh * 0.15, BX(x.vol) - L, bh * 0.3); }
+    if (lineOn("dots")) [["oi30", alpha(C.blue, .35)], ["oi15", alpha(C.blue, .65)], ["oi5", C.blue]].forEach(([f, c]) => {
+      if (x[f] != null) { g.fillStyle = c; g.beginPath(); g.arc(BX(x[f]), y, 2.4, 0, 7); g.fill(); } });
   }
-  g.fillStyle = "#9a9a9a"; g.textAlign = "center"; g.textBaseline = "bottom";
-  const xs = niceStep(xmax / Math.max(2, Math.floor(pw / 80)));   // keep scale labels ~80px apart
-  for (let v = 0; v <= xmax; v += xs) g.fillText(v.toFixed(xs < 0.01 ? 3 : xs < 0.1 ? 2 : xs < 1 ? 1 : 0), L + v / xmax * pw, T - 4);
-  g.textAlign = "left"; g.fillText("gamma $bn / 1%", L + pw - 90, T - 18);
+  g.fillStyle = C.muted; g.textAlign = "center"; g.textBaseline = "bottom";
+  const xs = niceStep(xmax / Math.max(2, Math.floor(pw / 90)));
+  for (let v = xs; v <= xmax; v += xs) g.fillText(v.toFixed(xs < 0.01 ? 3 : xs < 0.1 ? 2 : xs < 1 ? 1 : 0), L + v / xmax * pw, T - 5);
+  g.textAlign = "left"; g.fillText("barras: gamma dos dealers, $bn por 1%", L, T - 19);
 
-  // level lines
-  const lvl = (v, c, label) => { if (v == null || v < ymin || v > ymax) return; const y = Y(v);
-    g.strokeStyle = c; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.setLineDash([]);
-    g.fillStyle = c; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(label, L + pw + 6, y); };
-  lvl(d.flip, "#ffb000", "flip " + fmt(d.flip, 1));
-  lvl(d.major_pos, "#7ee07e", "+γ " + d.major_pos);
-  lvl(d.major_neg, "#ff5a4e", "−γ " + d.major_neg);
+  // level lines with tags on the right
+  const tags = [];
+  const lvl = (v, c, label, dash = [6, 4]) => { if (v == null) return;
+    if (v < ymin || v > ymax) { tags.push([v < ymin ? T + ph - 8 : T + 8, c, (v < ymin ? "↓ " : "↑ ") + label, true]); return; }
+    const y = Y(v); g.strokeStyle = c; g.lineWidth = 1.3; g.setLineDash(dash); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.setLineDash([]);
+    tags.push([y, c, label, false]); };
+  if (lineOn("flip")) lvl(d.flip, C.amber, "flip " + fmt(d.flip, 1));
+  if (lineOn("walls")) { lvl(d.call_wall, C.green, "call wall " + d.call_wall, [2, 3]); lvl(d.put_wall, C.red, "put wall " + d.put_wall, [2, 3]); }
+  if (lineOn("majors")) { lvl(d.major_pos, alpha(C.green, .8), "+γ " + d.major_pos, [8, 3]); lvl(d.major_neg, alpha(C.red, .8), "−γ " + d.major_neg, [8, 3]); }
+  if (lineOn("margin")) (marginLevels(t) || []).forEach(([v, c, label]) => lvl(v, c === "a" ? C.purple : C.pink, label, [3, 3]));
+  if (lineOn("entry") && t === SIGNAL && signal && signal.position) {
+    lvl(signal.position.entry, C.blue, "entrada JP " + fmt(signal.position.entry), [10, 3]);
+    signal.position.adds.forEach(a => lvl(a.price, C.orange, "reforço " + fmt(a.price), [10, 3])); }
+  // place tags without overlapping
+  const right = tags.filter(x => !x[3]).sort((a, b) => a[0] - b[0]); let lastY = -1e9;
+  right.forEach(tg => { tg[0] = Math.max(tg[0], lastY + 14); lastY = tg[0];
+    g.fillStyle = tg[1]; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(tg[2], L + pw + 6, tg[0]); });
+  const edge = tags.filter(x => x[3]); edge.forEach((tg, i) => {   // levels outside the visible range: noted at the edge
+    const yy = tg[0] + (tg[2][0] === "↓" ? -i * 18 : i * 18), w = g.measureText(tg[2]).width + 12;
+    g.fillStyle = C.bg; roundRect(g, L + 4, yy - 8, w, 16, 6); g.fill(); g.strokeStyle = tg[1]; g.stroke();
+    g.fillStyle = tg[1]; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(tg[2], L + 10, yy); });
 
-  // margin lines (JP's "marginal buyer"): price where borrowed money since Dec-22 / Jun-25 breaks even after interest
-  const mr = marginLevels(t);
-  if (mr) mr.forEach(([v, c, label], i) => { if (v == null) return;
-    if (v >= ymin && v <= ymax) return lvl(v, c, label);
-    g.fillStyle = c; g.textAlign = "left"; g.textBaseline = "middle";   // off the chart: note it at the edge
-    g.fillText((v < ymin ? "↓ " : "↑ ") + label, L + 6, v < ymin ? T + ph - 8 - i * 14 : T + 8 + i * 14); });
-
-  // JP position lines (SPY)
-  if (t === "SPY" && signal && signal.position) {
-    lvl(signal.position.entry, "#1f8bff", "entrada " + fmt(signal.position.entry));
-    signal.position.adds.forEach(a => lvl(a.price, "#c9a227", "reforço " + fmt(a.price)));
-  }
-  // price line: script minute prices + live seconds
+  // price line
   const pts = d.prices.concat(s.live.filter(p => !d.prices.length || p[0] > d.prices[d.prices.length - 1][0]));
   const today = pts.filter(p => p[0] >= x0 - 60e3 && p[0] <= x1 + 60e3);
   if (today.length > 1) {
-    g.strokeStyle = "#00e5ff"; g.lineWidth = 1.5; g.beginPath();
-    today.forEach((p, i) => { const x = X(p[0]), y = Y(p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); });
-    g.stroke(); g.lineWidth = 1;
+    const grad = g.createLinearGradient(0, T, 0, T + ph); grad.addColorStop(0, alpha(C.blue, .14)); grad.addColorStop(1, alpha(C.blue, 0));
+    g.beginPath(); today.forEach((p, i) => { const x = X(p[0]), y = Y(p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.strokeStyle = C.blue; g.lineWidth = 2; g.stroke(); g.lineWidth = 1;
+    g.lineTo(X(today[today.length - 1][0]), T + ph); g.lineTo(X(today[0][0]), T + ph); g.closePath(); g.fillStyle = grad; g.fill();
   }
   // current price tag
   const y = Y(cur);
-  g.strokeStyle = "#00e5ff"; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.setLineDash([]);
-  g.fillStyle = "#000"; g.strokeStyle = "#00e5ff"; roundRect(g, L + pw + 4, y - 10, R - 8, 20, 5); g.fill(); g.stroke();
-  g.fillStyle = "#00e5ff"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(fmt(cur), L + pw + 4 + (R - 8) / 2, y);
-  g.strokeStyle = "#333"; g.strokeRect(L, T, pw, ph);
+  g.strokeStyle = C.blue; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.setLineDash([]);
+  g.fillStyle = C.blue; roundRect(g, L + pw + 3, y - 11, R - 6, 22, 7); g.fill();
+  g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "bold 12.5px Nunito, system-ui"; g.fillText(fmt(cur), L + pw + 3 + (R - 6) / 2, y);
+  g.font = "12px Nunito, system-ui";
+  g.strokeStyle = C.line; g.strokeRect(L + .5, T + .5, pw, ph);
+
+  // hover: crosshair + tooltip
+  const tip = $("tip-" + t);
+  if (s.hover && s.hover[0] >= L && s.hover[0] <= L + pw && s.hover[1] >= T && s.hover[1] <= T + ph) {
+    const [hx, hy] = s.hover, price = V(hy), ms = M(hx);
+    g.strokeStyle = alpha(C.ink, .35); g.setLineDash([3, 3]);
+    g.beginPath(); g.moveTo(hx, T); g.lineTo(hx, T + ph); g.moveTo(L, hy); g.lineTo(L + pw, hy); g.stroke(); g.setLineDash([]);
+    const near = d.strikes.reduce((a, b) => Math.abs(b.k - price) < Math.abs(a.k - price) ? b : a);
+    const p = today.length ? today.reduce((a, b) => Math.abs(b[0] - ms) < Math.abs(a[0] - ms) ? b : a) : null;
+    const showP = p && Math.abs(p[0] - ms) < 10 * 60e3;
+    if (showP) { g.fillStyle = C.blue; g.beginPath(); g.arc(X(p[0]), Y(p[1]), 4, 0, 7); g.fill(); }
+    tip.innerHTML = `<b>${lisbon.format(new Date(ms))}</b>${showP ? ` · preço ${fmt(p[1])}` : ""}<br>nível ${fmt(price)}<br>` +
+      `strike ${near.k}: gamma <b>${gx(near.oi)}</b> (OI) · ${gx(near.vol)} (vol. hoje)` +
+      (near.oi5 != null ? `<br>há 5 min ${gx(near.oi5)}${near.oi30 != null ? ` · há 30 min ${gx(near.oi30)}` : ""}` : "");
+    tip.style.display = "block";
+    const tw = tip.offsetWidth; tip.style.left = (hx + 30 + tw > W ? hx - tw - 6 : hx + 30) + "px"; tip.style.top = Math.max(4, hy - 60) + "px";
+  } else if (tip) tip.style.display = "none";
 }
 function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const n = x / p; return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * p; }
 function quantile(a, q) { if (!a.length) return 0; const b = [...a].sort((x, y) => x - y); return b[Math.floor((b.length - 1) * q)]; }
-function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function roundRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+window.addEventListener("resize", drawAll);
 
-// ---------- JP rule panel
+// ===================================================================== panels
+function refreshPanels(force) { if (force) ["rule", "margin", "quant"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMargin(); renderQuant(); }
+
+// ---------- JP rule
 let signal = null;
-async function loadSignal() {
-  const bust = "?v=" + Date.now();
-  const urls = location.protocol === "file:" ? [REMOTE + "SPY_signal.json" + bust] : ["SPY_signal.json" + bust, REMOTE + "SPY_signal.json" + bust];
-  for (const u of urls) { try { const r = await fetch(u, { cache:"no-store" }); if (r.ok) { signal = await r.json(); renderRule(); return; } } catch (e) {} }
-}
-const money = v => v == null ? "–" : "$" + Math.round(v).toLocaleString("en-US");
-const tick = (ok, txt) => `<div class="${ok ? "ok" : "no"}">${ok ? "✔" : "✘"} ${txt}</div>`;
+const tick = (ok, txt) => `<div class="check ${ok ? "ok" : "no"}">${ok ? "✔" : "○"} ${txt}</div>`;
 function renderRule() {
-  const sg = signal; if (!sg) return;
-  const live = state.SPY.last ?? sg.spot, pos = sg.position, lvl = sg.level;
-  let status, pnlTxt = "";
+  const sgn = signal; if (!sgn) return;
+  const live = state.SPY?.last ?? sgn.spot, pos = sgn.position, lvl = sgn.level, g = sgn.gamma, rt = sgn.retail;
+  $("rule-sub").innerHTML = pos ? `<span class="badge blue">em posição</span>` : `<span class="badge off">fora</span>`;
+  let posTxt;
   if (pos) {
-    const units = [pos.entry].concat(pos.adds.map(a => a.price));
-    const pnl = units.reduce((a, u) => a + (live - u), 0);
-    status = `<span class="big ${pnl >= 0 ? "up" : "down"}">COMPRADO ${units.length}x</span>`;
-    pnlTxt = `Entrada ${fmt(pos.entry)} (${pos.entry_time} ET)` +
-      pos.adds.map(a => `<br>Reforço ${fmt(a.price)} (${a.time} ET)`).join("") +
-      `<br>Resultado agora: <b class="${pnl >= 0 ? "up" : "down"}">${pnl >= 0 ? "+" : ""}${fmt(pnl)} pontos</b> com SPY a ${fmt(live)}`;
-  } else {
-    status = `<span class="big" style="color:#bbb">FORA</span>`;
-    pnlTxt = lvl == null ? "Nível de entrada ainda por definir." : `Entra quando a gamma chegar a ${lvl}bn.`;
-  }
-  const g = sg.gamma, rt = sg.retail;
-  const gammaTxt = `Agora <b>${g > 0 ? "+" : ""}${fmt(g)}bn</b> · entrada ${lvl}bn · saída 0bn` +
-    (pos ? `<br>${g >= 0 ? '<span class="ok">Saída: gamma voltou a zero</span>' : `Faltam ${fmt(-g)}bn para a saída`}` : "");
-  const zTxt = rt.z == null ? `<span class="muted">a juntar histórico (${rt.days} dias de 10 necessários)</span>`
-    : `z = <b class="${rt.z >= sg.add_min_z ? "warn" : ""}">${fmt(rt.z)}</b>${rt.complete ? "" : " <span class=muted>(dia a decorrer)</span>"}`;
-  const retailTxt = `Prémio de puts XSP hoje: <b>${money(rt.premium)}</b><br>Fasquia (z=${sg.add_min_z}): ${money(rt.bar)}<br>${zTxt}`;
-  const below = pos && live < pos.entry, addsLeft = pos && pos.adds.length < sg.max_adds;
-  const addChecks = pos ? tick(true, "posição aberta") + tick(g <= lvl, `gamma ≤ ${lvl}bn`) +
-      tick(rt.z != null && rt.z >= sg.add_min_z, `retail z ≥ ${sg.add_min_z}`) + tick(below, `preço abaixo da entrada (${fmt(pos.entry)})`) +
-      tick(addsLeft, "reforço ainda disponível") + `<div class="muted">Avaliado ao fecho (16:00 Nova Iorque).</div>`
-    : `<div class="muted">Só se aplica com posição aberta.</div>`;
-  const closed = sg.closed || [], total = closed.reduce((a, c) => a + c.pnl, 0), wins = closed.filter(c => c.pnl > 0).length;
-  const hist = closed.length ? `${closed.length} trades fechados · ${wins}/${closed.length} ganhos · total <b class="${total >= 0 ? "up" : "down"}">${total >= 0 ? "+" : ""}${fmt(total)} pontos</b>` +
-      closed.slice(-5).reverse().map(c => `<br><span class="muted">${c.entry_time.slice(5)} ${fmt(c.entry)}${c.adds.length ? " + " + c.adds.map(a => fmt(a)).join(", ") : ""} → ${c.exit_time.slice(5)} ${fmt(c.exit)}: <span class="${c.pnl >= 0 ? "up" : "down"}">${c.pnl >= 0 ? "+" : ""}${fmt(c.pnl)}</span></span>`).join("")
+    const units = [pos.entry].concat(pos.adds.map(a => a.price)), pnl = units.reduce((a, u) => a + (live - u), 0);
+    posTxt = `<div class="big ${cls(pnl)}">Comprado ${units.length}x · ${sg(pnl)} pts</div>` +
+      `<div class="stat"><span>Entrada</span><b>${fmt(pos.entry)}</b></div><div class="muted">${pos.entry_time} Nova Iorque</div>` +
+      pos.adds.map(a => `<div class="stat"><span>Reforço</span><b>${fmt(a.price)}</b></div><div class="muted">${a.time}</div>`).join("") +
+      `<div class="stat"><span>SPY agora</span><b>${fmt(live)}</b></div>`;
+  } else posTxt = `<div class="big" style="color:var(--muted)">Fora</div>` +
+    (lvl == null ? `<div class="muted">Nível de entrada ainda por definir.</div>` : `<div>Entra quando a gamma chegar a <b>${lvl}bn</b>.</div>`);
+  // gamma meter: from the entry level (left) to the exit at 0 (right)
+  const span = Math.abs(lvl || 10) * 2, fill = Math.max(0, Math.min(1, (g - (lvl || -10) * 2) / span));
+  const gammaTxt = `<div class="stat"><span>Agora</span><b class="${cls(g)}">${sg(g)}bn</b></div>
+    <div class="meter" title="Esquerda: ${2 * lvl}bn · meio: entrada ${lvl}bn · direita: saída 0bn"><i style="width:${fill * 100}%;background:${g < lvl ? "var(--red)" : g < 0 ? "var(--amber)" : "var(--green)"}"></i></div>
+    <div class="muted">entrada ${lvl}bn · saída 0bn${pos ? (g >= 0 ? " · <b class=ok>saída: gamma voltou a zero</b>" : ` · faltam ${fmt(-g)}bn`) : ""}</div>`;
+  const zTxt = rt.z == null ? `<span class="muted">a juntar histórico (${rt.days} de 10 dias)</span>`
+    : `z = <b class="${rt.z >= sgn.add_min_z ? "warn" : ""}">${fmt(rt.z)}</b>${rt.complete ? "" : ' <span class="muted">(dia a decorrer)</span>'}`;
+  const retailTxt = `<div class="stat"><span>Puts XSP hoje</span><b>${money(rt.premium)}</b></div><div class="stat"><span>Fasquia (z=${sgn.add_min_z})</span><b>${money(rt.bar)}</b></div>${zTxt}`;
+  const below = pos && live < pos.entry, addsLeft = pos && pos.adds.length < sgn.max_adds;
+  const addChecks = pos ? tick(g <= lvl, `gamma ≤ ${lvl}bn`) + tick(rt.z != null && rt.z >= sgn.add_min_z, `pânico de retalho (z ≥ ${sgn.add_min_z})`) +
+      tick(below, `preço abaixo da entrada`) + tick(addsLeft, "reforço ainda por usar") + `<div class="muted">Avaliado ao fecho (21:00 Lisboa).</div>`
+    : `<div class="muted">Só conta com posição aberta.</div>`;
+  const closed = sgn.closed || [], total = closed.reduce((a, c) => a + c.pnl, 0), wins = closed.filter(c => c.pnl > 0).length;
+  const hist = closed.length ? `<div class="stat"><span>${closed.length} fechados · ${wins} ganhos</span><b class="${cls(total)}">${sg(total)} pts</b></div>` +
+      closed.slice(-5).reverse().map(c => `<div class="stat muted"><span>${c.entry_time.slice(5, 10)} → ${c.exit_time.slice(5, 10)}</span><span class="${cls(c.pnl)}">${sg(c.pnl)}</span></div>`).join("")
     : `<span class="muted">Ainda sem trades fechados.</span>`;
-  document.getElementById("rule").innerHTML = `<h2>Regra do JP (SPY) — entra a ${lvl}bn, reforça ao fecho se houver pânico de retalho abaixo da entrada, sai a 0bn</h2>
-    <div class="grid">
-      <div class="card"><div class="lbl">Posição</div>${status}<br>${pnlTxt}</div>
-      <div class="card"><div class="lbl">Gamma SPY</div>${gammaTxt}</div>
-      <div class="card"><div class="lbl">Pânico de retalho (aproximação grátis)</div>${retailTxt}</div>
-      <div class="card"><div class="lbl">Condições para o reforço</div>${addChecks}</div>
-      <div class="card"><div class="lbl">Histórico</div>${hist}</div>
-    </div>
-    <div class="muted">Gamma e prémio de puts da Cboe (~15 min de atraso), atualizado a cada 5 min. O JP usa só puts de 1 contrato compradas ao ask; aqui conta-se todo o prémio de puts XSP com 5+ dias, que é o mais próximo com dados grátis. Não é aconselhamento de investimento.</div>`;
+  setHTML("rule", `<div class="cards">
+      ${card("rule.pos", "Posição", posTxt)}${card("rule.gamma", "Gamma do SPY", gammaTxt)}${card("rule.retail", "Pânico de retalho", retailTxt)}
+      ${card("rule.adds", "Condições para o reforço", addChecks)}${card("rule.hist", "Histórico", hist)}</div>
+    <details class="how" style="margin-top:10px"><summary>Como funciona</summary>Entra quando a gamma do SPY chega a ${lvl}bn; reforça uma vez ao fecho se o preço estiver abaixo da entrada e houver pânico de retalho (compra de puts XSP muito acima do normal); sai quando a gamma volta a 0. O JP usa só puts de 1 contrato compradas ao ask; aqui conta-se todo o prémio de puts XSP com 5+ dias (o mais próximo com dados grátis).</details>`);
 }
 
-// ---------- margin panel (FINRA margin debt, JP method)
+// ---------- margin (FINRA margin debt, JP method)
 let margin = null;
-const MARGIN_IDX = { SPY:"SPX", ES:"SPX", SPX:"SPX", QQQ:"NDX", NQ:"NDX" };
-async function loadMargin() {
-  const bust = "?v=" + Date.now();
-  const urls = location.protocol === "file:" ? [REMOTE + "margin.json" + bust] : ["margin.json" + bust, REMOTE + "margin.json" + bust];
-  for (const u of urls) { try { const r = await fetch(u, { cache:"no-store" }); if (r.ok) { margin = await r.json(); renderMargin(); return; } } catch (e) {} }
-}
-function idxLive(name) {   // live index level, from the live ETF price when we have one
-  const b = margin.indexes[name], etf = name === "SPX" ? "SPY" : "QQQ", rt = margin.ratio[etf], p = state[etf] && state[etf].last;
-  return p && rt ? p / rt : b.last;
-}
+const MARGIN_IDX = { SPY:"SPX", ES:"SPX", SPX:"SPX", QQQ:"NDX", NQ:"NDX", NDX:"NDX" };
+function idxLive(name) { const b = margin.indexes[name], etf = name === "SPX" ? "SPY" : "QQQ", rt = margin.ratio[etf], p = state[etf] && state[etf].last; return p && rt ? p / rt : b.last; }
 function underAt(lots, px) { const tot = lots.reduce((a, l) => a + l[1], 0); return tot ? lots.reduce((a, l) => a + (l[3] > px ? l[1] : 0), 0) / tot * 100 : null; }
 function marginLevels(t) {
   if (!margin || !MARGIN_IDX[t]) return null;
   const b = margin.indexes[MARGIN_IDX[t]], rt = margin.ratio[t]; if (!b || !rt) return null;
   const k = v => v == null ? null : v * rt, d = t === "SPY" || t === "QQQ" ? 1 : 0;
-  return [[k(b.cycle && b.cycle.breakeven), "#d17bff", "M dez22 " + fmt(k(b.cycle && b.cycle.breakeven), d)],
-          [k(b.recent && b.recent.breakeven), "#ff7bd5", "M jun25 " + fmt(k(b.recent && b.recent.breakeven), d)]];
+  return [[k(b.cycle && b.cycle.breakeven), "a", "M dez22 " + fmt(k(b.cycle && b.cycle.breakeven), d)],
+          [k(b.recent && b.recent.breakeven), "b", "M jun25 " + fmt(k(b.recent && b.recent.breakeven), d)]];
 }
+const mon = s => { const [y, mm] = s.split("-"); return ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+mm - 1] + "-" + y.slice(2); };
 function renderMargin() {
   const m = margin; if (!m) return;
-  const mon = s => { const [y, mm] = s.split("-"); return ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+mm - 1] + "-" + y.slice(2); };
-  const card = name => {
+  const idxCard = name => {
     const b = m.indexes[name]; if (!b || !b.cycle) return "";
-    const px = idxLive(name), under = underAt(b.lots, px), dd = (b.cycle.breakeven / px - 1) * 100;
-    const nm = name === "SPX" ? "S&P 500" : "Nasdaq 100";
-    return `<div class="card"><div class="lbl">${nm} · agora ${fmt(px, 0)}</div>
-      Preço médio de compra com dinheiro emprestado desde ${mon(m.cycle_start)}: <b>${fmt(b.cycle.entry, 0)}</b>, com juros <b>${fmt(b.cycle.breakeven, 0)}</b>
-      <span class="muted">(${Math.abs(dd).toFixed(1)}% ${dd > 0 ? "acima" : "abaixo"} do preço atual)</span><br>
-      Só o dinheiro novo desde ${mon(m.recent_start)}: <b>${fmt(b.recent.breakeven, 0)}</b> com juros<br>
-      A perder agora: <b class="${under >= 50 ? "down" : under >= 25 ? "warn" : "up"}">${fmt(under, 0)}%</b> do dinheiro emprestado novo<br>
-      <span class="muted">Fica a perder 25% / 50% / 75% abaixo de ${fmt(b.pain["25"], 0)} / ${fmt(b.pain["50"], 0)} / ${fmt(b.pain["75"], 0)}</span></div>`;
+    const px = idxLive(name), under = underAt(b.lots, px), col = under >= 50 ? "var(--red)" : under >= 25 ? "var(--amber)" : "var(--green)";
+    return card("margin." + name, (name === "SPX" ? "S&P 500" : "Nasdaq 100") + " · agora " + fmt(px, 0),
+      `<div class="stat"><span>Dinheiro novo a perder</span><b style="color:${col}">${fmt(under, 0)}%</b></div>
+       <div class="meter"><i style="width:${under}%;background:${col}"></i></div>
+       <div class="stat"><span>Fica a zero (desde ${mon(m.cycle_start)})</span><b>${fmt(b.cycle.breakeven, 0)}</b></div>
+       <div class="stat"><span>Fica a zero (desde ${mon(m.recent_start)})</span><b>${fmt(b.recent.breakeven, 0)}</b></div>
+       <div class="stat muted"><span>Preço médio sem juros</span><span>${fmt(b.cycle.entry, 0)}</span></div>
+       <div class="stat muted"><span>25% / 50% / 75% a perder abaixo de</span><span>${fmt(b.pain["25"], 0)} / ${fmt(b.pain["50"], 0)} / ${fmt(b.pain["75"], 0)}</span></div>`);
   };
   const fx = m.fx || {}, h = fx.history;
-  const fxTxt = !fx.eurusd ? "–" : `Dólar vs euro em 6 meses: <b class="${fx.signal ? "down" : ""}">${sg(fx.eurusd.usd_chg_6m_pct, 1)}%</b>
-      (EUR/USD ${fx.eurusd.six_months_ago} → ${fx.eurusd.now})<br>Dólar vs iene: ${fx.usdjpy ? sg(fx.usdjpy.usd_chg_6m_pct, 1) + "%" : "–"}<br>
-      ${fx.signal ? '<b class="down">Sinal ligado</b>: dólar subiu ≥ ' + fx.threshold_pct + '%' : '<span class="no">Sinal desligado</span> (precisa de dólar +' + fx.threshold_pct + '% em 6 meses)'}
-      ${h ? `<div class="muted">Teste desde ${h.since}: ${h.signal_months} meses com sinal; S&P nos 3 meses seguintes ${sg(h.spx_3m_avg_after_signal_pct, 1)}% em média,
-      a cair em ${fmt(h.spx_3m_down_share_after_signal_pct, 0)}% das vezes (todos os meses: ${sg(h.spx_3m_avg_all_pct, 1)}%, a cair ${fmt(h.spx_3m_down_share_all_pct, 0)}%).</div>` : ""}`;
-  document.getElementById("margin").innerHTML = `<h2>Dinheiro emprestado (margem) — método do JP ("o comprador marginal")</h2>
-    <div class="grid">
-      <div class="card"><div class="lbl">Dívida de margem (FINRA, ${mon(m.finra_month)})</div><b>$${fmt(m.debt_bn, 0)}bn</b> · ${sg(m.yoy_pct, 0)}% num ano<br>
-        Pico de 2021: $${fmt(m.peak_2021_bn, 0)}bn → voltar lá = <b class="down">${fmt(m.drop_to_2021_pct, 0)}%</b> de dívida
-        <div class="muted">Dinheiro que os investidores pediram às corretoras para comprar ações. Sai com ~3 semanas de atraso.</div></div>
-      ${card("SPX")}${card("NDX")}
-      <div class="card"><div class="lbl">Sinal do dólar (JP)</div>${fxTxt}</div>
-    </div>
-    <div class="muted">Como se calcula: em cada mês em que a dívida subiu desde ${mon(m.cycle_start)}, esse dinheiro novo comprou ao preço médio desse mês;
-    soma-se o juro (${(m.rate * 100).toFixed(1)}%/ano) desde então. Quando a dívida desce, todos os lotes encolhem por igual. Quando o preço cai abaixo destes níveis,
-    quem comprou com dinheiro emprestado está a perder — é quem primeiro é obrigado a vender (chamadas de margem). Linhas roxas nos gráficos de SPY, SPX, ES, QQQ e NQ.
-    Não é aconselhamento de investimento.</div>`;
+  const fxTxt = !fx.eurusd ? "–" : `<div class="stat"><span>Dólar vs euro, 6 meses</span><b class="${fx.signal ? "down" : ""}">${sg(fx.eurusd.usd_chg_6m_pct, 1)}%</b></div>
+      <div class="stat muted"><span>EUR/USD</span><span>${fx.eurusd.six_months_ago} → ${fx.eurusd.now}</span></div>
+      <div class="stat muted"><span>Dólar vs iene</span><span>${fx.usdjpy ? sg(fx.usdjpy.usd_chg_6m_pct, 1) + "%" : "–"}</span></div>
+      <div style="margin-top:4px">${fx.signal ? `<span class="badge neg">Sinal ligado</span>` : `<span class="badge off">Sinal desligado</span>`} <span class="muted">dispara com +${fx.threshold_pct}%</span></div>
+      ${h ? `<div class="muted" style="margin-top:4px">Desde ${h.since}: depois do sinal o S&P fez ${sg(h.spx_3m_avg_after_signal_pct, 1)}% em 3 meses e caiu ${fmt(h.spx_3m_down_share_after_signal_pct, 0)}% das vezes (normal: ${sg(h.spx_3m_avg_all_pct, 1)}%, cai ${fmt(h.spx_3m_down_share_all_pct, 0)}%).</div>` : ""}`;
+  setHTML("margin", `<div class="cards">
+      ${card("margin.debt", "Dívida de margem · FINRA " + mon(m.finra_month),
+        `<div class="big">$${fmt(m.debt_bn, 0)}bn</div><div class="stat"><span>Num ano</span><b class="${cls(m.yoy_pct)}">${sg(m.yoy_pct, 0)}%</b></div>
+         <div class="stat"><span>Voltar ao pico de 2021 ($${fmt(m.peak_2021_bn, 0)}bn)</span><b class="down">${fmt(m.drop_to_2021_pct, 0)}%</b></div>
+         <div class="muted">Dinheiro emprestado pelas corretoras para comprar ações. Sai ~3 semanas depois do fim do mês.</div>`)}
+      ${idxCard("SPX")}${idxCard("NDX")}
+      ${card("margin.fx", "Sinal do dólar", fxTxt)}</div>
+    <details class="how" style="margin-top:10px"><summary>Como se calcula</summary>Em cada mês em que a dívida subiu desde ${mon(m.cycle_start)}, esse dinheiro novo comprou ao preço médio desse mês; soma-se o juro (${(m.rate * 100).toFixed(1)}%/ano) desde então. Quando a dívida desce, todos os lotes encolhem por igual. Abaixo destes níveis, quem comprou com dinheiro emprestado está a perder — e é o primeiro obrigado a vender (chamadas de margem). Aparecem como linhas roxas nos gráficos de SPY, SPX, ES, QQQ e NQ.</details>`);
 }
 
-// ---------- quant lab panel
+// ---------- quant lab
 let quant = null;
-async function loadQuant() {
-  const bust = "?v=" + Date.now();
-  const urls = location.protocol === "file:" ? [REMOTE + "SPY_quant.json" + bust] : ["SPY_quant.json" + bust, REMOTE + "SPY_quant.json" + bust];
-  for (const u of urls) { try { const r = await fetch(u, { cache:"no-store" }); if (r.ok) { quant = await r.json(); renderQuant(); return; } } catch (e) {} }
-}
-const sg = (v, d = 2) => v == null ? "–" : (v > 0 ? "+" : "") + Number(v).toFixed(d);
-const pct = v => v == null ? "–" : (v * 100).toFixed(1) + "%";
-const cls = v => v == null ? "" : v >= 0 ? "up" : "down";
 function renderQuant() {
   const q = quant; if (!q) return;
-  const n = q.now, live = state.SPY.last ?? n.spot;
-  const turnTxt = n.turning ? '<span class="ok">sim — a gamma já subiu desde o mínimo</span>'
-    : (n.off_low > 0.2 ? `a afastar-se do mínimo (+${n.off_low.toFixed(2)}bn)` : "não — ainda perto do mínimo do dia");
-  const vrpTxt = n.iv30 == null ? "–" : `implícita ${pct(n.iv30)} vs realizada 20d ${pct(n.rv20)} / 5d ${pct(n.rv5)}<br>` +
-    `<b class="${(n.vrp20 ?? 0) > 0 ? "up" : "down"}">${n.vrp20 > 0 ? "implícita acima" : "implícita abaixo"} da realizada (${sg(n.vrp20, 1)} pts)</b>` +
-    `<div class="muted">JP: o ressalto aparece quando o movimento real fica abaixo do que as opções pagam.</div>`;
-  const weekTxt = n.gex_week == null ? "–" : `${sg(n.gex_week)}bn dos ${sg(n.gamma)}bn` +
-    (n.week_share != null ? ` (<b>${Math.round(n.week_share * 100)}%</b>)` : "") +
-    `<div class="muted">Parte da gamma que desaparece sozinha na sexta (vencimento).</div>`;
-  const fuelTxt = n.fuel == null ? "– <span class=muted>(precisa de 1h de leituras e movimento > 0,15%)</span>"
-    : `<b>${sg(n.fuel)}bn</b> por cada 1% de preço na última hora<div class="muted">Quanto a gamma piora por cada 1% de queda. A diminuir = venda a perder força.</div>`;
+  const n = q.now, live = state.SPY?.last ?? n.spot;
+  const nowTxt = `<div class="stat"><span>Gamma</span><b class="${cls(n.gamma)}">${sg(n.gamma)}bn</b></div><div class="stat muted"><span>Mínimo de hoje</span><span>${sg(n.gamma_low_today)}bn</span></div>
+    <div style="margin-top:4px">${n.turning ? '<span class="badge pos">a virar</span> subiu desde o mínimo' : n.off_low > 0.2 ? `<span class="badge amb">a afastar-se</span> +${n.off_low.toFixed(2)}bn do mínimo` : '<span class="badge off">ainda no mínimo</span>'}</div>`;
+  const fuelTxt = n.fuel == null ? `<span class="muted">precisa de 1h de leituras e movimento &gt; 0,15%</span>`
+    : `<div class="big">${sg(n.fuel)}bn</div><div class="muted">por cada 1% de preço na última hora. A encolher = venda a perder força.</div>`;
+  const volTxt = n.iv30 == null ? "–" : `<div class="stat"><span>Implícita (30d)</span><b>${pct(n.iv30)}</b></div><div class="stat"><span>Realizada 20d / 5d</span><b>${pct(n.rv20)} / ${pct(n.rv5)}</b></div>
+    <div style="margin-top:4px"><span class="badge ${(n.vrp20 ?? 0) > 0 ? "pos" : "neg"}">${n.vrp20 > 0 ? "implícita acima" : "implícita abaixo"} ${sg(n.vrp20, 1)} pts</span></div>`;
+  const weekTxt = n.gex_week == null ? "–" : `<div class="big">${n.week_share != null ? Math.round(n.week_share * 100) + "%" : gx(n.gex_week)}</div>
+    <div class="muted">${sg(n.gex_week)}bn dos ${sg(n.gamma)}bn vencem esta semana e desaparecem sozinhos.</div>`;
   const vrows = q.variants.map(v => {
-    const o = v.open, openPnl = o ? o.units.reduce((a, u) => a + u.size * (live - u.price), 0) : 0;
-    const total = v.realized + openPnl;
-    return `<tr><td><b>${v.id}</b> ${v.name}<div class="muted" style="white-space:normal;text-align:left">${v.desc}</div></td>` +
-      `<td>${v.closed} (${v.wins} ✓)</td><td class="${cls(total)}">${sg(total)}</td><td class="down">${v.max_drawdown ? "−" + v.max_drawdown.toFixed(2) : "0"}</td>` +
-      `<td>${o ? `${o.size}x @ ${fmt(o.avg)}<br><span class="${cls(openPnl)}">${sg(openPnl)}</span>` : "fora"}</td></tr>`;
+    const o = v.open, openPnl = o ? o.units.reduce((a, u) => a + u.size * (live - u.price), 0) : 0, total = v.realized + openPnl;
+    return `<tr><td><b>${v.id}</b> ${v.name}<div class="muted" style="white-space:normal">${v.desc}</div></td><td>${v.closed} (${v.wins} ✓)</td>` +
+      `<td class="${cls(total)}"><b>${sg(total)}</b></td><td class="down">${v.max_drawdown ? "−" + v.max_drawdown.toFixed(2) : "0"}</td>` +
+      `<td>${o ? `${o.size}x @ ${fmt(o.avg)}<br><span class="${cls(openPnl)}">${sg(openPnl)}</span>` : '<span class="muted">fora</span>'}</td></tr>`;
   }).join("");
   const crows = q.cycles.slice().reverse().map(c => `<tr><td>${c.start.slice(5)}</td><td>${fmt(c.start_px)}</td><td>${fmt(c.min_gamma, 1)}</td>` +
-    `<td>${c.fuel == null ? "–" : sg(c.fuel, 1)}</td><td>${c.vrp == null ? "–" : sg(c.vrp, 1)}</td>` +
-    `<td>${c.week_share == null ? "–" : Math.round(c.week_share * 100) + "%"}</td><td>${c.retail_z == null ? "–" : c.retail_z.toFixed(1)}</td>` +
-    `<td class="down">${c.worst_pct.toFixed(2)}%</td><td class="${cls(c.return_pct)}">${c.end ? "" : "(aberto) "}${sg(c.return_pct)}%</td>` +
-    `<td>${c.margin_under == null ? "–" : Math.round(c.margin_under) + "%"}</td><td>${c.days}</td><td>${c.fwd1_pct == null ? "–" : sg(c.fwd1_pct) + "%"} / ${c.fwd3_pct == null ? "–" : sg(c.fwd3_pct) + "%"} / ${c.fwd5_pct == null ? "–" : sg(c.fwd5_pct) + "%"}</td></tr>`).join("");
-  document.getElementById("quant").innerHTML = `<h2>Laboratório quant (SPY) — a tese do JP medida, com 5 versões da regra em papel</h2>
-    <div class="grid">
-      <div class="card"><div class="lbl">Gamma agora</div><b>${sg(n.gamma)}bn</b> · mínimo de hoje ${sg(n.gamma_low_today)}bn<br>A virar? ${turnTxt}</div>
-      <div class="card"><div class="lbl">Combustível da venda</div>${fuelTxt}</div>
-      <div class="card"><div class="lbl">Volatilidade implícita vs realizada</div>${vrpTxt}</div>
-      <div class="card"><div class="lbl">Gamma a expirar esta semana</div>${weekTxt}</div>
-    </div>
-    <div class="lbl" style="color:#888;font-size:12px;margin-top:4px">VARIANTES EM PAPEL (pontos de SPY; tamanho 1x = 1 unidade)</div>
-    <div class="scroll"><table class="q"><tr><th>Variante</th><th>Fechadas</th><th>Resultado total</th><th>Pior queda</th><th>Aberta agora</th></tr>${vrows}</table></div>
-    <div class="lbl" style="color:#888;font-size:12px;margin-top:4px">CICLOS (gamma chega a ${q.level}bn → volta a 0)</div>
-    <div class="scroll"><table class="q"><tr><th>Início</th><th>Preço</th><th>Gamma mín.</th><th>Combust.</th><th>Impl−real</th><th>% expira</th><th>Retail z</th><th>Pior</th><th>Resultado</th><th>Margem a perder</th><th>Dias</th><th>+1d / +3d / +5d</th></tr>${crows || '<tr><td colspan="12" class="muted">ainda sem ciclos</td></tr>'}</table></div>
-    <div class="muted">Registo desde ${q.first_reading} ET. Com poucos ciclos isto não prova nada — serve para comparar as versões ao longo das próximas semanas. Leituras antigas não têm volatilidade nem "% a expirar" (começaram a ser registadas a 17/11). Não é aconselhamento de investimento.</div>`;
+    `<td>${c.fuel == null ? "–" : sg(c.fuel, 1)}</td><td>${c.vrp == null ? "–" : sg(c.vrp, 1)}</td><td>${c.week_share == null ? "–" : Math.round(c.week_share * 100) + "%"}</td>` +
+    `<td>${c.retail_z == null ? "–" : c.retail_z.toFixed(1)}</td><td>${c.margin_under == null ? "–" : Math.round(c.margin_under) + "%"}</td><td class="down">${c.worst_pct.toFixed(2)}%</td>` +
+    `<td class="${cls(c.return_pct)}">${c.end ? "" : '<span class="badge blue">aberto</span> '}${sg(c.return_pct)}%</td><td>${c.days}</td>` +
+    `<td>${c.fwd1_pct == null ? "–" : sg(c.fwd1_pct) + "%"} / ${c.fwd3_pct == null ? "–" : sg(c.fwd3_pct) + "%"} / ${c.fwd5_pct == null ? "–" : sg(c.fwd5_pct) + "%"}</td></tr>`).join("");
+  setHTML("quant", `<div class="cards">${card("quant.now", "Gamma agora", nowTxt)}${card("quant.fuel", "Combustível da venda", fuelTxt)}
+      ${card("quant.vol", "Volatilidade implícita vs realizada", volTxt)}${card("quant.week", "Gamma a expirar esta semana", weekTxt)}</div>
+    ${isOn("quant.variants") ? `<div class="sublbl">Variantes em papel (pontos de SPY) <button class="ib" data-hide="quant.variants" title="Esconder">✕</button></div>
+      <div class="scroll"><table class="q"><tr><th>Variante</th><th>Fechadas</th><th>Total</th><th>Pior queda</th><th>Aberta agora</th></tr>${vrows}</table></div>` : ""}
+    ${isOn("quant.cycles") ? `<div class="sublbl">Ciclos: gamma chega a ${q.level}bn → volta a 0 <button class="ib" data-hide="quant.cycles" title="Esconder">✕</button></div>
+      <div class="scroll"><table class="q"><tr><th>Início</th><th>Preço</th><th>Gamma mín.</th><th title="combustível da venda">Combust.</th><th title="implícita menos realizada">Impl−real</th><th>% expira</th><th>Retalho z</th><th title="% do dinheiro emprestado novo a perder no início">Margem a perder</th><th>Pior</th><th>Resultado</th><th>Dias</th><th>+1d / +3d / +5d</th></tr>
+      ${crows || '<tr><td colspan="12" class="muted">ainda sem ciclos</td></tr>'}</table></div>` : ""}
+    <details class="how" style="margin-top:10px"><summary>Como ler</summary>Registo desde ${q.first_reading} (Nova Iorque). Com poucos ciclos isto não prova nada — serve para comparar as versões ao longo das próximas semanas. Leituras antigas não têm volatilidade nem "% a expirar" (começaram a 17/11).</details>`);
 }
 
-// ---------- refresh button
-const GH_REPO = "nunomoliveira01/gex-tracker";
-function getGh() { try { return localStorage.getItem("ghToken") || ""; } catch { return ""; } }
-function setGh(k) { try { localStorage.setItem("ghToken", k); } catch {} }
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-function refreshMsg(t) { document.getElementById("refreshmsg").textContent = t; }
-async function reloadAll() { await Promise.all(TICKERS.map(loadData).concat([loadSignal(), loadQuant(), loadMargin()])); }
+// ===================================================================== refresh / GitHub
+function msg(t) { $("msg").textContent = t; }
 async function gh(path, opts = {}) {
-  const r = await fetch("https://api.github.com/repos/" + GH_REPO + path, { ...opts,
-    headers: { "Authorization": "Bearer " + getGh(), "Accept": "application/vnd.github+json", ...(opts.headers || {}) } });
+  const r = await fetch("https://api.github.com/repos/" + GH_REPO + path, { ...opts, cache:"no-store",
+    headers: { "Authorization":"Bearer " + getGh(), "Accept":"application/vnd.github+json", ...(opts.headers || {}) } });
   if (r.status === 401 || r.status === 403 || r.status === 404) throw new Error("chave");
+  if (!r.ok) throw new Error("GitHub " + r.status);
   return r.status === 204 ? null : r.json();
 }
+async function reloadAll() {
+  await Promise.all(TICKERS.map(loadData).concat([loadStatus(),
+    getJSON("SPY_signal.json").then(j => { if (j) signal = j; }), getJSON("SPY_quant.json").then(j => { if (j) quant = j; }),
+    getJSON("margin.json").then(j => { if (j) margin = j; })]));
+  refreshPanels(); TICKERS.forEach(renderHead); drawAll();
+}
 let refreshing = false;
-async function manualRefresh() {
-  if (refreshing) return; refreshing = true;
-  const btn = document.getElementById("refreshbtn"); btn.disabled = true;
+async function runNow(force) {   // ask GitHub for a new reading now and wait for it
+  if (refreshing) return; refreshing = true; $("refreshbtn").disabled = true;
   try {
-    refreshMsg("a carregar…"); await reloadAll();
-    if (!getGh()) { refreshMsg("dados recarregados · para leitura nova na hora: ⚙"); return; }
+    msg("a carregar…"); await reloadAll();
+    if (!getGh()) { msg("recarregado · para recalcular na hora: ⚙"); return; }
     const before = new Date().toISOString();
-    refreshMsg("a pedir leitura nova ao GitHub…");
-    await gh("/actions/workflows/gex.yml/dispatches", { method:"POST", body: JSON.stringify({ ref:"main", inputs:{ force:"false" } }) });
+    msg("a pedir leitura nova…");
+    await gh("/actions/workflows/gex.yml/dispatches", { method:"POST", body:JSON.stringify({ ref:"main", inputs:{ force:force ? "true" : "false" } }) });
     let run = null;
     for (let i = 0; i < 20 && !run; i++) { await sleep(3000);
       const rs = await gh("/actions/workflows/gex.yml/runs?event=workflow_dispatch&per_page=5");
@@ -534,35 +779,35 @@ async function manualRefresh() {
     const t0 = Date.now();
     while (Date.now() - t0 < 6 * 60e3) {
       await sleep(5000);
-      const jobs = await gh(`/actions/runs/${run.id}/jobs`);
-      const snap = jobs.jobs.find(j => j.name === "snapshot");
-      refreshMsg(`a recalcular… ${Math.round((Date.now() - t0) / 1000)}s` + (snap && snap.status === "queued" ? " (em fila)" : ""));
+      const jobs = await gh(`/actions/runs/${run.id}/jobs`), snap = jobs.jobs.find(j => j.name === "snapshot");
+      msg(`a recalcular… ${Math.round((Date.now() - t0) / 1000)}s` + (snap && snap.status === "queued" ? " (em fila)" : ""));
       if (snap && snap.status === "completed") {
         if (snap.conclusion !== "success") throw new Error("a corrida falhou");
-        refreshMsg("a publicar…"); await sleep(25000); await reloadAll();
-        refreshMsg("atualizado " + new Date().toLocaleTimeString("pt-PT", { hour:"2-digit", minute:"2-digit" })); return;
+        msg("a publicar…"); await sleep(25000); await reloadAll();
+        msg("atualizado " + new Date().toLocaleTimeString("pt-PT", { hour:"2-digit", minute:"2-digit" })); setTimeout(() => msg(""), 20000); return;
       }
     }
-    refreshMsg("está a demorar — os dados aparecem sozinhos quando acabar");
+    msg("está a demorar — aparece sozinho quando acabar");
   } catch (e) {
-    if (e.message === "chave") { refreshMsg("chave do GitHub inválida ou sem permissão"); document.getElementById("ghbox").style.display = "block"; }
-    else refreshMsg("erro: " + e.message);
-  } finally { refreshing = false; btn.disabled = false; }
+    if (e.message === "chave") { msg("chave do GitHub sem permissão"); openSettings(); } else msg("erro: " + e.message);
+  } finally { refreshing = false; $("refreshbtn").disabled = false; }
 }
-document.getElementById("refreshbtn").onclick = manualRefresh;
-document.getElementById("refreshbtn").insertAdjacentHTML("afterend", ' <button class="linkbtn" id="ghopen" title="Chave do GitHub para recalcular na hora">&#9881;</button>');
-document.getElementById("ghopen").onclick = () => { document.getElementById("ghinput").value = getGh(); document.getElementById("ghbox").style.display = "block"; };
-document.getElementById("ghclose").onclick = () => document.getElementById("ghbox").style.display = "none";
-document.getElementById("ghsave").onclick = () => { const k = document.getElementById("ghinput").value.trim(); setGh(k);
-  document.getElementById("ghbox").style.display = "none"; refreshMsg(k ? "chave guardada — carrega em Atualizar" : ""); };
+$("refreshbtn").onclick = () => runNow(false);
 
-// ---------- start
-document.getElementById("savekey").onclick = () => { const k = document.getElementById("keyinput").value.trim(); if (k) { setKey(k); startLive(); } };
-document.getElementById("changekey").onclick = () => { document.getElementById("keyinput").value = getKey(); showKeyBox(); };
-window.addEventListener("resize", () => TICKERS.forEach(draw));
-setTab(tab); TICKERS.forEach(loadData); loadSignal(); loadQuant(); loadMargin();
-setInterval(() => { setTab(tab); TICKERS.forEach(loadData); loadSignal(); loadQuant(); loadMargin(); }, 60000);   // new gamma every minute check (script updates every 5)
-startLive();
+// ===================================================================== settings drawer
+function openSettings() { $("keyinput").value = getKey(); $("ghinput").value = getGh(); renderBlockList(); $("drawer").classList.add("open"); $("shade").classList.add("open"); }
+function closeSettings() { $("drawer").classList.remove("open"); $("shade").classList.remove("open"); }
+$("setbtn").onclick = openSettings; $("setclose").onclick = closeSettings; $("shade").onclick = closeSettings;
+$("savekey").onclick = () => { store.set("finnhubKey", $("keyinput").value.trim()); toast("Chave Finnhub guardada"); startLive(); };
+$("ghsave").onclick = () => { store.set("ghToken", $("ghinput").value.trim()); toast("Chave do GitHub guardada"); loadPool(); };
+
+// ===================================================================== start
+// keys saved by the old version of the page (plain strings)
+try { for (const k of ["finnhubKey", "ghToken"]) { const v = localStorage.getItem(k); if (v && v[0] !== '"') localStorage.setItem(k, JSON.stringify(v)); } } catch {}
+setPool(pool); applyView(); renderBlockList();
+loadPool().then(() => { reloadAll(); startLive(); });
+setInterval(reloadAll, 60000);                  // the script publishes every 5 min
+setInterval(loadPool, 10 * 60000);
 </script>
 </body>
 </html>
