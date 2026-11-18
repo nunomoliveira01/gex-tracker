@@ -12,7 +12,7 @@ import io
 import math
 import sys
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -163,7 +163,7 @@ def spy_prices():
 
 def probe():
     """Show which endpoints answer and their column names, for one recent day. No values are printed."""
-    d = (datetime.utcnow() - timedelta(days=7)).date()
+    d = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)).date()
     while d.weekday() > 4:
         d -= timedelta(days=1)
     ds = d.strftime("%Y%m%d")
@@ -186,29 +186,34 @@ def fetch(hours):
     done = set(pd.read_csv(OUT)["date"]) if OUT.exists() else set()
     px = spy_prices()
     days = [d.date() for d in px.index if d.date() >= START and d.strftime("%Y-%m-%d") not in done
-            and d.date() < datetime.utcnow().date()]
+            and d.date() < datetime.now(timezone.utc).replace(tzinfo=None).date()]
     print(f"{len(done)} days done, {len(days)} to go")
     OUT.parent.mkdir(exist_ok=True)
-    n = 0
-    for d in days:
-        if time.time() > t_end:
-            break
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(d):   # the terminal allows 4 requests at once: run 3 days side by side
         S, lo, hi = (float(px.loc[pd.Timestamp(d), c]) for c in ("Close", "Low", "High"))
         try:
-            row = {"date": d.isoformat(), "spy_close": S, "spy_low": lo, "spy_high": hi}
             sp = spy_day(d, S, lo, hi)
             if sp is None:
-                print(f"{d}: no SPY data, skipped")
-                continue
-            row.update(sp)
-            row.update(xsp_day(d))
+                return d, None, "no SPY data"
+            row = {"date": d.isoformat(), "spy_close": S, "spy_low": lo, "spy_high": hi, **sp, **xsp_day(d)}
+            return d, row, None
         except Exception as e:
-            print(f"{d}: FAILED {str(e)[:150]}", file=sys.stderr)
-            continue
-        pd.DataFrame([row], columns=COLS).to_csv(OUT, mode="a", header=not OUT.exists(), index=False)
-        n += 1
-        if n % 20 == 0:
-            print(f"  {n} days this run (last {d}, gamma {row['gex_close']:.1f}bn)")
+            return d, None, str(e)[:150]
+
+    n = 0
+    with ThreadPoolExecutor(3) as ex:
+        for i in range(0, len(days), 30):
+            if time.time() > t_end:
+                break
+            for d, row, err in ex.map(one, days[i:i + 30]):
+                if err:
+                    print(f"{d}: {err}", file=sys.stderr)
+                    continue
+                pd.DataFrame([row], columns=COLS).to_csv(OUT, mode="a", header=not OUT.exists(), index=False)
+                n += 1
+            print(f"  {n} days this run (last {d})")
     left = len(days) - n
     print(f"done this run: {n}; left: {left}")
     (ROOT / "data" / "remaining.txt").write_text(str(max(left, 0)))
