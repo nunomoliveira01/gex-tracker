@@ -93,7 +93,7 @@
   Barras: gamma dos dealers por strike — larga/escura = open interest, fina/clara = volume de hoje; vermelho = negativo
   (dealers amplificam movimentos), verde = positivo (travam). Pontos: onde estava a barra há 5 / 15 / 30 min.
   Gamma vem da Cboe (dados ~15 min atrasados), atualizado a cada 5 min. ES e NQ: níveis das opções do SPX + SPY (ES) e do NDX + QQQ (NQ), todos convertidos para preço de futuros; preço dos futuros do Yahoo, com ~10-15 min de atraso,
-  atualizado a cada 5 min, incluindo de manhã na Europa. Horas de Lisboa. Não é aconselhamento de investimento.
+  atualizado a cada 5 min, incluindo de manhã na Europa. Linhas roxas M dez22 / M jun25: preço a que o dinheiro emprestado (margem) desde dez-2022 / jun-2025 fica a zero, já com juros. Horas de Lisboa. Não é aconselhamento de investimento.
 </footer>
 
 <script>
@@ -416,9 +416,9 @@ function underAt(lots, px) { const tot = lots.reduce((a, l) => a + l[1], 0); ret
 function marginLevels(t) {
   if (!margin || !MARGIN_IDX[t]) return null;
   const b = margin.indexes[MARGIN_IDX[t]], rt = margin.ratio[t]; if (!b || !rt) return null;
-  const k = v => v == null ? null : v * rt, d = t === "SPY" || t === "QQQ" ? 2 : 0;
-  return [[k(b.cycle && b.cycle.breakeven), "#d17bff", "margem desde dez-22 " + fmt(k(b.cycle && b.cycle.breakeven), d)],
-          [k(b.recent && b.recent.breakeven), "#ff7bd5", "margem desde jun-25 " + fmt(k(b.recent && b.recent.breakeven), d)]];
+  const k = v => v == null ? null : v * rt, d = t === "SPY" || t === "QQQ" ? 1 : 0;
+  return [[k(b.cycle && b.cycle.breakeven), "#d17bff", "M dez22 " + fmt(k(b.cycle && b.cycle.breakeven), d)],
+          [k(b.recent && b.recent.breakeven), "#ff7bd5", "M jun25 " + fmt(k(b.recent && b.recent.breakeven), d)]];
 }
 function renderMargin() {
   const m = margin; if (!m) return;
