@@ -82,6 +82,7 @@
 
 <main>
   <div class="rule" id="rule"><h2>Regra do JP (SPY)</h2><div class="muted">a carregar…</div></div>
+  <div class="rule" id="margin"><h2>Dinheiro emprestado (margem) — método do JP</h2><div class="muted">a carregar…</div></div>
   <div class="rule" id="quant"><h2>Laboratório quant (SPY)</h2><div class="muted">a carregar…</div></div>
   <nav class="tabs" id="tabs"></nav>
   <div id="charts"></div>
@@ -245,7 +246,7 @@ setInterval(() => {
     }
     if (tab === "TODOS" || tab === t) draw(t);
   }
-  renderRule(); renderQuant();
+  renderRule(); renderQuant(); renderMargin();
   if (getKey() && ws && ws.readyState === 1)
     setStatus(true, lastTradeAt && now - lastTradeAt < 10000 ? "ao vivo" : "ligado (sem negócios agora — mercado fechado?)");
 }, 1000);
@@ -317,6 +318,13 @@ function draw(t) {
   lvl(d.flip, "#ffb000", "flip " + fmt(d.flip, 1));
   lvl(d.major_pos, "#7ee07e", "+γ " + d.major_pos);
   lvl(d.major_neg, "#ff5a4e", "−γ " + d.major_neg);
+
+  // margin lines (JP's "marginal buyer"): price where borrowed money since Dec-22 / Jun-25 breaks even after interest
+  const mr = marginLevels(t);
+  if (mr) mr.forEach(([v, c, label], i) => { if (v == null) return;
+    if (v >= ymin && v <= ymax) return lvl(v, c, label);
+    g.fillStyle = c; g.textAlign = "left"; g.textBaseline = "middle";   // off the chart: note it at the edge
+    g.fillText((v < ymin ? "↓ " : "↑ ") + label, L + 6, v < ymin ? T + ph - 8 - i * 14 : T + 8 + i * 14); });
 
   // JP position lines (SPY)
   if (t === "SPY" && signal && signal.position) {
@@ -392,6 +400,60 @@ function renderRule() {
     <div class="muted">Gamma e prémio de puts da Cboe (~15 min de atraso), atualizado a cada 5 min. O JP usa só puts de 1 contrato compradas ao ask; aqui conta-se todo o prémio de puts XSP com 5+ dias, que é o mais próximo com dados grátis. Não é aconselhamento de investimento.</div>`;
 }
 
+// ---------- margin panel (FINRA margin debt, JP method)
+let margin = null;
+const MARGIN_IDX = { SPY:"SPX", ES:"SPX", SPX:"SPX", QQQ:"NDX", NQ:"NDX" };
+async function loadMargin() {
+  const bust = "?v=" + Date.now();
+  const urls = location.protocol === "file:" ? [REMOTE + "margin.json" + bust] : ["margin.json" + bust, REMOTE + "margin.json" + bust];
+  for (const u of urls) { try { const r = await fetch(u, { cache:"no-store" }); if (r.ok) { margin = await r.json(); renderMargin(); return; } } catch (e) {} }
+}
+function idxLive(name) {   // live index level, from the live ETF price when we have one
+  const b = margin.indexes[name], etf = name === "SPX" ? "SPY" : "QQQ", rt = margin.ratio[etf], p = state[etf] && state[etf].last;
+  return p && rt ? p / rt : b.last;
+}
+function underAt(lots, px) { const tot = lots.reduce((a, l) => a + l[1], 0); return tot ? lots.reduce((a, l) => a + (l[3] > px ? l[1] : 0), 0) / tot * 100 : null; }
+function marginLevels(t) {
+  if (!margin || !MARGIN_IDX[t]) return null;
+  const b = margin.indexes[MARGIN_IDX[t]], rt = margin.ratio[t]; if (!b || !rt) return null;
+  const k = v => v == null ? null : v * rt, d = t === "SPY" || t === "QQQ" ? 2 : 0;
+  return [[k(b.cycle && b.cycle.breakeven), "#d17bff", "margem desde dez-22 " + fmt(k(b.cycle && b.cycle.breakeven), d)],
+          [k(b.recent && b.recent.breakeven), "#ff7bd5", "margem desde jun-25 " + fmt(k(b.recent && b.recent.breakeven), d)]];
+}
+function renderMargin() {
+  const m = margin; if (!m) return;
+  const mon = s => { const [y, mm] = s.split("-"); return ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+mm - 1] + "-" + y.slice(2); };
+  const card = name => {
+    const b = m.indexes[name]; if (!b || !b.cycle) return "";
+    const px = idxLive(name), under = underAt(b.lots, px), dd = (b.cycle.breakeven / px - 1) * 100;
+    const nm = name === "SPX" ? "S&P 500" : "Nasdaq 100";
+    return `<div class="card"><div class="lbl">${nm} · agora ${fmt(px, 0)}</div>
+      Preço médio de compra com dinheiro emprestado desde ${mon(m.cycle_start)}: <b>${fmt(b.cycle.entry, 0)}</b>, com juros <b>${fmt(b.cycle.breakeven, 0)}</b>
+      <span class="muted">(${dd > 0 ? "acima" : "abaixo"} do preço, ${sg(dd, 1)}%)</span><br>
+      Só o dinheiro novo desde ${mon(m.recent_start)}: <b>${fmt(b.recent.breakeven, 0)}</b> com juros<br>
+      A perder agora: <b class="${under >= 50 ? "down" : under >= 25 ? "warn" : "up"}">${fmt(under, 0)}%</b> do dinheiro emprestado novo<br>
+      <span class="muted">Fica a perder 25% / 50% / 75% abaixo de ${fmt(b.pain["25"], 0)} / ${fmt(b.pain["50"], 0)} / ${fmt(b.pain["75"], 0)}</span></div>`;
+  };
+  const fx = m.fx || {}, h = fx.history;
+  const fxTxt = !fx.eurusd ? "–" : `Dólar vs euro em 6 meses: <b class="${fx.signal ? "down" : ""}">${sg(fx.eurusd.usd_chg_6m_pct, 1)}%</b>
+      (EUR/USD ${fx.eurusd.six_months_ago} → ${fx.eurusd.now})<br>Dólar vs iene: ${fx.usdjpy ? sg(fx.usdjpy.usd_chg_6m_pct, 1) + "%" : "–"}<br>
+      ${fx.signal ? '<b class="down">Sinal ligado</b>: dólar subiu ≥ ' + fx.threshold_pct + '%' : '<span class="no">Sinal desligado</span> (precisa de dólar +' + fx.threshold_pct + '% em 6 meses)'}
+      ${h ? `<div class="muted">Teste desde ${h.since}: ${h.signal_months} meses com sinal; S&P nos 3 meses seguintes ${sg(h.spx_3m_avg_after_signal_pct, 1)}% em média,
+      a cair em ${fmt(h.spx_3m_down_share_after_signal_pct, 0)}% das vezes (todos os meses: ${sg(h.spx_3m_avg_all_pct, 1)}%, a cair ${fmt(h.spx_3m_down_share_all_pct, 0)}%).</div>` : ""}`;
+  document.getElementById("margin").innerHTML = `<h2>Dinheiro emprestado (margem) — método do JP ("o comprador marginal")</h2>
+    <div class="grid">
+      <div class="card"><div class="lbl">Dívida de margem (FINRA, ${mon(m.finra_month)})</div><b>$${fmt(m.debt_bn, 0)}bn</b> · ${sg(m.yoy_pct, 0)}% num ano<br>
+        Pico de 2021: $${fmt(m.peak_2021_bn, 0)}bn → voltar lá = <b class="down">${fmt(m.drop_to_2021_pct, 0)}%</b> de dívida
+        <div class="muted">Dinheiro que os investidores pediram às corretoras para comprar ações. Sai com ~3 semanas de atraso.</div></div>
+      ${card("SPX")}${card("NDX")}
+      <div class="card"><div class="lbl">Sinal do dólar (JP)</div>${fxTxt}</div>
+    </div>
+    <div class="muted">Como se calcula: em cada mês em que a dívida subiu desde ${mon(m.cycle_start)}, esse dinheiro novo comprou ao preço médio desse mês;
+    soma-se o juro (${(m.rate * 100).toFixed(1)}%/ano) desde então. Quando a dívida desce, todos os lotes encolhem por igual. Quando o preço cai abaixo destes níveis,
+    quem comprou com dinheiro emprestado está a perder — é quem primeiro é obrigado a vender (chamadas de margem). Linhas roxas nos gráficos de SPY, SPX, ES, QQQ e NQ.
+    Não é aconselhamento de investimento.</div>`;
+}
+
 // ---------- quant lab panel
 let quant = null;
 async function loadQuant() {
@@ -426,7 +488,7 @@ function renderQuant() {
     `<td>${c.fuel == null ? "–" : sg(c.fuel, 1)}</td><td>${c.vrp == null ? "–" : sg(c.vrp, 1)}</td>` +
     `<td>${c.week_share == null ? "–" : Math.round(c.week_share * 100) + "%"}</td><td>${c.retail_z == null ? "–" : c.retail_z.toFixed(1)}</td>` +
     `<td class="down">${c.worst_pct.toFixed(2)}%</td><td class="${cls(c.return_pct)}">${c.end ? "" : "(aberto) "}${sg(c.return_pct)}%</td>` +
-    `<td>${c.days}</td><td>${c.fwd1_pct == null ? "–" : sg(c.fwd1_pct) + "%"} / ${c.fwd3_pct == null ? "–" : sg(c.fwd3_pct) + "%"} / ${c.fwd5_pct == null ? "–" : sg(c.fwd5_pct) + "%"}</td></tr>`).join("");
+    `<td>${c.margin_under == null ? "–" : Math.round(c.margin_under) + "%"}</td><td>${c.days}</td><td>${c.fwd1_pct == null ? "–" : sg(c.fwd1_pct) + "%"} / ${c.fwd3_pct == null ? "–" : sg(c.fwd3_pct) + "%"} / ${c.fwd5_pct == null ? "–" : sg(c.fwd5_pct) + "%"}</td></tr>`).join("");
   document.getElementById("quant").innerHTML = `<h2>Laboratório quant (SPY) — a tese do JP medida, com 5 versões da regra em papel</h2>
     <div class="grid">
       <div class="card"><div class="lbl">Gamma agora</div><b>${sg(n.gamma)}bn</b> · mínimo de hoje ${sg(n.gamma_low_today)}bn<br>A virar? ${turnTxt}</div>
@@ -437,7 +499,7 @@ function renderQuant() {
     <div class="lbl" style="color:#888;font-size:12px;margin-top:4px">VARIANTES EM PAPEL (pontos de SPY; tamanho 1x = 1 unidade)</div>
     <div class="scroll"><table class="q"><tr><th>Variante</th><th>Fechadas</th><th>Resultado total</th><th>Pior queda</th><th>Aberta agora</th></tr>${vrows}</table></div>
     <div class="lbl" style="color:#888;font-size:12px;margin-top:4px">CICLOS (gamma chega a ${q.level}bn → volta a 0)</div>
-    <div class="scroll"><table class="q"><tr><th>Início</th><th>Preço</th><th>Gamma mín.</th><th>Combust.</th><th>Impl−real</th><th>% expira</th><th>Retail z</th><th>Pior</th><th>Resultado</th><th>Dias</th><th>+1d / +3d / +5d</th></tr>${crows || '<tr><td colspan="11" class="muted">ainda sem ciclos</td></tr>'}</table></div>
+    <div class="scroll"><table class="q"><tr><th>Início</th><th>Preço</th><th>Gamma mín.</th><th>Combust.</th><th>Impl−real</th><th>% expira</th><th>Retail z</th><th>Pior</th><th>Resultado</th><th>Margem a perder</th><th>Dias</th><th>+1d / +3d / +5d</th></tr>${crows || '<tr><td colspan="12" class="muted">ainda sem ciclos</td></tr>'}</table></div>
     <div class="muted">Registo desde ${q.first_reading} ET. Com poucos ciclos isto não prova nada — serve para comparar as versões ao longo das próximas semanas. Leituras antigas não têm volatilidade nem "% a expirar" (começaram a ser registadas a 17/11). Não é aconselhamento de investimento.</div>`;
 }
 
@@ -447,7 +509,7 @@ function getGh() { try { return localStorage.getItem("ghToken") || ""; } catch {
 function setGh(k) { try { localStorage.setItem("ghToken", k); } catch {} }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function refreshMsg(t) { document.getElementById("refreshmsg").textContent = t; }
-async function reloadAll() { await Promise.all(TICKERS.map(loadData).concat([loadSignal(), loadQuant()])); }
+async function reloadAll() { await Promise.all(TICKERS.map(loadData).concat([loadSignal(), loadQuant(), loadMargin()])); }
 async function gh(path, opts = {}) {
   const r = await fetch("https://api.github.com/repos/" + GH_REPO + path, { ...opts,
     headers: { "Authorization": "Bearer " + getGh(), "Accept": "application/vnd.github+json", ...(opts.headers || {}) } });
@@ -498,8 +560,8 @@ document.getElementById("ghsave").onclick = () => { const k = document.getElemen
 document.getElementById("savekey").onclick = () => { const k = document.getElementById("keyinput").value.trim(); if (k) { setKey(k); startLive(); } };
 document.getElementById("changekey").onclick = () => { document.getElementById("keyinput").value = getKey(); showKeyBox(); };
 window.addEventListener("resize", () => TICKERS.forEach(draw));
-setTab(tab); TICKERS.forEach(loadData); loadSignal(); loadQuant();
-setInterval(() => { setTab(tab); TICKERS.forEach(loadData); loadSignal(); loadQuant(); }, 60000);   // new gamma every minute check (script updates every 5)
+setTab(tab); TICKERS.forEach(loadData); loadSignal(); loadQuant(); loadMargin();
+setInterval(() => { setTab(tab); TICKERS.forEach(loadData); loadSignal(); loadQuant(); loadMargin(); }, 60000);   // new gamma every minute check (script updates every 5)
 startLive();
 </script>
 </body>

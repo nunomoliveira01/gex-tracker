@@ -43,5 +43,12 @@
       "bin": 25
     }
   },
-  "signal_ticker": "SPY"
+  "signal_ticker": "SPY",
+  "margin": {
+    "rate": 0.075,
+    "cycle_start": "2022-12",
+    "recent_start": "2025-06",
+    "fx_threshold": 0.04,
+    "refresh_hours": 3
+  }
 }

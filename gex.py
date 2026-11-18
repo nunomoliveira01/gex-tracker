@@ -31,6 +31,8 @@ import numpy as np
 import pandas as pd
 import requests
 
+import margin as margin_mod
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
@@ -513,10 +515,17 @@ def write_quant(t, h):
            "vrp5": round((iv - rv5) * 100, 1) if _num(iv) and _num(rv5) else None,
            "gex_week": _num(gw), "week_share": round(gw / r["net_gex_bn"], 2) if _num(gw) is not None and r["net_gex_bn"] < 0 else None,
            "retail_z": _num(rd["z"]) if rd is not None else None, "retail_days": int(len(retail))}
+    cycles = find_cycles(h, level, zmap)[-15:]
+    m = margin_mod.load()
+    lots, ratio = margin_mod.spx_lots(m), (m or {}).get("ratio", {}).get(t)
+    if lots and ratio:   # share of new margin money losing money at the price where each cycle started
+        now["margin_under"] = margin_mod.underwater_at(lots, r["spot"] / ratio)
+        for c in cycles:
+            c["margin_under"] = margin_mod.underwater_at(lots, c["start_px"] / ratio)
     out = {"ticker": t, "level": level, "now": now,
            "variants": [{"id": vid, "name": name, "desc": desc, **simulate_variant(h, vid, zmap, level, zmin, max_adds)}
                         for vid, name, desc in VARIANTS],
-           "cycles": find_cycles(h, level, zmap)[-15:],
+           "cycles": cycles,
            "first_reading": h["time_et"].iloc[0].strftime("%Y-%m-%d %H:%M")}
     (DOCS / f"{t}_quant.json").write_text(json.dumps(out, default=lambda o: None if o is None else float(o)))
 
@@ -1083,6 +1092,10 @@ def run_once(force=False, charts_only=False, file=None):
         return
     latest = {}
     if not charts_only and not file:
+        try:
+            margin_mod.maybe_build(CONFIG.get("margin"))
+        except Exception as e:
+            print(f"  margin indicator FAILED - {e}", file=sys.stderr)
         for f, cfg in CONFIG.get("futures", {}).items():
             try:
                 latest[f] = run_future(f, cfg, now)

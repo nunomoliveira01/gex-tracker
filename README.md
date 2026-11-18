@@ -124,3 +124,18 @@ The levels are a snapshot, so paste a fresh copy each morning (or when the page 
 - Cboe's free data is for personal use. It can change format or be switched off without notice.
 
 Not investment advice.
+
+## Margin pain (JP's "marginal buyer" method)
+
+`margin.py` reads FINRA's monthly margin debt (money investors borrowed from brokers to buy shares;
+saved copy in `data/finra_margin.csv`, refreshed from finra.org when possible). For every month the
+debt went up since Dec 2022, that new borrowed money is assumed to have bought the S&P 500 / Nasdaq 100
+at that month's average price; interest (7.5%/year, `config.json → margin.rate`) is added since then.
+When debt falls, all open slices shrink by the same share. Output `docs/margin.json`:
+
+- average entry and breakeven (with interest) since Dec 2022 and since Jun 2025, shown as purple lines on SPY/SPX/ES/QQQ/NQ;
+- % of that new borrowed money losing money at the live price, and the prices at which 25/50/75% would be losing;
+- debt vs the 2021 peak and vs a year ago;
+- JP's dollar signal (USD up ≥4% vs EUR in 6 months) plus a check of how the S&P did 3 months after it since 2004.
+
+The quant lab's cycles table also shows the % of margin money losing money when each cycle started.
