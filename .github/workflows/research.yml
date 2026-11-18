@@ -1,0 +1,77 @@
+name: ThetaData research (one-off backtest)
+
+# Rebuilds daily history from ThetaData for the pre-registered tests (claude/thetadata-teste-pre-registo.md).
+# Needs repository secrets THETADATA_EMAIL and THETADATA_PASSWORD. Raw trades are never saved or printed:
+# only derived daily numbers go into research/data/daily.csv. Each run works ~5 hours, then starts the next
+# run until every day is done.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "probe (check access) or fetch (download history)"
+        type: choice
+        options: [probe, fetch]
+        default: probe
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: thetadata      # one terminal per account: never two runs at once
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests pandas numpy scipy yfinance
+      - name: Start Theta Terminal
+        env:
+          TD_EMAIL: ${{ secrets.THETADATA_EMAIL }}
+          TD_PASSWORD: ${{ secrets.THETADATA_PASSWORD }}
+          TD_JAR_URL: ${{ vars.THETADATA_JAR_URL }}
+        run: |
+          mkdir -p ~/theta && cd ~/theta
+          printf '%s\n%s\n' "$TD_EMAIL" "$TD_PASSWORD" > creds.txt
+          ok=0
+          for u in "$TD_JAR_URL" https://download-unstable.thetadata.us/ThetaTerminalv3.jar https://download-stable.thetadata.us/ThetaTerminalv3.jar https://download.thetadata.us/ThetaTerminalv3.jar; do
+            [ -z "$u" ] && continue
+            if curl -fsSL -o ThetaTerminalv3.jar "$u" && unzip -tq ThetaTerminalv3.jar >/dev/null 2>&1; then echo "jar from $u"; ok=1; break; fi
+          done
+          [ "$ok" = 1 ] || { echo "Could not download ThetaTerminalv3.jar - set repository variable THETADATA_JAR_URL"; exit 1; }
+          nohup java -Xmx6g -jar ThetaTerminalv3.jar --creds-file=creds.txt > terminal.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -s -o /dev/null "http://127.0.0.1:25503/v3/option/list/symbols?format=csv" && { echo "terminal up after ${i}x5s"; break; }
+            sleep 5
+          done
+          grep -iE "error|invalid|subscription|connected|tier" terminal.log | grep -viE "password|@" | tail -15 || true
+      - name: Run
+        run: python research/theta_fetch.py ${{ inputs.mode }} --hours 5.2
+      - name: Save derived data
+        if: always() && inputs.mode == 'fetch'
+        run: |
+          git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
+          git add research/data
+          git diff --cached --quiet || git commit -m "research: ThetaData daily history"
+          for i in 1 2 3; do git pull --rebase --autostash -q && git push && break; sleep 5; done
+      - name: Continue if days are left
+        if: success() && inputs.mode == 'fetch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          left=$(cat research/data/remaining.txt 2>/dev/null || echo 0)
+          echo "days left: $left"
+          if [ "$left" -gt 0 ]; then gh workflow run research.yml -R "$GITHUB_REPOSITORY" --ref main -f mode=fetch; fi
+      - name: Stop terminal
+        if: always()
+        run: pkill -f ThetaTerminal || true; rm -f ~/theta/creds.txt
