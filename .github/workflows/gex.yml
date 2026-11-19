@@ -63,7 +63,7 @@ jobs:
           git add data
           git diff --cached --quiet || git commit -m "snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
           # the web page may have changed watchlist.json meanwhile: rebase on it before pushing
-          ok=0; for i in 1 2 3; do git pull --rebase --autostash -q && git push && { ok=1; break; }; sleep 5; done; [ "$ok" = 1 ]
+          ok=0; for i in 1 2 3; do if git pull --rebase --autostash -q; then git push && { ok=1; break; }; else git rebase --abort 2>/dev/null; fi; sleep 5; done; [ "$ok" = 1 ]
       - name: Save web page files
         if: steps.run.outputs.skip != 'true'
         uses: actions/cache/save@v4
