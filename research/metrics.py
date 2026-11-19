@@ -10,7 +10,16 @@ import pandas as pd
 import yfinance as yf
 
 from backtest import ROOT
-from nq_test import signals
+from nq_test import signals as pc_signals
+
+
+def signals(d, col="pc_volume", level=-10.0, zmin=1.0):
+    """Same rule; the add-on filter is z >= 1 of `col` vs its previous 60 days (pc_volume = ours, xsp_jp_prem = JP's)."""
+    if col == "pc_volume":
+        return pc_signals(d, level, zmin)
+    d = d.copy()
+    d["pc_volume"] = d[col]          # pc_signals turns this column into its z-score
+    return pc_signals(d, level, zmin)
 
 START, END = "2022-01-03", "2026-11-17"
 
@@ -50,6 +59,7 @@ def stats(excess, bench_ex, rf):
 def main():
     d = pd.read_csv(ROOT / "data" / "daily.csv", parse_dates=["date"]).drop_duplicates("date").set_index("date").sort_index().loc[:END]
     sig = [s for s in signals(d) if s["e"] >= pd.Timestamp("2022-01-01")]
+    sig_jp = [s for s in signals(d, "xsp_jp_prem") if s["e"] >= pd.Timestamp("2022-01-01")]
     idx = d.loc[START:END].index
     spy = yahoo("SPY", adjust=True).reindex(d.index).ffill()           # with dividends
     nq = yahoo("NQ=F").reindex(d.index).ffill()
@@ -69,6 +79,20 @@ def main():
                 s2 = stats(ex, qqq_ex, rf)
                 s["beta_vs_nasdaq"], s["alpha_vs_nasdaq_pct_yr"], s["alpha_vs_nasdaq_t"] = s2["beta"], s2["alpha_pct_yr"], s2["alpha_t"]
             rows[f"{inst} — {name}"] = s
+    jp_ex = {}
+    for inst, base in (("SPY", spy_ex), ("NQ futures", r_nq)):
+        u = units_series(d.index, sig_jp, True).loc[idx]; w = u / 2
+        s = stats(w * base, spy_ex, rf); s["time_in_market_pct"] = round((u > 0).mean() * 100, 1); s["avg_exposure_pct"] = round(w.mean() * 100, 1)
+        rows[f"{inst} — JP's rule (XSP 1-lot add-on)"] = s
+        jp_ex[inst] = w * base
+    # ours vs JP's: regress our account's excess return on JP's
+    vs = {}
+    for inst, base in (("SPY", spy_ex), ("NQ futures", r_nq)):
+        ours = (units_series(d.index, sig, True).loc[idx] / 2) * base
+        st = stats(ours, jp_ex[inst], rf)
+        vs[inst] = {"beta_vs_jp": st["beta"], "alpha_vs_jp_pct_yr": st["alpha_pct_yr"], "alpha_vs_jp_t": st["alpha_t"], "corr": st["corr"],
+                    "same_days_add": None}
+    rows["_ours_vs_jp"] = vs
     rows["Buy & hold SPY"] = {**stats(spy_ex, spy_ex, rf), "time_in_market_pct": 100.0, "avg_exposure_pct": 100.0}
     rows["Buy & hold NQ futures"] = {**stats(r_nq, spy_ex, rf), "time_in_market_pct": 100.0, "avg_exposure_pct": 100.0}
     (ROOT / "results_metrics.json").write_text(json.dumps(rows, indent=1))
@@ -76,9 +100,13 @@ def main():
          "| Strategy | Return/yr | Volatility | Sharpe | Max drawdown | Beta vs SPY | Alpha/yr vs SPY | Alpha t-stat | Time in market | Avg exposure |",
          "|---|---|---|---|---|---|---|---|---|---|"]
     for k, s in rows.items():
+        if k.startswith("_"):
+            continue
         L.append(f"| {k} | {s['cagr_pct']}% | {s['vol_pct']}% | {s['sharpe']} | {s['max_dd_pct']}% | {s['beta']} | {s['alpha_pct_yr']}% | {s['alpha_t']} | {s['time_in_market_pct']}% | {s['avg_exposure_pct']}% |")
     L += ["", "NQ vs the Nasdaq (QQQ) as benchmark: " + "; ".join(f"{k}: beta {v['beta_vs_nasdaq']}, alpha {v['alpha_vs_nasdaq_pct_yr']}%/yr (t {v['alpha_vs_nasdaq_t']})"
                                                        for k, v in rows.items() if "beta_vs_nasdaq" in v)]
+    L += ["", "Ours (put/call add-on) measured against JP's rule (XSP add-on): " + "; ".join(
+        f"{k}: beta {v['beta_vs_jp']}, extra return {v['alpha_vs_jp_pct_yr']}%/yr (t {v['alpha_vs_jp_t']}), correlation {v['corr']}" for k, v in rows["_ours_vs_jp"].items())]
     (ROOT / "results_metrics.md").write_text("\n".join(L))
     print("\n".join(L))
 
