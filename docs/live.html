@@ -987,6 +987,25 @@ $("setbtn").onclick = openSettings; $("setclose").onclick = closeSettings; $("sh
 $("savekey").onclick = () => { store.set("finnhubKey", $("keyinput").value.trim()); toast("Finnhub key saved"); startLive(); };
 $("ghsave").onclick = () => { store.set("ghToken", $("ghinput").value.trim()); toast("GitHub key saved"); loadPool(); };
 
+// ===================================================================== new version check
+// GitHub Pages (and the browser) may keep the old page for ~10 minutes. The page asks for version.json (never cached)
+// and, if the code has changed, reloads itself with a fresh address so the new version is fetched.
+const BUILD = "__BUILD__";
+async function checkVersion() {
+  if (BUILD.startsWith("__") || location.protocol === "file:") return;
+  try {
+    const r = await fetch("version.json?t=" + Date.now(), { cache:"no-store" });
+    if (!r.ok) return;
+    const v = (await r.json()).build;
+    if (v && v !== BUILD) {
+      toast("New version of the page — reloading…", 2500);
+      setTimeout(() => location.replace(location.pathname + "?v=" + v + location.hash), 1500);
+    }
+  } catch {}
+}
+checkVersion();
+setInterval(checkVersion, 60000);
+
 // ===================================================================== start
 // keys saved by the old version of the page (plain strings)
 try { for (const k of ["finnhubKey", "ghToken"]) { const v = localStorage.getItem(k); if (v && v[0] !== '"') localStorage.setItem(k, JSON.stringify(v)); } } catch {}

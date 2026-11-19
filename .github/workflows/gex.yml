@@ -70,6 +70,12 @@ jobs:
         with:
           path: docs
           key: docs-${{ github.run_id }}
+      - name: Stamp the page version (the page reloads itself when this changes)
+        if: steps.run.outputs.skip != 'true'
+        run: |
+          v=$(git hash-object docs/live.html | cut -c1-10)
+          sed -i "s/__BUILD__/$v/" docs/live.html
+          echo "{\"build\":\"$v\"}" > docs/version.json
       - uses: actions/upload-pages-artifact@v3
         if: steps.run.outputs.skip != 'true'
         with:
