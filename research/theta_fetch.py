@@ -22,6 +22,7 @@ import requests
 BASE = "http://127.0.0.1:25503/v3"
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "data" / "daily.csv"
+SYMBOL = "SPY"   # set by --symbol; anything other than SPY skips the XSP part and writes daily_<sym>.csv
 START = date(2018, 11, 19)          # Standard plan: ~8 years of history
 RATE = 0.03                          # flat rate for implied vol; small effect on gamma
 COLS = ["date", "spy_close", "spy_low", "spy_high", "gex_close", "gex_low", "gex_high", "flip", "gex_week",
@@ -99,8 +100,8 @@ def net_gex(S, K, T, iv, oi, sign):
 # ------------------------------------------------------------------ one day
 def spy_day(d, S, lo, hi):
     ds = d.strftime("%Y%m%d")
-    oi = norm(get("option/history/open_interest", symbol="SPY", expiration="*", date=ds))
-    eod = norm(get("option/history/eod", symbol="SPY", expiration="*", start_date=ds, end_date=ds))
+    oi = norm(get("option/history/open_interest", symbol=SYMBOL, expiration="*", date=ds))
+    eod = norm(get("option/history/eod", symbol=SYMBOL, expiration="*", start_date=ds, end_date=ds))
     if oi.empty or eod.empty:
         return None
     key = ["expiration", "strike", "right"]
@@ -156,7 +157,7 @@ def xsp_day(d):
 # ------------------------------------------------------------------ main
 def spy_prices():
     import yfinance as yf
-    h = yf.Ticker("SPY").history(start=START - timedelta(days=5), interval="1d", auto_adjust=False)
+    h = yf.Ticker(SYMBOL).history(start=START - timedelta(days=5), interval="1d", auto_adjust=False)
     h.index = pd.to_datetime(h.index).tz_localize(None).normalize()
     return h[["Close", "Low", "High"]]
 
@@ -197,7 +198,7 @@ def fetch(hours):
             sp = spy_day(d, S, lo, hi)
             if sp is None:
                 return d, None, "no SPY data"
-            row = {"date": d.isoformat(), "spy_close": S, "spy_low": lo, "spy_high": hi, **sp, **xsp_day(d)}
+            row = {"date": d.isoformat(), "spy_close": S, "spy_low": lo, "spy_high": hi, **sp, **(xsp_day(d) if SYMBOL == "SPY" else {})}
             return d, row, None
         except Exception as e:
             return d, None, str(e)[:150]
@@ -224,5 +225,9 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("mode", choices=["probe", "fetch"])
     ap.add_argument("--hours", type=float, default=5.0)
+    ap.add_argument("--symbol", default="SPY")
     a = ap.parse_args()
+    if a.symbol.upper() != "SPY":
+        SYMBOL = a.symbol.upper()
+        OUT = ROOT / "data" / f"daily_{SYMBOL.lower()}.csv"   # columns named spy_* hold this symbol's prices
     probe() if a.mode == "probe" else fetch(a.hours)

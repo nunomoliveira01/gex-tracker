@@ -15,6 +15,9 @@ on:
       hours:
         description: "hours of downloading in this run"
         default: "5.2"
+      symbol:
+        description: "options symbol (SPY also downloads XSP trades)"
+        default: "SPY"
       chain:
         description: "start the next run automatically while days are left"
         type: boolean
@@ -68,7 +71,7 @@ jobs:
           grep -viE "password|@" terminal.log | tail -40 || true
           [ "$up" = 1 ] || { echo "::error::Theta Terminal did not start"; exit 1; }
       - name: Run
-        run: python research/theta_fetch.py ${{ inputs.mode }} --hours ${{ inputs.hours }}
+        run: python research/theta_fetch.py ${{ inputs.mode }} --hours ${{ inputs.hours }} --symbol ${{ inputs.symbol }}
       - name: Save derived data
         if: always() && inputs.mode == 'fetch'
         run: |
@@ -83,7 +86,7 @@ jobs:
         run: |
           left=$(cat research/data/remaining.txt 2>/dev/null || echo 0)
           echo "days left: $left"
-          if [ "$left" -gt 0 ]; then gh workflow run research.yml -R "$GITHUB_REPOSITORY" --ref main -f mode=fetch; fi
+          if [ "$left" -gt 0 ]; then gh workflow run research.yml -R "$GITHUB_REPOSITORY" --ref main -f mode=fetch -f symbol=${{ inputs.symbol }}; fi
       - name: Stop terminal
         if: always()
         run: pkill -f ThetaTerminal || true; rm -f ~/theta/creds.txt
