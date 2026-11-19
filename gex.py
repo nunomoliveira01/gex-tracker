@@ -318,6 +318,12 @@ def load_history(t):
 
 
 def append_history(t, row):
+    # Cboe sometimes serves an empty chain for a moment (18 Nov 2026 09:44: gamma exactly 0, no walls on every ticker).
+    # Saving it would fake an exit for JP's rule, so such a reading is refused.
+    g = row.get("net_gex_bn")
+    walls = [row.get("call_wall"), row.get("put_wall")]
+    if g is None or g == 0 or all(w is None or (isinstance(w, float) and np.isnan(w)) for w in walls):
+        raise ValueError("empty reading from Cboe (gamma 0 / no walls) - not saved")
     DATA.mkdir(exist_ok=True)
     h = load_history(t)
     if len(h) and h["time_et"].iloc[-1].strftime("%Y-%m-%d %H:%M") == row["time_et"]:
@@ -354,6 +360,8 @@ def snapshot_retail(file=None):
     row = {"time_et": t.strftime("%Y-%m-%d %H:%M"),
            "put_premium": round(float((df["volume"].to_numpy()[m] * px[m] * 100).sum()), 0),
            "put_volume": int(df["volume"].to_numpy()[m].sum())}
+    if row["put_volume"] == 0:    # Cboe's daily reset moment (~09:44 New York): nothing traded yet, not a real reading
+        return row
     DATA.mkdir(exist_ok=True)
     old = pd.read_csv(RETAIL_PATH) if RETAIL_PATH.exists() else pd.DataFrame(columns=list(row))
     if len(old) and old["time_et"].iloc[-1] == row["time_et"]:
@@ -538,7 +546,17 @@ def write_nq_pc(h, trades, pos, pcd):
     """Same SPY signals (JP + put/call add-on), traded in NQ futures: NQ price taken from the tracker's NQ readings
     nearest each SPY event (within 20 min). Backtest from research/data/nq_pc_backtest.json (ThetaData + Yahoo)."""
     path = DATA / "NQ_history.csv"
-    nq = pd.read_csv(path, parse_dates=["time_et"]).dropna(subset=["spot"]).sort_values("time_et") if path.exists() else pd.DataFrame()
+    nq = pd.read_csv(path, parse_dates=["time_et"]).dropna(subset=["spot"])[["time_et", "spot"]] if path.exists() else pd.DataFrame(columns=["time_et", "spot"])
+    try:   # the tracker logs NQ only since 17 Nov 2026; Yahoo's 5-minute NQ bars fill earlier gaps (last ~60 days)
+        import yfinance as yf
+        bars = yf.Ticker("NQ=F").history(period="60d", interval="5m", prepost=True)["Close"].dropna()
+        bars.index = bars.index.tz_convert(ET).tz_localize(None)
+        first_log = nq["time_et"].min() if len(nq) else pd.Timestamp.max
+        y = pd.DataFrame({"time_et": bars.index, "spot": bars.to_numpy()})
+        nq = pd.concat([y[y["time_et"] < first_log], nq], ignore_index=True)
+    except Exception as e:
+        print(f"  NQ 5-minute bars unavailable ({e})", file=sys.stderr)
+    nq = nq.sort_values("time_et").reset_index(drop=True)
 
     def nq_at(i):
         ts = h["time_et"][i]
