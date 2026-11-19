@@ -516,6 +516,13 @@ def daily_pc(h, lookback=60):
 
 
 def pc_backtest(level=-10.0, z_min=1.0):
+    exact = ROOT / "research" / "data" / "spy_pc_backtest.json"   # exact-level fills (research/exact_level.py)
+    if exact.exists():
+        return json.loads(exact.read_text())
+    return pc_backtest_close(level, z_min)
+
+
+def pc_backtest_close(level=-10.0, z_min=1.0):
     """Same rule on the ThetaData daily history (daily closes): enter at the close of the day gamma at the low
     <= level; add 1 unit at the first close below the entry with put/call z >= z_min; exit when gamma closes >= 0."""
     if not PC_SEED.exists():
@@ -591,7 +598,7 @@ def write_nq_pc(h, trades, pos, pcd):
            "nq_last_time": nq["time_et"].iloc[-1].strftime("%Y-%m-%d %H:%M") if len(nq) else None,
            "position": position, "closed": closed,
            "backtest": json.loads(bt_path.read_text()) if bt_path.exists() else [],
-           "backtest_note": "SPY signals (ThetaData daily history) priced in NQ front-month futures, daily closes, to 17 Nov 2026"}
+           "backtest_note": "SPY signals (ThetaData daily history to 17 Nov 2026) in NQ futures: entries at the −10bn level, exits at the flip, add-on at the close"}
     (DOCS / "NQ_pc_signal.json").write_text(json.dumps(out))
 
 
@@ -722,7 +729,7 @@ def write_pc_signal(t, h, level, note):
         print(f"  scorecard failed - {e}", file=sys.stderr)
     bt = pc_backtest(level if level is not None else -10.0)
     write_signal_json(t, h, level, note, trades, pos, pcd, name="pc_signal",
-                      extra={"backtest": bt, "backtest_note": "ThetaData daily history, closes only, to 17 Nov 2026"})
+                      extra={"backtest": bt, "backtest_note": "ThetaData daily history to 17 Nov 2026, entries at the −10bn level and exits at the flip (gamma 0), add-on at the close"})
 
 
 # ----------------------------------------------------------------------------- quant lab (JP's thesis, measured)

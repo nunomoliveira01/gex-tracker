@@ -111,6 +111,7 @@ def main():
          f"Exact level: entry at the SPY price where gamma = −10bn that day (or the open on a gap), exit at the flip price (gamma = 0) or the open on a gap. NQ fills = NQ close moved by beta {round(beta_nq, 2)} × SPY's move from the fill to the close.", "",
          "| Version | Instrument | Trades | Avg per trade | Won | Return/yr | Volatility | Sharpe | Worst fall | Beta | Alpha/yr | Alpha t |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    keep = {}
     for exact in (False, True):
         tr = trades(d, exact)
         name = "Exact level" if exact else "Close (current backtest)"
@@ -126,9 +127,25 @@ def main():
             st = acct_stats(ex, spy_ex, rf)
             pt = per_trade(tr, conv)
             out[f"{name} — {inst}"] = {**st, **pt}
+            if exact:
+                keep[inst] = (ex, w, conv, tr)
             L.append(f"| {name} | {inst} | {pt['n']} | {pt['avg_pct']}% | {pt['won_pct']}% | {st['cagr_pct']}% | {st['vol_pct']}% | {st['sharpe']} | {st['max_dd_pct']}% | {st['beta']} | {st['alpha_pct_yr']}% | {st['alpha_t']} |")
         out[f"{name} trades"] = [{"entry": str(s["e"].date()), "entry_px": round(s["e_px"], 2), "add": str(s["a"].date()) if s["a"] is not None else None,
                                   "exit": str(s["x"].date()), "exit_px": round(s["x_px"], 2), "open": s["open"]} for s in tr]
+    # the live page's scorecard and backtest lists use the exact-level version (it matches how the tracker trades)
+    pd.DataFrame({"rf": rf, "spy_ex": spy_ex, "ours_spy_ex": keep["SPY"][0], "ours_nq_ex": keep["NQ futures"][0],
+                  "units": keep["SPY"][1] * 2}).round(8).rename_axis("date").to_csv(ROOT / "data" / "strategy_daily.csv")
+    tr = keep["SPY"][3]
+    for fname, conv in (("spy_pc_backtest.json", to_spy), ("nq_pc_backtest.json", to_nq)):
+        rows = []
+        for s_ in tr:
+            e, a, x = conv(s_["e"], s_["e_px"]), (conv(s_["a"], s_["a_px"]) if s_["a"] is not None else None), conv(s_["x"], s_["x_px"])
+            units = [e] + ([a] if a is not None else [])
+            pts = sum(x - u for u in units)
+            rows.append({"entry_date": str(s_["e"].date()), "entry": round(e, 2), "add_date": str(s_["a"].date()) if s_["a"] is not None else None,
+                         "add": round(a, 2) if a is not None else None, "exit_date": str(s_["x"].date()), "exit": round(x, 2),
+                         "pnl": round(pts, 2), "pnl_pts": round(pts, 2), "pct": round(pts / sum(units) * 100, 2), "open": s_["open"]})
+        (ROOT / "data" / fname).write_text(json.dumps(rows, indent=1))
     (ROOT / "results_exact.json").write_text(json.dumps(out, indent=1, default=str))
     (ROOT / "results_exact.md").write_text("\n".join(L))
     print("\n".join(L))

@@ -756,9 +756,9 @@ function renderMy() {
     : `<tr><td>${label}</td><td>${x.days}</td><td>${fmt(x.sharpe)}</td><td>${fmt(x.beta)}</td><td class="${cls(x.alpha_pct_yr)}">${sg(x.alpha_pct_yr, 1)}%</td><td><b>${fmt(x.t)}</b></td><td>${sg(x.alpha_low, 1)}% to ${sg(x.alpha_high, 1)}%</td><td>${x.chance_positive_pct}%</td></tr>`;
   const table = `<div class="scroll"><table class="q"><tr><th></th><th>Days</th><th>Sharpe</th><th>Beta vs SPY</th><th>Alpha / yr</th><th>t-stat</th><th>95% range</th><th>Chance &gt; 0</th></tr>
       <tr><td colspan="8" class="sublbl" style="text-align:left">Traded in NQ futures</td></tr>
-      ${row("Backtest (2022 → 17 Nov 2026)", m.nq.backtest)}${row("Live (from 18 Nov 2026)", m.nq.live)}${row("<b>Combined</b>", m.nq.combined)}
+      ${row("Backtest (2022 → 17 Nov 2026, fills at the level)", m.nq.backtest)}${row("Live (from 18 Nov 2026)", m.nq.live)}${row("<b>Combined</b>", m.nq.combined)}
       <tr><td colspan="8" class="sublbl" style="text-align:left">Traded in SPY</td></tr>
-      ${row("Backtest (2022 → 17 Nov 2026)", m.spy.backtest)}${row("Live (from 18 Nov 2026)", m.spy.live)}${row("<b>Combined</b>", m.spy.combined)}
+      ${row("Backtest (2022 → 17 Nov 2026, fills at the level)", m.spy.backtest)}${row("Live (from 18 Nov 2026)", m.spy.live)}${row("<b>Combined</b>", m.spy.combined)}
     </table></div><div class="muted">Benchmark: holding SPY had a Sharpe of ${m.bench ? fmt(m.bench.sharpe) : "–"} over the backtest. Cash rate used: ${m.rf_pct}%/yr.</div>`;
   const days = (m.live_rows || []).slice().reverse().map(r => `<tr><td>${r.date}</td><td>${r.units}</td><td class="${cls(r.spy_ret)}">${sg(r.spy_ret * 100)}%</td>` +
     `<td class="${cls(r.ours_spy)}">${sg(r.ours_spy * 100)}%</td><td class="${cls(r.ours_nq)}">${sg(r.ours_nq * 100)}%</td></tr>`).join("");
