@@ -420,6 +420,28 @@ def jp_signals(h, level, retail_daily, need_level=True):
     return trades, pos
 
 
+def excursion(times, prices, legs, end=None):
+    """Worst and best open result of a position between its first leg and `end` (or now).
+    legs: [(time, entry price)], a leg counts from its own time. Points summed over legs; % of the money in the legs open then."""
+    legs = [(pd.Timestamp(t), float(p)) for t, p in legs if t is not None and p is not None and not (isinstance(p, float) and math.isnan(p))]
+    if not legs:
+        return None
+    start = min(t for t, _ in legs)
+    df = pd.DataFrame({"t": pd.to_datetime(times), "p": prices}).dropna()
+    df = df[(df["t"] >= start) & ((df["t"] <= pd.Timestamp(end)) if end is not None else True)]
+    if df.empty:
+        return None
+    pts = np.zeros(len(df)); cap = np.zeros(len(df))
+    for t, p in legs:
+        on = (df["t"] >= t).to_numpy()
+        pts += np.where(on, df["p"].to_numpy() - p, 0.0); cap += np.where(on, p, 0.0)
+    pct = np.where(cap > 0, pts / np.where(cap > 0, cap, 1) * 100, 0.0)
+    i, j = int(np.argmin(pts)), int(np.argmax(pts))
+    return {"worst": round(float(min(pts[i], 0.0)), 2), "worst_pct": round(float(min(pct[i], 0.0)), 2),
+            "worst_time": df["t"].iloc[i].strftime("%Y-%m-%d %H:%M"),
+            "best": round(float(max(pts[j], 0.0)), 2), "best_time": df["t"].iloc[j].strftime("%Y-%m-%d %H:%M")}
+
+
 def write_signal_json(t, h, level, note, trades, pos, retail_daily, name="signal", extra=None):
     """Status of JP's rule (or a variant of it) for the live page."""
     rd = retail_daily.iloc[-1].to_dict() if len(retail_daily) else {}
@@ -436,12 +458,15 @@ def write_signal_json(t, h, level, note, trades, pos, retail_daily, name="signal
            "closed": [{"entry_time": h["time_et"][tr["entry"][0]].strftime("%Y-%m-%d %H:%M"), "entry": tr["entry"][1],
                        "adds": [a[1] for a in tr["adds"]],
                        "exit_time": h["time_et"][tr["exit"][0]].strftime("%Y-%m-%d %H:%M"), "exit": tr["exit"][1],
-                       "pnl": round(tr["pnl"], 2)} for tr in trades]}
+                       "pnl": round(tr["pnl"], 2),
+                       "dd": excursion(h["time_et"], h["spot"], [(h["time_et"][i], px) for i, px in [tr["entry"]] + tr["adds"]],
+                                       end=h["time_et"][tr["exit"][0]])} for tr in trades]}
     if pos:
         out["position"] = {"entry_time": h["time_et"][pos["entry"][0]].strftime("%Y-%m-%d %H:%M"),
                            "entry": pos["entry"][1],
                            "adds": [{"time": h["time_et"][a[0]].strftime("%Y-%m-%d %H:%M"), "price": a[1]}
-                                    for a in pos["adds"]]}
+                                    for a in pos["adds"]],
+                           "dd": excursion(h["time_et"], h["spot"], [(h["time_et"][i], px) for i, px in [pos["entry"]] + pos["adds"]])}
     if extra:
         out.update(extra)
     (DOCS / f"{t}_{name}.json").write_text(json.dumps(out, default=lambda o: None if o is None else float(o)))
@@ -529,13 +554,17 @@ def write_nq_pc(h, trades, pos, pcd):
         units = [nq_at(tr["entry"][0])] + [nq_at(a[0]) for a in tr["adds"]]
         x = nq_at(tr["exit"][0])
         ok = x is not None and all(u is not None for u in units)
+        legs = [(h["time_et"][i], u) for (i, _), u in zip([tr["entry"]] + tr["adds"], units)]
         closed.append({"entry_time": stamp(tr["entry"][0]), "exit_time": stamp(tr["exit"][0]), "entry": units[0],
                        "adds": units[1:], "exit": x, "pnl_pts": round(sum(x - u for u in units), 2) if ok else None,
-                       "pct": round(sum(x - u for u in units) / sum(units) * 100, 2) if ok else None})
+                       "pct": round(sum(x - u for u in units) / sum(units) * 100, 2) if ok else None,
+                       "dd": excursion(nq["time_et"], nq["spot"], legs, end=h["time_et"][tr["exit"][0]]) if ok and len(nq) else None})
     position = None
     if pos:
         position = {"entry_time": stamp(pos["entry"][0]), "entry": nq_at(pos["entry"][0]),
                     "adds": [{"time": stamp(a[0]), "price": nq_at(a[0])} for a in pos["adds"]]}
+        legs = [(h["time_et"][pos["entry"][0]], position["entry"])] + [(h["time_et"][a[0]], b["price"]) for a, b in zip(pos["adds"], position["adds"])]
+        position["dd"] = excursion(nq["time_et"], nq["spot"], legs) if len(nq) else None
     bt_path = ROOT / "research" / "data" / "nq_pc_backtest.json"
     out = {"time_et": h["time_et"].iloc[-1].strftime("%Y-%m-%d %H:%M"), "nq_last": float(nq["spot"].iloc[-1]) if len(nq) else None,
            "nq_last_time": nq["time_et"].iloc[-1].strftime("%Y-%m-%d %H:%M") if len(nq) else None,

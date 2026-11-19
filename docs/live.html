@@ -776,20 +776,22 @@ function renderMy() {
       const sp = pts(su, spyNow), np = nu.length && nu.every(v => v != null) ? pts(nu, nqNow) : null;
       rows.push(`<tr><td><span class="badge blue">open</span> ${p.position.entry_time.slice(5)}</td><td>${fmt(p.position.entry)}</td><td>${nu[0] != null ? fmt(nu[0], 0) : "–"}</td>` +
         `<td>${p.position.adds.length ? p.position.adds.map(a => a.time.slice(5, 10) + " @ " + fmt(a.price)).join(", ") : "–"}</td><td class="muted">now ${fmt(spyNow)} / ${fmt(nqNow, 0)}</td>` +
-        `<td class="${cls(sp)}">${sg(sp)}</td><td class="${cls(np)}">${np == null ? "–" : sg(np, 0)}</td><td class="${cls(np)}"><b>${np == null ? "–" : sg(np * MNQ, 0) + " $"}</b></td></tr>`);
+        `<td class="${cls(sp)}">${sg(sp)}</td><td class="${cls(np)}">${np == null ? "–" : sg(np, 0)}</td><td class="${cls(np)}"><b>${np == null ? "–" : sg(np * MNQ, 0) + " $"}</b></td>` +
+        `<td class="down">${(() => { const d = nqPos && nqPos.dd; if (!d) return "–"; const w = Math.min(d.worst, np ?? 0, 0); return sg(w * MNQ, 0) + " $ (" + sg(Math.min(d.worst_pct, 0), 1) + "%)"; })()}</td></tr>`);
     }
     (p.closed || []).slice().reverse().forEach(c => {
       const n = findNq(c.entry_time);
       rows.push(`<tr><td>${c.entry_time.slice(5)}</td><td>${fmt(c.entry)}</td><td>${n && n.entry != null ? fmt(n.entry, 0) : "–"}</td><td>${c.adds.length ? c.adds.map(a => fmt(a)).join(", ") : "–"}</td>` +
         `<td>${c.exit_time.slice(5)} @ ${fmt(c.exit)}</td><td class="${cls(c.pnl)}">${sg(c.pnl)}</td>` +
-        `<td class="${cls(n && n.pnl_pts)}">${n && n.pnl_pts != null ? sg(n.pnl_pts, 0) : "–"}</td><td class="${cls(n && n.pnl_pts)}">${n && n.pnl_pts != null ? sg(n.pnl_pts * MNQ, 0) + " $" : "–"}</td></tr>`);
+        `<td class="${cls(n && n.pnl_pts)}">${n && n.pnl_pts != null ? sg(n.pnl_pts, 0) : "–"}</td><td class="${cls(n && n.pnl_pts)}">${n && n.pnl_pts != null ? sg(n.pnl_pts * MNQ, 0) + " $" : "–"}</td>` +
+        `<td class="down">${n && n.dd ? sg(n.dd.worst * MNQ, 0) + " $ (" + sg(n.dd.worst_pct, 1) + "%)" : c.dd ? sg(c.dd.worst, 2) + " SPY pts" : "–"}</td></tr>`);
     });
     const done = (p.closed || []), totS = done.reduce((a, c) => a + c.pnl, 0);
     const totN = nqClosed.filter(c => c.pnl_pts != null).reduce((a, c) => a + c.pnl_pts, 0);
     tradesHtml = `<div class="sublbl">Live trades <button class="ib" data-hide="my.trades" title="Hide">✕</button></div>
-      <div class="scroll"><table class="q"><tr><th>Entry (New York)</th><th>SPY</th><th>NQ</th><th>Add-on</th><th>Exit</th><th>SPY pts</th><th>NQ pts</th><th>Per MNQ</th></tr>
-      ${rows.join("") || '<tr><td colspan="8" class="muted">No live trades yet</td></tr>'}
-      ${done.length ? `<tr><td><b>Closed total</b></td><td colspan="4" class="muted">${done.length} trade${done.length === 1 ? "" : "s"} · ${done.filter(c => c.pnl > 0).length} won</td><td class="${cls(totS)}"><b>${sg(totS)}</b></td>${nqClosed.some(c => c.pnl_pts != null) ? `<td class="${cls(totN)}"><b>${sg(totN, 0)}</b></td><td class="${cls(totN)}"><b>${sg(totN * MNQ, 0)} $</b></td>` : "<td>–</td><td>–</td>"}</tr>` : ""}
+      <div class="scroll"><table class="q"><tr><th>Entry (New York)</th><th>SPY</th><th>NQ</th><th>Add-on</th><th>Exit</th><th>SPY pts</th><th>NQ pts</th><th>Per MNQ</th><th title="Worst open result during the trade, per MNQ">Max drawdown</th></tr>
+      ${rows.join("") || '<tr><td colspan="9" class="muted">No live trades yet</td></tr>'}
+      ${done.length ? `<tr><td><b>Closed total</b></td><td colspan="4" class="muted">${done.length} trade${done.length === 1 ? "" : "s"} · ${done.filter(c => c.pnl > 0).length} won</td><td class="${cls(totS)}"><b>${sg(totS)}</b></td>${nqClosed.some(c => c.pnl_pts != null) ? `<td class="${cls(totN)}"><b>${sg(totN, 0)}</b></td><td class="${cls(totN)}"><b>${sg(totN * MNQ, 0)} $</b></td>` : "<td>–</td><td>–</td>"}<td></td></tr>` : ""}
       </table></div><div class="muted">From the tracker's signals (5-minute readings). NQ prices ~10–15 min delayed; "–" where NQ wasn't recorded yet. Your real fills will differ slightly.</div>`;
   }
   setHTML("my", `<div class="cards">${card("my.rules", "My rules", rules)}${card("my.outlook", "Future alpha — what the data says so far", outTxt)}</div>
@@ -815,7 +817,7 @@ function renderNqPc() {
       pos.adds.map(a => `<div class="stat"><span>Add-on</span><b>${fmt(a.price, 2)}</b></div><div class="muted">${a.time}</div>`).join("") +
       `<div class="stat"><span>NQ now</span><b>${fmt(nqNow, 2)}</b></div>
        <div class="stat"><span>Per micro (MNQ, $2/pt)</span><b class="${cls(pts)}">${sg(pts * MNQ, 0)} $</b></div>
-       <div class="stat muted"><span>Per full NQ ($20/pt)</span><span class="${cls(pts)}">${sg(pts * 20, 0)} $</span></div>`;
+       <div class="stat muted"><span>Per full NQ ($20/pt)</span><span class="${cls(pts)}">${sg(pts * 20, 0)} $</span></div>` + ddHtml(pos.dd, pts, units.reduce((a, u) => a + u, 0), MNQ);
   } else if (pos) posTxt = `<div class="big">In position</div><div class="muted">The NQ price at entry wasn't recorded (before the tracker logged NQ).</div>`;
   else posTxt = `<div class="big" style="color:var(--muted)">Flat</div><div>Buys NQ when SPY gamma reaches <b>${p.level}bn</b> (now ${sg(p.gamma)}bn).</div>`;
   const r = p.retail;
@@ -857,7 +859,8 @@ function renderPc() {
     posTxt = `<div class="big ${cls(pnl)}">Long ${units.length}x · ${sg(pnl)} pts</div>
       <div class="stat"><span>Entry</span><b>${fmt(pos.entry)}</b></div><div class="muted">${pos.entry_time} New York</div>` +
       pos.adds.map(a => `<div class="stat"><span>Add-on</span><b>${fmt(a.price)}</b></div><div class="muted">${a.time}</div>`).join("") +
-      `<div class="stat"><span>SPY now</span><b>${fmt(live)}</b></div><div class="stat"><span>Gamma now</span><b class="${cls(q.gamma)}">${sg(q.gamma)}bn</b></div>`;
+      `<div class="stat"><span>SPY now</span><b>${fmt(live)}</b></div>` + ddHtml(pos.dd, pnl, units.reduce((a, u) => a + u, 0)) +
+      `<div class="stat"><span>Gamma now</span><b class="${cls(q.gamma)}">${sg(q.gamma)}bn</b></div>`;
   } else posTxt = `<div class="big" style="color:var(--muted)">Flat</div><div>Enters when SPY gamma reaches <b>${lvl}bn</b> (now ${sg(q.gamma)}bn).</div>`;
   const ratioTxt = r.premium == null ? "–" : `<div class="stat"><span>SPY put/call ${r.complete ? "(day closed)" : "(so far today)"}</span><b>${fmt(r.premium)}</b></div>
     <div class="stat"><span>Trigger (normal + ${zmin} std)</span><b>${fmt(r.bar)}</b></div>
@@ -887,6 +890,18 @@ function renderPc() {
     <details class="how" style="margin-top:10px"><summary>Rules</summary>Enter 1 unit when SPY gamma reaches ${lvl}bn. Add 1 unit (once) at the close if the price is below the entry and SPY's put/call ratio is at least ${zmin} standard deviation above its last-60-day average. Exit both when gamma is back at 0. The live record uses the tracker's 5-minute readings; the backtest uses daily closes rebuilt from ThetaData (put/call history up to 17 Nov 2026, then the tracker's own daily readings). Not investment advice.</details>`);
 }
 
+// ---------- maximum drawdown of an open position (worst open result since entry), kept up to date with live prices
+function ddHtml(dd, nowPts, capital, perPoint) {
+  if (!dd) return "";
+  const worst = Math.min(dd.worst, nowPts, 0), worstPct = capital ? worst / capital * 100 : dd.worst_pct;
+  const best = Math.max(dd.best, nowPts, 0), fromBest = nowPts - best;
+  const when = worst < dd.worst ? "now" : dd.worst_time.slice(5);
+  const money = v => perPoint ? ` · ${sg(v * perPoint, 0)} $/MNQ` : "";
+  return `<div class="stat" title="Worst open result since the entry (all legs)"><span>Max drawdown</span><b class="${worst < 0 ? "down" : ""}">${sg(worst, perPoint ? 0 : 2)} pts (${sg(worstPct, 2)}%)</b></div>
+    <div class="stat muted"><span>${worst < 0 ? "at " + when : "no drawdown yet"}</span><span>${worst < 0 ? money(worst).replace(" · ", "") : ""}</span></div>
+    <div class="stat muted" title="Best open result since the entry, and how far the position is below it now"><span>Best so far / now vs best</span><span>${sg(best, perPoint ? 0 : 2)} / ${sg(fromBest, perPoint ? 0 : 2)}</span></div>`;
+}
+
 // ---------- right-hand panel: JP rule, or my strategy in SPY or NQ
 let sidePick = store.get("sidePick", "jp");
 function sideOut(kind, html, sub) { if (sidePick !== kind) return; setHTML("rule", html); if (sub != null) $("rule-sub").innerHTML = sub; }
@@ -906,7 +921,7 @@ function renderRule() {
     posTxt = `<div class="big ${cls(pnl)}">Long ${units.length}x · ${sg(pnl)} pts</div>` +
       `<div class="stat"><span>Entry</span><b>${fmt(pos.entry)}</b></div><div class="muted">${pos.entry_time} New York</div>` +
       pos.adds.map(a => `<div class="stat"><span>Add-on</span><b>${fmt(a.price)}</b></div><div class="muted">${a.time}</div>`).join("") +
-      `<div class="stat"><span>SPY now</span><b>${fmt(live)}</b></div>`;
+      `<div class="stat"><span>SPY now</span><b>${fmt(live)}</b></div>` + ddHtml(pos.dd, pnl, units.reduce((a, u) => a + u, 0));
   } else posTxt = `<div class="big" style="color:var(--muted)">Flat</div>` +
     (lvl == null ? `<div class="muted">Entry level not set yet.</div>` : `<div>Enters when gamma reaches <b>${lvl}bn</b>.</div>`);
   // gamma meter: from the entry level (left) to the exit at 0 (right)
