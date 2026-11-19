@@ -557,7 +557,12 @@ async function loadData(t) {
   const s = ensure(t);
   if (s.data && s.data.date !== d.date) s.live = [];
   s.data = d;
-  if (!s.last || d.futures || !LIVE().includes(t) || !getKey()) s.last = d.prices.length ? d.prices[d.prices.length - 1][1] : d.spot;
+  // use whichever price is newer: the second-by-second feed (Finnhub) or the script's latest minute price.
+  // If Finnhub goes quiet for a ticker, the page no longer freezes on its last trade.
+  const lastPt = d.prices.length ? d.prices[d.prices.length - 1] : [Date.parse(d.updated_utc) || 0, d.spot];
+  if (!s.last || d.futures || !LIVE().includes(t) || !getKey() || !s.lastTime || lastPt[0] > s.lastTime) {
+    s.last = lastPt[1]; s.lastTime = null; s.srcTime = lastPt[0];
+  }
   if (d.prev_close) s.prevClose = s.prevClose || d.prev_close;
   renderHead(t); draw(t); renderStrip();
   if (t === "NQ" || t === "SPY") refreshPanels(true);   // positions move with the chart, not a second later
@@ -578,7 +583,7 @@ async function quote(t) {
     if (r.status === 401 || r.status === 403) { setStatus(false, "invalid Finnhub key"); return; }
     const q = await r.json();
     if (q.pc) ensure(t).prevClose = q.pc;
-    if (q.c) ensure(t).last = q.c;
+    if (q.c && (!ensure(t).srcTime || q.t * 1000 > ensure(t).srcTime)) { ensure(t).last = q.c; ensure(t).lastTime = q.t ? q.t * 1000 : null; }
   } catch {}
 }
 function subscribeLive() {
