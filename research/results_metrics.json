@@ -1,0 +1,80 @@
+{
+ "SPY \u2014 with put/call add-on": {
+  "cagr_pct": 10.32,
+  "vol_pct": 11.33,
+  "sharpe": 0.57,
+  "max_dd_pct": -16.19,
+  "beta": 0.455,
+  "alpha_pct_yr": 2.96,
+  "alpha_t": 0.8,
+  "corr": 0.7,
+  "time_in_market_pct": 33.2,
+  "avg_exposure_pct": 25.5
+ },
+ "NQ futures \u2014 with put/call add-on": {
+  "cagr_pct": 13.35,
+  "vol_pct": 14.49,
+  "sharpe": 0.66,
+  "max_dd_pct": -17.49,
+  "beta": 0.559,
+  "alpha_pct_yr": 5.28,
+  "alpha_t": 1.08,
+  "corr": 0.67,
+  "time_in_market_pct": 33.2,
+  "avg_exposure_pct": 25.5,
+  "beta_vs_nasdaq": 0.405,
+  "alpha_vs_nasdaq_pct_yr": 5.69,
+  "alpha_vs_nasdaq_t": 1.14
+ },
+ "SPY \u2014 JP entry/exit only, 1 unit": {
+  "cagr_pct": 10.87,
+  "vol_pct": 12.44,
+  "sharpe": 0.57,
+  "max_dd_pct": -16.62,
+  "beta": 0.513,
+  "alpha_pct_yr": 3.14,
+  "alpha_t": 0.8,
+  "corr": 0.72,
+  "time_in_market_pct": 33.2,
+  "avg_exposure_pct": 33.2
+ },
+ "NQ futures \u2014 JP entry/exit only, 1 unit": {
+  "cagr_pct": 14.22,
+  "vol_pct": 16.16,
+  "sharpe": 0.66,
+  "max_dd_pct": -19.08,
+  "beta": 0.635,
+  "alpha_pct_yr": 5.71,
+  "alpha_t": 1.06,
+  "corr": 0.68,
+  "time_in_market_pct": 33.2,
+  "avg_exposure_pct": 33.2,
+  "beta_vs_nasdaq": 0.465,
+  "alpha_vs_nasdaq_pct_yr": 6.12,
+  "alpha_vs_nasdaq_t": 1.13
+ },
+ "Buy & hold SPY": {
+  "cagr_pct": 10.76,
+  "vol_pct": 17.37,
+  "sharpe": 0.45,
+  "max_dd_pct": -24.5,
+  "beta": 1.0,
+  "alpha_pct_yr": -0.0,
+  "alpha_t": -1.33,
+  "corr": 1.0,
+  "time_in_market_pct": 100.0,
+  "avg_exposure_pct": 100.0
+ },
+ "Buy & hold NQ futures": {
+  "cagr_pct": 15.46,
+  "vol_pct": 23.66,
+  "sharpe": 0.56,
+  "max_dd_pct": -34.09,
+  "beta": 1.283,
+  "alpha_pct_yr": 3.25,
+  "alpha_t": 0.9,
+  "corr": 0.94,
+  "time_in_market_pct": 100.0,
+  "avg_exposure_pct": 100.0
+ }
+}
