@@ -408,7 +408,10 @@ def jp_signals(h, level, retail_daily, need_level=True):
     zmap = dict(zip(retail_daily["date"], retail_daily["z"])) if len(retail_daily) else {}
     h = h.reset_index(drop=True)
     dates = h["time_et"].dt.date
-    last_of_day = set(h.groupby(dates).tail(1).index)
+    # the day's close = first reading at or after 16:00 New York (later readings can carry after-hours prints,
+    # e.g. 16 Nov 2026 18:56 SPY 739.20 vs a 740.14 close)
+    after = h[h["time_et"].dt.hour >= 16]
+    close_of_day = set(after.groupby(after["time_et"].dt.date).head(1).index)
     max_adds, zmin = CONFIG.get("max_adds", 1), CONFIG.get("add_min_z", 1.0)
     for i, r in h.iterrows():
         g, p = r["net_gex_bn"], r["spot"]
@@ -420,7 +423,7 @@ def jp_signals(h, level, retail_daily, need_level=True):
         if pos is None and g <= level:
             pos = {"entry": (i, p), "adds": []}
             continue
-        is_close = i in last_of_day and r["time_et"].hour >= 16
+        is_close = i in close_of_day
         if pos is not None and is_close and (g <= level or not need_level) and len(pos["adds"]) < max_adds:
             z = zmap.get(dates[i])
             if z is not None and not pd.isna(z) and z >= zmin and p < pos["entry"][1]:
@@ -752,7 +755,10 @@ def _num(v):
 def simulate_variant(h, vid, zmap, level, zmin, max_adds):
     """Paper-trade one variant over the saved readings. P&L in SPY points (sum over units x weight)."""
     dates = h["time_et"].dt.date
-    last_of_day = set(h.groupby(dates).tail(1).index)
+    # the day's close = first reading at or after 16:00 New York (later readings can carry after-hours prints,
+    # e.g. 16 Nov 2026 18:56 SPY 739.20 vs a 740.14 close)
+    after = h[h["time_et"].dt.hour >= 16]
+    close_of_day = set(after.groupby(after["time_et"].dt.date).head(1).index)
     pos, trades, realized, equity, prev_g = None, [], 0.0, [], None
     for i in range(len(h)):
         r = h.iloc[i]
