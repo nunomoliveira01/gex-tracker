@@ -93,6 +93,10 @@ def main():
         vs[inst] = {"beta_vs_jp": st["beta"], "alpha_vs_jp_pct_yr": st["alpha_pct_yr"], "alpha_vs_jp_t": st["alpha_t"], "corr": st["corr"],
                     "same_days_add": None}
     rows["_ours_vs_jp"] = vs
+    # daily record used by the live page's scorecard (backtest part; the tracker appends live days)
+    u = units_series(d.index, sig, True).loc[idx]
+    pd.DataFrame({"rf": rf, "spy_ex": spy_ex, "ours_spy_ex": (u / 2) * spy_ex, "ours_nq_ex": (u / 2) * r_nq, "units": u}).round(8) \
+        .rename_axis("date").to_csv(ROOT / "data" / "strategy_daily.csv")
     rows["Buy & hold SPY"] = {**stats(spy_ex, spy_ex, rf), "time_in_market_pct": 100.0, "avg_exposure_pct": 100.0}
     rows["Buy & hold NQ futures"] = {**stats(r_nq, spy_ex, rf), "time_in_market_pct": 100.0, "avg_exposure_pct": 100.0}
     (ROOT / "results_metrics.json").write_text(json.dumps(rows, indent=1))
