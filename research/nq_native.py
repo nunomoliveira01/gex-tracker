@@ -59,7 +59,7 @@ def score(px, sig):
 
 
 def main():
-    spy, qqq = load("daily.csv"), load("daily_qqq.csv")
+    spy, qqq = load("daily.csv").loc[:END], load("daily_qqq.csv").loc[:END]   # same last day for both
     nq = yahoo("NQ=F").reindex(spy.index).ffill()
     dv_spy = (yahoo("SPY") * yahoo("SPY", "Volume")).rolling(20).mean()
     dv_qqq = (yahoo("QQQ") * yahoo("QQQ", "Volume")).rolling(20).mean()
