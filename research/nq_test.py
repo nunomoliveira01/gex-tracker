@@ -81,7 +81,7 @@ def main():
                   "| Instrument | Trades | Avg per trade | Median | Won | Worst during a trade | Avg ÷ worst | Random did as well | Sharpe in-trade days | Sharpe other days | Sharpe always held |",
                   "|---|---|---|---|---|---|---|---|---|---|---|"]
     for name, px in inst.items():
-        px = px.dropna()
+        px = px.dropna().loc["2022-01-01":]   # same window as the signals (random dates and "other days" too)
         res = run(px, sig); done = res[~res["open"]]
         o = daily_overlay(px, sig)
         stats = {"n": len(done), "mean": round(done["ret"].mean() * 100, 2), "median": round(done["ret"].median() * 100, 2),
