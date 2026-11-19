@@ -2,10 +2,10 @@
 
 | Instrument | Trades | Avg per trade | Median | Won | Worst during a trade | Avg ÷ worst | Random did as well | Sharpe in-trade days | Sharpe other days | Sharpe always held |
 |---|---|---|---|---|---|---|---|---|---|---|
-| SPY | 32 | 1.7% | 1.55% | 94% | -16.87% | 0.101 | 0.068 | 1.0 | 0.47 | 0.59 |
-| QQQ (Nasdaq 100 ETF) | 32 | 2.37% | 2.08% | 91% | -19.97% | 0.119 | 0.052 | 1.03 | 0.63 | 0.72 |
-| NQ futures (front month) | 32 | 2.43% | 1.99% | 91% | -19.5% | 0.125 | 0.049 | 1.04 | 0.63 | 0.72 |
-| ES futures (front month) | 32 | 1.72% | 1.43% | 94% | -16.34% | 0.105 | 0.058 | 1.02 | 0.47 | 0.59 |
+| SPY | 32 | 1.7% | 1.55% | 94% | -16.87% | 0.101 | 0.031 | 1.0 | 0.02 | 0.42 |
+| QQQ (Nasdaq 100 ETF) | 32 | 2.37% | 2.08% | 91% | -19.97% | 0.119 | 0.025 | 1.03 | 0.03 | 0.42 |
+| NQ futures (front month) | 32 | 2.43% | 1.99% | 91% | -19.5% | 0.125 | 0.026 | 1.04 | 0.03 | 0.42 |
+| ES futures (front month) | 32 | 1.72% | 1.43% | 94% | -16.34% | 0.105 | 0.025 | 1.02 | 0.02 | 0.42 |
 
 | Year | SPY | QQQ (Nasdaq 100 ETF) | NQ futures (front month) | ES futures (front month) |
 |---|---|---|---|---|
