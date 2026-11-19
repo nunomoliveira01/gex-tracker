@@ -178,6 +178,12 @@
     </aside>
   </div>
 
+  <div class="panel" data-block="my" id="my-panel">
+    <div class="ph"><h2>My strategy · rules & scorecard</h2><span class="sub">JP entry/exit + my put/call add-on · Sharpe, beta, alpha and t-stat, updated with every new trading day</span>
+      <div class="tools"><button class="ib" data-collapse="my" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="my" title="Hide (bring back in ⚙)">✕</button></div></div>
+    <div class="pb"><div id="my"><span class="muted">loading…</span></div></div>
+  </div>
+
   <div class="panel" data-block="pc" id="pc-panel">
     <div class="ph"><h2>JP + Put/Call Ratio trades · SPY</h2><span class="sub" id="pc-sub">enter at −10bn gamma · add when SPY's put/call ratio is 1 std above normal · exit at 0</span>
       <div class="tools"><button class="ib" data-collapse="pc" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="pc" title="Hide (bring back in ⚙)">✕</button></div></div>
@@ -264,6 +270,7 @@ $("themebtn").onclick = () => { const d = document.documentElement.classList.tog
 const BLOCKS = [
   ["chart", "Gamma chart", [["chart.stats", "Numbers above the chart"], ["chart.legend", "Line buttons"]]],
   ["rule", "JP rule", [["rule.pos", "Position"], ["rule.gamma", "SPY gamma"], ["rule.retail", "Retail panic"], ["rule.adds", "Add-on conditions"], ["rule.hist", "Trade history"]]],
+  ["my", "My strategy · rules & scorecard", [["my.rules", "Rules"], ["my.outlook", "Future alpha"], ["my.score", "Scorecard table"], ["my.days", "Daily live record"]]],
   ["pc", "JP + Put/Call Ratio trades", [["pc.pos", "Position"], ["pc.ratio", "Put/call today"], ["pc.adds", "Add-on conditions"], ["pc.live", "Live record"], ["pc.bt", "Backtest 2022–26"]]],
   ["nqpc", "NQ SPY put/call add-on", [["nqpc.pos", "Position in NQ"], ["nqpc.sig", "SPY signals"], ["nqpc.live", "Live record"], ["nqpc.bt", "Backtest 2022–26"]]],
   ["margin", "Margin", [["margin.debt", "Margin debt"], ["margin.SPX", "S&P 500"], ["margin.NDX", "Nasdaq 100"], ["margin.fx", "Dollar signal"]]],
@@ -660,7 +667,43 @@ function roundRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPat
 window.addEventListener("resize", drawAll);
 
 // ===================================================================== panels
-function refreshPanels(force) { if (force) ["rule", "pc", "nqpc", "margin", "quant"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderPc(); renderNqPc(); renderMargin(); renderQuant(); }
+function refreshPanels(force) { if (force) ["rule", "my", "pc", "nqpc", "margin", "quant"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMy(); renderPc(); renderNqPc(); renderMargin(); renderQuant(); }
+
+// ---------- my strategy: rules + scorecard
+let metrics = null;
+function renderMy() {
+  const m = metrics, p = pcsig; if (!m) return;
+  const lvl = p ? p.level : -10, z = p ? p.add_min_z : 1;
+  const rules = `<ol style="margin:4px 0 0;padding-left:18px">
+      <li><b>Enter:</b> buy 1 unit when SPY dealer gamma reaches <b>${lvl}bn</b> or lower.</li>
+      <li><b>Add once:</b> at the US close (21:00 Lisbon), buy 1 more unit if the price is <b>below the entry</b> and SPY's <b>put/call ratio</b> is ≥ ${z} standard deviation above its 60-day average.</li>
+      <li><b>Exit:</b> sell everything when SPY gamma is back at <b>0</b> or above.</li>
+      <li><b>Size:</b> money for 2 units; each unit = half. In NQ use micro futures (MNQ, $2/point).</li>
+      <li><b>Worst case to plan for:</b> −17% (SPY) / −20% (NQ) during a trade. No other stop.</li></ol>`;
+  const best = m.nq.combined.days ? m.nq.combined : m.nq.backtest, bs = m.spy.combined.days ? m.spy.combined : m.spy.backtest;
+  const outlook = (x, name) => !x.t && x.t !== 0 ? "" : `<div style="margin-top:6px"><b>${name}</b></div>
+    <div class="stat"><span>Best estimate of alpha</span><b class="${cls(x.alpha_pct_yr)}">${sg(x.alpha_pct_yr, 1)}% / year</b></div>
+    <div class="stat muted"><span>Range the data allows (95%)</span><span>${sg(x.alpha_low, 1)}% to ${sg(x.alpha_high, 1)}%</span></div>
+    <div class="stat muted"><span>Rough chance it's really positive</span><span>${x.chance_positive_pct}%</span></div>
+    <div class="stat muted"><span>More years needed for t = 2</span><span>${x.years_to_t2 == null ? "–" : x.years_to_t2 === 0 ? "reached" : "~" + x.years_to_t2}</span></div>`;
+  const outTxt = outlook(best, "In NQ") + outlook(bs, "In SPY") +
+    `<div class="muted" style="margin-top:6px">Backtest + ${m.live_days} live day${m.live_days === 1 ? "" : "s"}. Each new day moves these numbers; if the edge is real, the t-stat should creep up and the range should narrow.</div>`;
+  const row = (label, x) => !x.sharpe && x.sharpe !== 0 ? `<tr><td>${label}</td><td colspan="7" class="muted">${x.days || 0} day${x.days === 1 ? "" : "s"} so far — needs 20+ days</td></tr>`
+    : `<tr><td>${label}</td><td>${x.days}</td><td>${fmt(x.sharpe)}</td><td>${fmt(x.beta)}</td><td class="${cls(x.alpha_pct_yr)}">${sg(x.alpha_pct_yr, 1)}%</td><td><b>${fmt(x.t)}</b></td><td>${sg(x.alpha_low, 1)}% to ${sg(x.alpha_high, 1)}%</td><td>${x.chance_positive_pct}%</td></tr>`;
+  const table = `<div class="scroll"><table class="q"><tr><th></th><th>Days</th><th>Sharpe</th><th>Beta vs SPY</th><th>Alpha / yr</th><th>t-stat</th><th>95% range</th><th>Chance &gt; 0</th></tr>
+      <tr><td colspan="8" class="sublbl" style="text-align:left">Traded in NQ futures</td></tr>
+      ${row("Backtest (2022 → 17 Nov 2026)", m.nq.backtest)}${row("Live (from 18 Nov 2026)", m.nq.live)}${row("<b>Combined</b>", m.nq.combined)}
+      <tr><td colspan="8" class="sublbl" style="text-align:left">Traded in SPY</td></tr>
+      ${row("Backtest (2022 → 17 Nov 2026)", m.spy.backtest)}${row("Live (from 18 Nov 2026)", m.spy.live)}${row("<b>Combined</b>", m.spy.combined)}
+    </table></div><div class="muted">Benchmark: holding SPY had a Sharpe of ${m.bench ? fmt(m.bench.sharpe) : "–"} over the backtest. Cash rate used: ${m.rf_pct}%/yr.</div>`;
+  const days = (m.live_rows || []).slice().reverse().map(r => `<tr><td>${r.date}</td><td>${r.units}</td><td class="${cls(r.spy_ret)}">${sg(r.spy_ret * 100)}%</td>` +
+    `<td class="${cls(r.ours_spy)}">${sg(r.ours_spy * 100)}%</td><td class="${cls(r.ours_nq)}">${sg(r.ours_nq * 100)}%</td></tr>`).join("");
+  setHTML("my", `<div class="cards">${card("my.rules", "My rules", rules)}${card("my.outlook", "Future alpha — what the data says so far", outTxt)}</div>
+    ${isOn("my.score") ? `<div class="sublbl">Scorecard <button class="ib" data-hide="my.score" title="Hide">✕</button></div>${table}` : ""}
+    ${isOn("my.days") ? `<details class="how" style="margin-top:10px"><summary>Daily live record (${m.live_days} day${m.live_days === 1 ? "" : "s"})</summary><div class="scroll"><table class="q">
+      <tr><th>Day</th><th>Legs held</th><th>SPY</th><th>My account in SPY</th><th>My account in NQ</th></tr>${days || '<tr><td colspan="5" class="muted">No complete live day yet</td></tr>'}</table></div></details>` : ""}
+    <details class="how" style="margin-top:10px"><summary>How to read this</summary><b>Sharpe</b>: return per unit of swing (higher is better). <b>Beta</b>: how much of the market's moves you carry (1 = same as SPY). <b>Alpha</b>: yearly return left after paying for that market risk. <b>t-stat</b>: how sure we are the alpha isn't luck — about 2 is the usual bar. <b>95% range</b>: where the true alpha probably lies. Account sized for 2 units, idle cash earns the cash rate, daily closes, no costs. The live record is rebuilt every 5 minutes from the tracker's own readings and saved in the project's data/strategy_live.csv. Not investment advice.</details>`);
+}
 
 // ---------- NQ traded on the SPY signals
 let nqsig = null;
@@ -870,7 +913,7 @@ async function gh(path, opts = {}) {
 }
 async function reloadAll() {
   await Promise.all(TICKERS.map(loadData).concat([loadStatus(),
-    getJSON("SPY_signal.json").then(j => { if (j) signal = j; }), getJSON("SPY_pc_signal.json").then(j => { if (j) pcsig = j; }), getJSON("NQ_pc_signal.json").then(j => { if (j) nqsig = j; }), getJSON("SPY_quant.json").then(j => { if (j) quant = j; }),
+    getJSON("SPY_signal.json").then(j => { if (j) signal = j; }), getJSON("SPY_pc_signal.json").then(j => { if (j) pcsig = j; }), getJSON("NQ_pc_signal.json").then(j => { if (j) nqsig = j; }), getJSON("strategy_metrics.json").then(j => { if (j) metrics = j; }), getJSON("SPY_quant.json").then(j => { if (j) quant = j; }),
     getJSON("margin.json").then(j => { if (j) margin = j; })]));
   refreshPanels(); TICKERS.forEach(renderHead); drawAll();
 }

@@ -497,6 +497,115 @@ def write_nq_pc(h, trades, pos, pcd):
     (DOCS / "NQ_pc_signal.json").write_text(json.dumps(out))
 
 
+# ----------------------------------------------------------------------------- scorecard (Sharpe, beta, alpha, t-stat)
+STRAT_BT = ROOT / "research" / "data" / "strategy_daily.csv"   # backtest daily record (ThetaData, to 17 Nov 2026)
+STRAT_LIVE = DATA / "strategy_live.csv"                          # live daily record, rebuilt every run from the tracker
+
+
+def score_series(ex, bench_ex):
+    """Sharpe, beta, alpha (annual), t-stat of alpha, 95% range, and years needed for t = 2 at the current strength."""
+    ex, bench_ex = ex.astype(float), bench_ex.astype(float)
+    n = len(ex)
+    if n < 20 or ex.std() == 0:
+        return {"days": int(n)}
+    X = np.column_stack([np.ones(n), bench_ex.to_numpy()])
+    coef, *_ = np.linalg.lstsq(X, ex.to_numpy(), rcond=None)
+    resid = ex.to_numpy() - X @ coef
+    se = np.sqrt(np.diag(np.linalg.inv(X.T @ X)) * resid.var(ddof=2))
+    t = coef[0] / se[0] if se[0] > 0 else 0.0
+    years = n / 252
+    alpha, alpha_se = coef[0] * 252 * 100, se[0] * 252 * 100
+    out = {"days": int(n), "years": round(years, 2), "sharpe": round(ex.mean() / ex.std() * math.sqrt(252), 2),
+           "beta": round(coef[1], 2), "alpha_pct_yr": round(alpha, 2), "t": round(t, 2),
+           "alpha_low": round(alpha - 1.96 * alpha_se, 1), "alpha_high": round(alpha + 1.96 * alpha_se, 1),
+           "chance_positive_pct": round(0.5 * (1 + math.erf(t / math.sqrt(2))) * 100)}
+    if t > 0:
+        need = years * (2 / t) ** 2
+        out["years_to_t2"] = round(max(need - years, 0), 1)
+    return out
+
+
+def live_daily(h, trades, pos):
+    """Daily account returns since the backtest ended, from the tracker's own readings.
+    Account = 2 units; each unit is half. Entry day counts from the entry price, exit day up to the exit price."""
+    bt_end = pd.Timestamp("2026-11-17")
+    h = h.reset_index(drop=True)
+    days = h.groupby(h["time_et"].dt.date)
+    close = {}
+    for dt, g in days:
+        last = g.iloc[-1]
+        if last["time_et"].hour >= 16 and pd.Timestamp(dt) >= bt_end:   # 17 Nov close = starting point
+            close[pd.Timestamp(dt)] = float(last["spot"])
+    if len(close) < 2:
+        return pd.DataFrame()
+    nqp = DATA / "NQ_history.csv"
+    nq = pd.read_csv(nqp, parse_dates=["time_et"]).dropna(subset=["spot"]) if nqp.exists() else pd.DataFrame()
+
+    def nq_near(ts):
+        if nq.empty:
+            return None
+        gap = (nq["time_et"] - ts).abs(); j = gap.idxmin()
+        return float(nq.at[j, "spot"]) if gap[j] <= pd.Timedelta(minutes=20) else None
+
+    dates = sorted(close)
+    spy_c = pd.Series(close)
+    nq_c = pd.Series({dt: nq_near(dt + pd.Timedelta(hours=16)) for dt in dates}, dtype=float)
+    legs = []   # (entry time, entry spy, entry nq, exit time or None, exit spy, exit nq)
+    for tr in trades:
+        for i, px in [tr["entry"]] + tr["adds"]:
+            legs.append((h["time_et"][i], px, nq_near(h["time_et"][i]), h["time_et"][tr["exit"][0]], tr["exit"][1], nq_near(h["time_et"][tr["exit"][0]])))
+    if pos:
+        for i, px in [pos["entry"]] + pos["adds"]:
+            legs.append((h["time_et"][i], px, nq_near(h["time_et"][i]), None, None, None))
+    rows = []
+    for k in range(1, len(dates)):
+        d0, d1 = dates[k - 1], dates[k]
+        t0, t1 = d0 + pd.Timedelta(hours=16), d1 + pd.Timedelta(hours=16)
+        rs = rn = 0.0
+        units = 0
+        for et, es, en, xt, xs, xn in legs:
+            if et >= t1 or (xt is not None and xt <= t0):
+                continue
+            start_s = es if et > t0 else spy_c[d0]
+            start_n = en if et > t0 else nq_c.get(d0)
+            end_s = xs if (xt is not None and xt <= t1) else spy_c[d1]
+            end_n = xn if (xt is not None and xt <= t1) else nq_c.get(d1)
+            rs += 0.5 * (end_s / start_s - 1)
+            if start_n and end_n and not (math.isnan(start_n) or math.isnan(end_n)):
+                rn += 0.5 * (end_n / start_n - 1)
+            units += 1
+        rows.append({"date": d1.date().isoformat(), "spy_ret": spy_c[d1] / spy_c[d0] - 1, "ours_spy": rs, "ours_nq": rn, "units": units})
+    return pd.DataFrame(rows)
+
+
+def write_scorecard(h, trades, pos):
+    rf_daily = 0.04 / 252
+    blocks = {}
+    bt = pd.read_csv(STRAT_BT, parse_dates=["date"]) if STRAT_BT.exists() else pd.DataFrame()
+    if len(bt):
+        rf_daily = float(bt["rf"].iloc[-20:].mean())
+    live = live_daily(h, trades, pos)
+    if len(live):
+        live["rf"] = rf_daily
+        live["spy_ex"] = live["spy_ret"] - rf_daily
+        live["ours_spy_ex"] = live["ours_spy"] - live["units"].clip(upper=2) / 2 * rf_daily
+        live["ours_nq_ex"] = live["ours_nq"]
+        live.round(8).to_csv(STRAT_LIVE, index=False)
+    for key, col in (("spy", "ours_spy_ex"), ("nq", "ours_nq_ex")):
+        b = score_series(bt[col], bt["spy_ex"]) if len(bt) else {"days": 0}
+        l = score_series(live[col], live["spy_ex"]) if len(live) else {"days": 0}
+        both = pd.concat([bt[[col, "spy_ex"]], live[[col, "spy_ex"]]]) if len(bt) and len(live) else (bt if len(bt) else pd.DataFrame())
+        c = score_series(both[col], both["spy_ex"]) if len(both) else {"days": 0}
+        blocks[key] = {"backtest": b, "live": l, "combined": c}
+    if len(bt):
+        e = bt["spy_ex"]
+        blocks["bench"] = {"sharpe": round(e.mean() / e.std() * math.sqrt(252), 2)}
+    out = {"updated_et": h["time_et"].iloc[-1].strftime("%Y-%m-%d %H:%M"), "live_from": "2026-11-18", "backtest_to": "2026-11-17",
+           "live_days": int(len(live)), "rf_pct": round(rf_daily * 252 * 100, 2), **blocks,
+           "live_rows": live.tail(30).to_dict("records") if len(live) else []}
+    (DOCS / "strategy_metrics.json").write_text(json.dumps(out, default=lambda o: None if o is None else float(o)))
+
+
 def write_pc_signal(t, h, level, note):
     pcd = daily_pc(h)
     trades, pos = jp_signals(h, level, pcd, need_level=False)
@@ -504,6 +613,10 @@ def write_pc_signal(t, h, level, note):
         write_nq_pc(h.reset_index(drop=True), trades, pos, pcd)
     except Exception as e:
         print(f"  NQ put/call signal file failed - {e}", file=sys.stderr)
+    try:
+        write_scorecard(h.reset_index(drop=True), trades, pos)
+    except Exception as e:
+        print(f"  scorecard failed - {e}", file=sys.stderr)
     bt = pc_backtest(level if level is not None else -10.0)
     write_signal_json(t, h, level, note, trades, pos, pcd, name="pc_signal",
                       extra={"backtest": bt, "backtest_note": "ThetaData daily history, closes only, to 17 Nov 2026"})
