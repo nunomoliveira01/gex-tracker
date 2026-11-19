@@ -50,5 +50,6 @@
     "recent_start": "2025-06",
     "fx_threshold": 0.04,
     "refresh_hours": 3
-  }
+  },
+  "my_strategy_start": "2026-11-18 09:30"
 }

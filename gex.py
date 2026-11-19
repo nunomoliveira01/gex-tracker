@@ -686,6 +686,11 @@ def write_scorecard(h, trades, pos):
 def write_pc_signal(t, h, level, note):
     pcd = daily_pc(h)
     trades, pos = jp_signals(h, level, pcd, need_level=False)
+    # my strategy's record starts when I began following it (NQ); earlier tracker trades stay only in JP's panel
+    start = pd.Timestamp(CONFIG.get("my_strategy_start", "2000-01-01"))
+    trades = [tr for tr in trades if h["time_et"][tr["entry"][0]] >= start]
+    if pos and h["time_et"][pos["entry"][0]] < start:
+        pos = None
     try:
         write_nq_pc(h.reset_index(drop=True), trades, pos, pcd)
     except Exception as e:
