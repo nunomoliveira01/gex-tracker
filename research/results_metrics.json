@@ -53,6 +53,46 @@
   "alpha_vs_nasdaq_pct_yr": 6.12,
   "alpha_vs_nasdaq_t": 1.13
  },
+ "SPY \u2014 JP's rule (XSP 1-lot add-on)": {
+  "cagr_pct": 9.74,
+  "vol_pct": 11.59,
+  "sharpe": 0.52,
+  "max_dd_pct": -16.4,
+  "beta": 0.468,
+  "alpha_pct_yr": 2.36,
+  "alpha_t": 0.63,
+  "corr": 0.7,
+  "time_in_market_pct": 33.2,
+  "avg_exposure_pct": 27.8
+ },
+ "NQ futures \u2014 JP's rule (XSP 1-lot add-on)": {
+  "cagr_pct": 12.59,
+  "vol_pct": 14.91,
+  "sharpe": 0.6,
+  "max_dd_pct": -18.56,
+  "beta": 0.577,
+  "alpha_pct_yr": 4.52,
+  "alpha_t": 0.9,
+  "corr": 0.67,
+  "time_in_market_pct": 33.2,
+  "avg_exposure_pct": 27.8
+ },
+ "_ours_vs_jp": {
+  "SPY": {
+   "beta_vs_jp": 0.964,
+   "alpha_vs_jp_pct_yr": 0.71,
+   "alpha_vs_jp_t": 0.83,
+   "corr": 0.99,
+   "same_days_add": null
+  },
+  "NQ futures": {
+   "beta_vs_jp": 0.954,
+   "alpha_vs_jp_pct_yr": 1.03,
+   "alpha_vs_jp_t": 0.82,
+   "corr": 0.98,
+   "same_days_add": null
+  }
+ },
  "Buy & hold SPY": {
   "cagr_pct": 10.76,
   "vol_pct": 17.37,
@@ -60,7 +100,7 @@
   "max_dd_pct": -24.5,
   "beta": 1.0,
   "alpha_pct_yr": -0.0,
-  "alpha_t": -1.33,
+  "alpha_t": -1.63,
   "corr": 1.0,
   "time_in_market_pct": 100.0,
   "avg_exposure_pct": 100.0
