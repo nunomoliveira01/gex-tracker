@@ -270,7 +270,7 @@ $("themebtn").onclick = () => { const d = document.documentElement.classList.tog
 const BLOCKS = [
   ["chart", "Gamma chart", [["chart.stats", "Numbers above the chart"], ["chart.legend", "Line buttons"]]],
   ["rule", "JP rule", [["rule.pos", "Position"], ["rule.gamma", "SPY gamma"], ["rule.retail", "Retail panic"], ["rule.adds", "Add-on conditions"], ["rule.hist", "Trade history"]]],
-  ["my", "My strategy · rules & scorecard", [["my.rules", "Rules"], ["my.outlook", "Future alpha"], ["my.score", "Scorecard table"], ["my.days", "Daily live record"]]],
+  ["my", "My strategy · rules & scorecard", [["my.rules", "Rules"], ["my.trades", "Live trades"], ["my.outlook", "Future alpha"], ["my.score", "Scorecard table"], ["my.days", "Daily live record"]]],
   ["pc", "JP + Put/Call Ratio trades", [["pc.pos", "Position"], ["pc.ratio", "Put/call today"], ["pc.adds", "Add-on conditions"], ["pc.live", "Live record"], ["pc.bt", "Backtest 2022–26"]]],
   ["nqpc", "NQ SPY put/call add-on", [["nqpc.pos", "Position in NQ"], ["nqpc.sig", "SPY signals"], ["nqpc.live", "Live record"], ["nqpc.bt", "Backtest 2022–26"]]],
   ["margin", "Margin", [["margin.debt", "Margin debt"], ["margin.SPX", "S&P 500"], ["margin.NDX", "Nasdaq 100"], ["margin.fx", "Dollar signal"]]],
@@ -698,7 +698,38 @@ function renderMy() {
     </table></div><div class="muted">Benchmark: holding SPY had a Sharpe of ${m.bench ? fmt(m.bench.sharpe) : "–"} over the backtest. Cash rate used: ${m.rf_pct}%/yr.</div>`;
   const days = (m.live_rows || []).slice().reverse().map(r => `<tr><td>${r.date}</td><td>${r.units}</td><td class="${cls(r.spy_ret)}">${sg(r.spy_ret * 100)}%</td>` +
     `<td class="${cls(r.ours_spy)}">${sg(r.ours_spy * 100)}%</td><td class="${cls(r.ours_nq)}">${sg(r.ours_nq * 100)}%</td></tr>`).join("");
+  // live trades: open + closed, SPY and NQ side by side (same signals)
+  let tradesHtml = "";
+  if (isOn("my.trades") && p) {
+    const spyNow = state.SPY?.last ?? p.spot, nqNow = state.NQ?.last ?? (nqsig && nqsig.nq_last);
+    const nqClosed = (nqsig && nqsig.closed) || [], nqPos = nqsig && nqsig.position;
+    const findNq = t => nqClosed.find(c => c.entry_time === t);
+    const pts = (units, x) => units.filter(u => u != null).reduce((a, u) => a + (x - u), 0);
+    const rows = [];
+    if (p.position) {
+      const su = [p.position.entry].concat(p.position.adds.map(a => a.price));
+      const nu = nqPos && nqPos.entry_time === p.position.entry_time ? [nqPos.entry].concat(nqPos.adds.map(a => a.price)) : [];
+      const sp = pts(su, spyNow), np = nu.length && nu.every(v => v != null) ? pts(nu, nqNow) : null;
+      rows.push(`<tr><td><span class="badge blue">open</span> ${p.position.entry_time.slice(5)}</td><td>${fmt(p.position.entry)}</td><td>${nu[0] != null ? fmt(nu[0], 0) : "–"}</td>` +
+        `<td>${p.position.adds.length ? p.position.adds.map(a => a.time.slice(5, 10) + " @ " + fmt(a.price)).join(", ") : "–"}</td><td class="muted">now ${fmt(spyNow)} / ${fmt(nqNow, 0)}</td>` +
+        `<td class="${cls(sp)}">${sg(sp)}</td><td class="${cls(np)}">${np == null ? "–" : sg(np, 0)}</td><td class="${cls(np)}"><b>${np == null ? "–" : sg(np * MNQ, 0) + " $"}</b></td></tr>`);
+    }
+    (p.closed || []).slice().reverse().forEach(c => {
+      const n = findNq(c.entry_time);
+      rows.push(`<tr><td>${c.entry_time.slice(5)}</td><td>${fmt(c.entry)}</td><td>${n && n.entry != null ? fmt(n.entry, 0) : "–"}</td><td>${c.adds.length ? c.adds.map(a => fmt(a)).join(", ") : "–"}</td>` +
+        `<td>${c.exit_time.slice(5)} @ ${fmt(c.exit)}</td><td class="${cls(c.pnl)}">${sg(c.pnl)}</td>` +
+        `<td class="${cls(n && n.pnl_pts)}">${n && n.pnl_pts != null ? sg(n.pnl_pts, 0) : "–"}</td><td class="${cls(n && n.pnl_pts)}">${n && n.pnl_pts != null ? sg(n.pnl_pts * MNQ, 0) + " $" : "–"}</td></tr>`);
+    });
+    const done = (p.closed || []), totS = done.reduce((a, c) => a + c.pnl, 0);
+    const totN = nqClosed.filter(c => c.pnl_pts != null).reduce((a, c) => a + c.pnl_pts, 0);
+    tradesHtml = `<div class="sublbl">Live trades <button class="ib" data-hide="my.trades" title="Hide">✕</button></div>
+      <div class="scroll"><table class="q"><tr><th>Entry (New York)</th><th>SPY</th><th>NQ</th><th>Add-on</th><th>Exit</th><th>SPY pts</th><th>NQ pts</th><th>Per MNQ</th></tr>
+      ${rows.join("") || '<tr><td colspan="8" class="muted">No live trades yet</td></tr>'}
+      ${done.length ? `<tr><td><b>Closed total</b></td><td colspan="4" class="muted">${done.length} trade${done.length === 1 ? "" : "s"} · ${done.filter(c => c.pnl > 0).length} won</td><td class="${cls(totS)}"><b>${sg(totS)}</b></td>${nqClosed.some(c => c.pnl_pts != null) ? `<td class="${cls(totN)}"><b>${sg(totN, 0)}</b></td><td class="${cls(totN)}"><b>${sg(totN * MNQ, 0)} $</b></td>` : "<td>–</td><td>–</td>"}</tr>` : ""}
+      </table></div><div class="muted">From the tracker's signals (5-minute readings). NQ prices ~10–15 min delayed; "–" where NQ wasn't recorded yet. Your real fills will differ slightly.</div>`;
+  }
   setHTML("my", `<div class="cards">${card("my.rules", "My rules", rules)}${card("my.outlook", "Future alpha — what the data says so far", outTxt)}</div>
+    ${tradesHtml}
     ${isOn("my.score") ? `<div class="sublbl">Scorecard <button class="ib" data-hide="my.score" title="Hide">✕</button></div>${table}` : ""}
     ${isOn("my.days") ? `<details class="how" style="margin-top:10px"><summary>Daily live record (${m.live_days} day${m.live_days === 1 ? "" : "s"})</summary><div class="scroll"><table class="q">
       <tr><th>Day</th><th>Legs held</th><th>SPY</th><th>My account in SPY</th><th>My account in NQ</th></tr>${days || '<tr><td colspan="5" class="muted">No complete live day yet</td></tr>'}</table></div></details>` : ""}
