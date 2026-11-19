@@ -13,8 +13,9 @@ jobs:
           python-version: "3.12"
       - run: pip install pandas numpy yfinance
       - run: python research/backtest.py
+      - run: cd research && python test4.py
       - run: |
           git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
-          git add research/results.md research/results.json
+          git add research/results*.md research/results*.json
           git diff --cached --quiet || git commit -m "research: test results"
           for i in 1 2 3; do git pull --rebase --autostash -q && git push && break; sleep 5; done
