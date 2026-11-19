@@ -1,9 +1,0 @@
-name: probe url (temporary)
-on: workflow_dispatch
-jobs:
-  p:
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          for u in "https://www.cboe.com/us/options/symboldir/equity_index_options/?download=csv" "https://www.cboe.com/us/options/symboldir/?download=csv" "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"; do
-            echo "== $u"; curl -sSL -A "Mozilla/5.0" -o out.txt -w "%{http_code} %{size_download}\n" "$u"; head -c 400 out.txt; echo; wc -l out.txt; done

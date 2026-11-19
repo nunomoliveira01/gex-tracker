@@ -75,6 +75,54 @@ apply_watchlist()
 STATUS = {}
 
 
+SYMBOLS_URL = "https://www.cboe.com/us/options/symboldir/equity_index_options/?download=csv"
+SYMBOLS_CSV = DATA / "cboe_symbols.csv"     # saved copy in case Cboe's list can't be downloaded
+INDEX_NAMES = {"SPX": "S&P 500 Index", "NDX": "Nasdaq 100 Index", "RUT": "Russell 2000 Index", "VIX": "Cboe Volatility Index",
+               "XSP": "Mini S&P 500 Index", "DJX": "Dow Jones Index (1/100)", "OEX": "S&P 100 Index (American)",
+               "XEO": "S&P 100 Index (European)", "MRUT": "Mini Russell 2000 Index", "XND": "Mini Nasdaq 100 Index"}
+
+
+def write_symbols(max_age_h=24):
+    """docs/symbols.json: every symbol with listed options on Cboe (+ indices and ES/NQ), for the page's search box."""
+    out = DOCS / "symbols.json"
+    if out.exists() and time.time() - out.stat().st_mtime < max_age_h * 3600:
+        return
+    import csv
+    import io
+    text = None
+    try:
+        r = requests.get(SYMBOLS_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+        r.raise_for_status()
+        if r.text.count("\n") > 1000:
+            text = r.text
+            SYMBOLS_CSV.write_text(text)
+    except Exception as e:
+        print(f"  symbol list download failed ({e}) - using the saved copy", file=sys.stderr)
+    if text is None and SYMBOLS_CSV.exists():
+        text = SYMBOLS_CSV.read_text()
+    if not text:
+        return
+    rows = list(csv.reader(io.StringIO(text)))
+    seen, syms = set(), []
+    for row in rows[1:]:
+        if len(row) < 2:
+            continue
+        name, sym = row[0].strip(), row[1].strip().upper()
+        if not sym or sym in seen:
+            continue
+        seen.add(sym)
+        nice = " ".join({"Etf": "ETF", "Adr": "ADR", "Etn": "ETN", "Ads": "ADS", "Reit": "REIT"}.get(w, w) for w in name.title().split())
+        syms.append([sym, nice])
+    for sym, name in INDEX_NAMES.items():
+        if sym not in seen:
+            syms.append([sym, name])
+    syms += [["ES", "S&P 500 futures (from SPX + SPY options)"], ["NQ", "Nasdaq 100 futures (from NDX + QQQ options)"]]
+    syms.sort()
+    DOCS.mkdir(exist_ok=True)
+    out.write_text(json.dumps({"updated_utc": pd.Timestamp.now(tz="UTC").isoformat(), "symbols": syms}, separators=(",", ":")))
+    print(f"  symbol list: {len(syms)} symbols with options")
+
+
 def write_tickers():
     """docs/tickers.json: the pool and whether each ticker's last attempt worked (for the web page)."""
     path = DOCS / "tickers.json"
@@ -1367,6 +1415,11 @@ def run_once(force=False, charts_only=False, file=None):
 
 
 def _run_once(force=False, charts_only=False, file=None):
+    if not charts_only and not file:
+        try:
+            write_symbols()
+        except Exception as e:
+            print(f"  symbol list FAILED - {e}", file=sys.stderr)
     DOCS.mkdir(exist_ok=True)
     now = pd.Timestamp.now(tz=ET)
     cash, fut_open = market_open(now), futures_open(now)
