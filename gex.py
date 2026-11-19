@@ -772,7 +772,7 @@ def simulate_variant(h, vid, zmap, level, zmin, max_adds):
         g, p, t = float(r["net_gex_bn"]), float(r["spot"]), r["time_et"]
         iv, rv = r.get("iv30", np.nan), r.get("rv20", np.nan)
         vol_ok = pd.isna(iv) or pd.isna(rv) or iv > rv
-        is_close = i in last_of_day and t.hour >= 16
+        is_close = i in close_of_day
         exited = False
         if pos is not None:
             if t.weekday() == 4 and pos.get("fri") is None and t.date() not in pos.get("fri_skip", ()):
