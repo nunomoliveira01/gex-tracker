@@ -15,6 +15,7 @@ jobs:
       - run: python research/backtest.py
       - run: cd research && python test4.py
       - run: cd research && python nq_test.py
+      - run: cd research && if [ -f data/daily_qqq.csv ]; then python nq_native.py; fi
       - run: |
           git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
           git add research/results*.md research/results*.json
