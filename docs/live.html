@@ -151,6 +151,12 @@
   .toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:var(--card); padding:10px 16px; border-radius:12px; font-size:14px; z-index:60; display:none; max-width:90vw; }
   details.how { font-size:13.5px; color:var(--muted); }
   details.how summary { cursor:pointer; font-weight:700; color:var(--ink); }
+  .handle { cursor:grab; touch-action:none; letter-spacing:-2px; font-weight:800; }
+  .handle:active { cursor:grabbing; }
+  .moving { opacity:.35; }
+  .ghost { position:fixed; z-index:70; pointer-events:none; background:var(--card); border:2px solid var(--blue); border-radius:14px; padding:10px 16px; font-weight:800; box-shadow:0 12px 30px rgba(0,0,0,.2); }
+  .dropmark { height:6px; border-radius:3px; background:var(--blue); margin:-11px 0; }
+  .layoutbar { display:flex; justify-content:flex-end; margin-bottom:-8px; grid-column:1 / -1; }
   footer { max-width:1400px; margin:0 auto; padding:0 18px 30px; font-size:12.5px; color:var(--muted); }
 </style>
 </head>
@@ -173,7 +179,7 @@
   </div>
 </div></div>
 
-<div class="wrap">
+<div class="wrap" id="wrap">
   <div>
     <div class="striphead"><h3>My list</h3><span class="muted" id="poolnote">hover a card and click ✕ to remove it</span></div>
     <div class="strip" id="strip" style="margin-top:8px"></div>
@@ -231,7 +237,9 @@
   <div class="pb">
     <div class="group"><h4>What to show</h4><div class="muted" style="margin-bottom:6px">Turn off parts of the page or individual signal cards. You can also close any card with the ✕ that appears when you hover over it.</div>
       <div id="blocklist"></div>
-      <button class="btn" id="resetview" style="margin-top:8px">Show everything again</button></div>
+      <button class="btn" id="resetview" style="margin-top:8px">Show everything again</button>
+      <button class="btn" id="resetorder" style="margin-top:8px">Reset section order</button>
+      <div class="muted" style="margin-top:6px">To move a section, drag it by the ⋮⋮ handle in its title bar.</div></div>
     <div class="group"><h4>Second-by-second prices (Finnhub)</h4>
       <div class="muted">Free key at <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a>. Stored only in this browser.</div>
       <input type="password" id="keyinput" placeholder="Finnhub key"><button class="btn" id="savekey" style="margin-top:6px">Save</button></div>
@@ -1084,6 +1092,54 @@ $("setbtn").onclick = openSettings; $("setclose").onclick = closeSettings; $("sh
 $("savekey").onclick = () => { store.set("finnhubKey", $("keyinput").value.trim()); toast("Finnhub key saved"); startLive(); };
 $("ghsave").onclick = () => { store.set("ghToken", $("ghinput").value.trim()); toast("GitHub key saved"); loadPool(); };
 
+// ===================================================================== move sections around (drag by ⋮⋮), order saved in this browser
+const ORDER_KEY = "sectionOrder";
+const movable = () => [...$("wrap").children].filter(el => el.id && el.id !== "wrap" && el.dataset.fixed == null);
+function applyOrder() {
+  const saved = store.get(ORDER_KEY, null); if (!saved) return;
+  const wrap = $("wrap"), els = movable(), byId = Object.fromEntries(els.map(e => [e.id, e]));
+  saved.filter(id => byId[id]).concat(els.map(e => e.id).filter(id => !saved.includes(id))).forEach(id => wrap.appendChild(byId[id]));
+}
+function saveOrder() { store.set(ORDER_KEY, movable().map(e => e.id)); }
+function addHandles() {
+  movable().forEach(sec => {
+    let tools = sec.querySelector(":scope > .ph .tools");
+    if (!tools) {   // the chart area has no title bar: give it a small one
+      const bar = document.createElement("div"); bar.className = "layoutbar"; bar.innerHTML = '<div class="tools"></div>';
+      sec.prepend(bar); tools = bar.querySelector(".tools");
+    }
+    if (tools.querySelector(".handle")) return;
+    const h = document.createElement("button");
+    h.className = "ib handle"; h.title = "Drag to move this section"; h.textContent = "⋮⋮";
+    tools.prepend(h);
+    h.addEventListener("pointerdown", e => startDrag(e, sec));
+  });
+}
+function startDrag(e, sec) {
+  e.preventDefault();
+  const title = (sec.querySelector("h2") || {}).textContent || "Charts and JP rule";
+  const ghost = document.createElement("div"); ghost.className = "ghost"; ghost.textContent = "↕ " + title.trim();
+  document.body.appendChild(ghost);
+  const mark = document.createElement("div"); mark.className = "dropmark";
+  sec.classList.add("moving");
+  const move = ev => {
+    ghost.style.left = (ev.clientX + 12) + "px"; ghost.style.top = (ev.clientY + 12) + "px";
+    const others = movable().filter(x => x !== sec && x !== mark);
+    let before = null;
+    for (const o of others) { const r = o.getBoundingClientRect(); if (ev.clientY < r.top + r.height / 2) { before = o; break; } }
+    if (before) $("wrap").insertBefore(mark, before); else $("wrap").appendChild(mark);
+    if (ev.clientY < 60) window.scrollBy(0, -18); else if (ev.clientY > innerHeight - 60) window.scrollBy(0, 18);   // scroll while dragging
+  };
+  const up = () => {
+    document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up);
+    if (mark.parentNode) { $("wrap").insertBefore(sec, mark); mark.remove(); }
+    ghost.remove(); sec.classList.remove("moving"); saveOrder(); drawAll();
+  };
+  document.addEventListener("pointermove", move); document.addEventListener("pointerup", up);
+  move(e);
+}
+$("resetorder").onclick = () => { store.set(ORDER_KEY, null); location.reload(); };
+
 // ===================================================================== new version check
 // GitHub Pages (and the browser) may keep the old page for ~10 minutes. The page asks for version.json (never cached)
 // and, if the code has changed, reloads itself with a fresh address so the new version is fetched.
@@ -1106,6 +1162,9 @@ setInterval(checkVersion, 60000);
 // ===================================================================== start
 // keys saved by the old version of the page (plain strings)
 try { for (const k of ["finnhubKey", "ghToken"]) { const v = localStorage.getItem(k); if (v && v[0] !== '"') localStorage.setItem(k, JSON.stringify(v)); } } catch {}
+$("wrap").firstElementChild.dataset.fixed = "";   // "My list" stays on top
+$("wrap").firstElementChild.id = "listsec";
+applyOrder(); addHandles();
 setPool(pool); applyView(); renderBlockList();
 loadPool().then(() => { reloadAll(); startLive(); });
 setInterval(reloadAll, 60000);                  // the script publishes every 5 min
