@@ -98,6 +98,17 @@ def main():
         L.append(f"| {y} | " + " | ".join(f"{v['per_year'].get(y, '–')}%" for v in out.values()) + " |")
     L += ["", "Open trade now: " + ", ".join(f"{k} {v['open_trade_pct']}%" for k, v in out.items())]
     (ROOT / "results_nq.md").write_text("\n".join(L))
+    # trade list in NQ futures points, used by the live page ("NQ SPY put/call add-on" backtest)
+    nq = inst["NQ futures (front month)"].dropna()
+    trades = []
+    for s in sig:
+        e, a, x = nq[s["e"]], (nq[s["a"]] if s["a"] is not None else None), nq[s["x"]]
+        units = [e] + ([a] if a is not None else [])
+        pts = sum(x - u for u in units)
+        trades.append({"entry_date": str(s["e"].date()), "entry": round(e, 2), "add_date": str(s["a"].date()) if s["a"] is not None else None,
+                       "add": round(a, 2) if a is not None else None, "exit_date": str(s["x"].date()), "exit": round(x, 2),
+                       "pnl_pts": round(pts, 2), "pct": round(pts / sum(units) * 100, 2), "open": s["open"]})
+    (ROOT / "data" / "nq_pc_backtest.json").write_text(json.dumps(trades, indent=1))
     (ROOT / "results_nq.json").write_text(json.dumps(out, indent=1, default=str))
     print("\n".join(L))
 

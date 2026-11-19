@@ -184,6 +184,12 @@
     <div class="pb"><div id="pc"><span class="muted">loading…</span></div></div>
   </div>
 
+  <div class="panel" data-block="nqpc" id="nqpc-panel">
+    <div class="ph"><h2>NQ SPY put/call add-on</h2><span class="sub" id="nqpc-sub">the same SPY signals, traded in Nasdaq futures (NQ)</span>
+      <div class="tools"><button class="ib" data-collapse="nqpc" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="nqpc" title="Hide (bring back in ⚙)">✕</button></div></div>
+    <div class="pb"><div id="nqpc"><span class="muted">loading…</span></div></div>
+  </div>
+
   <div class="panel" data-block="margin" id="margin-panel">
     <div class="ph"><h2>Borrowed money (margin)</h2><span class="sub">JP's method — "the marginal buyer"</span>
       <div class="tools"><button class="ib" data-collapse="margin" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="margin" title="Hide (bring back in ⚙)">✕</button></div></div>
@@ -259,6 +265,7 @@ const BLOCKS = [
   ["chart", "Gamma chart", [["chart.stats", "Numbers above the chart"], ["chart.legend", "Line buttons"]]],
   ["rule", "JP rule", [["rule.pos", "Position"], ["rule.gamma", "SPY gamma"], ["rule.retail", "Retail panic"], ["rule.adds", "Add-on conditions"], ["rule.hist", "Trade history"]]],
   ["pc", "JP + Put/Call Ratio trades", [["pc.pos", "Position"], ["pc.ratio", "Put/call today"], ["pc.adds", "Add-on conditions"], ["pc.live", "Live record"], ["pc.bt", "Backtest 2022–26"]]],
+  ["nqpc", "NQ SPY put/call add-on", [["nqpc.pos", "Position in NQ"], ["nqpc.sig", "SPY signals"], ["nqpc.live", "Live record"], ["nqpc.bt", "Backtest 2022–26"]]],
   ["margin", "Margin", [["margin.debt", "Margin debt"], ["margin.SPX", "S&P 500"], ["margin.NDX", "Nasdaq 100"], ["margin.fx", "Dollar signal"]]],
   ["quant", "Quant lab", [["quant.now", "Gamma now / turning"], ["quant.fuel", "Selling fuel"], ["quant.vol", "Volatility"], ["quant.week", "Expiring gamma"], ["quant.variants", "Paper variants"], ["quant.cycles", "Cycles table"]]],
 ];
@@ -653,7 +660,49 @@ function roundRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPat
 window.addEventListener("resize", drawAll);
 
 // ===================================================================== panels
-function refreshPanels(force) { if (force) ["rule", "pc", "margin", "quant"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderPc(); renderMargin(); renderQuant(); }
+function refreshPanels(force) { if (force) ["rule", "pc", "nqpc", "margin", "quant"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderPc(); renderNqPc(); renderMargin(); renderQuant(); }
+
+// ---------- NQ traded on the SPY signals
+let nqsig = null;
+const MNQ = 2;   // $ per NQ point for one micro contract (MNQ); a full NQ is $20
+function renderNqPc() {
+  const q = nqsig, p = pcsig; if (!q || !p) return;
+  const nqNow = state.NQ?.last ?? q.nq_last, pos = q.position;
+  $("nqpc-sub").innerHTML = (pos ? `<span class="badge blue">in position</span> ` : `<span class="badge off">flat</span> `) + "the same SPY signals, traded in Nasdaq futures (NQ)";
+  let posTxt;
+  if (pos && pos.entry != null) {
+    const units = [pos.entry].concat(pos.adds.map(a => a.price)).filter(v => v != null), pts = units.reduce((a, u) => a + (nqNow - u), 0);
+    posTxt = `<div class="big ${cls(pts)}">Long ${units.length}x · ${sg(pts, 0)} pts</div>
+      <div class="stat"><span>Entry</span><b>${fmt(pos.entry, 2)}</b></div><div class="muted">${pos.entry_time} New York</div>` +
+      pos.adds.map(a => `<div class="stat"><span>Add-on</span><b>${fmt(a.price, 2)}</b></div><div class="muted">${a.time}</div>`).join("") +
+      `<div class="stat"><span>NQ now</span><b>${fmt(nqNow, 2)}</b></div>
+       <div class="stat"><span>Per micro (MNQ, $2/pt)</span><b class="${cls(pts)}">${sg(pts * MNQ, 0)} $</b></div>
+       <div class="stat muted"><span>Per full NQ ($20/pt)</span><span class="${cls(pts)}">${sg(pts * 20, 0)} $</span></div>`;
+  } else if (pos) posTxt = `<div class="big">In position</div><div class="muted">The NQ price at entry wasn't recorded (before the tracker logged NQ).</div>`;
+  else posTxt = `<div class="big" style="color:var(--muted)">Flat</div><div>Buys NQ when SPY gamma reaches <b>${p.level}bn</b> (now ${sg(p.gamma)}bn).</div>`;
+  const r = p.retail;
+  const sigTxt = `<div class="stat"><span>SPY gamma</span><b class="${cls(p.gamma)}">${sg(p.gamma)}bn</b></div>
+    <div class="stat"><span>SPY put/call (z)</span><b class="${r.z >= p.add_min_z ? "warn" : ""}">${fmt(r.premium)} (${fmt(r.z)})</b></div>
+    ${pos && pos.entry != null ? tick(nqNow < pos.entry, "NQ below the entry") : ""}
+    <div class="muted">Entry, add-on and exit come from SPY — see the panel above. NQ prices are ~10–15 min delayed.</div>`;
+  const closed = (q.closed || []).filter(c => c.pnl_pts != null), tot = closed.reduce((a, c) => a + c.pnl_pts, 0);
+  const liveTxt = closed.length ? `<div class="stat"><span>${closed.length} closed · ${closed.filter(c => c.pnl_pts > 0).length} won</span><b class="${cls(tot)}">${sg(tot, 0)} pts</b></div>
+      <div class="stat muted"><span>Per MNQ</span><span class="${cls(tot)}">${sg(tot * MNQ, 0)} $</span></div>` +
+      closed.slice(-6).reverse().map(c => `<div class="stat muted"><span>${c.entry_time.slice(5, 10)} → ${c.exit_time.slice(5, 10)}${c.adds.length ? " (+add)" : ""}</span><span class="${cls(c.pnl_pts)}">${sg(c.pnl_pts, 0)} (${sg(c.pct)}%)</span></div>`).join("")
+    : `<span class="muted">No closed NQ trades yet — the record builds from here.</span>`;
+  const bt = q.backtest || [], done = bt.filter(b => !b.open);
+  const avg = done.length ? done.reduce((a, b) => a + b.pct, 0) / done.length : null, won = done.filter(b => b.pnl_pts > 0).length;
+  const btTxt = `<div class="stat"><span>Trades (closed)</span><b>${done.length}</b></div><div class="stat"><span>Won</span><b>${done.length ? Math.round(won / done.length * 100) : 0}%</b></div>
+    <div class="stat"><span>Average per trade</span><b class="${cls(avg)}">${avg == null ? "–" : sg(avg)}%</b></div>
+    <div class="stat"><span>Trades with an add-on</span><b>${bt.filter(b => b.add).length}</b></div>
+    <div class="muted">${q.backtest_note}. Beat Nasdaq's own signals (QQQ gamma + QQQ put/call): +2.43% vs +1.07% per trade.</div>`;
+  const rows = bt.slice().reverse().map(b => `<tr><td>${b.entry_date}</td><td>${fmt(b.entry, 0)}</td><td>${b.add ? b.add_date.slice(5) + " @ " + fmt(b.add, 0) : "–"}</td>` +
+    `<td>${b.open ? '<span class="badge blue">open</span> ' + b.exit_date.slice(5) : b.exit_date}</td><td>${fmt(b.exit, 0)}</td><td class="${cls(b.pnl_pts)}">${sg(b.pnl_pts, 0)}</td><td class="${cls(b.pnl_pts)}">${sg(b.pnl_pts * MNQ, 0)} $</td><td class="${cls(b.pct)}">${sg(b.pct)}%</td></tr>`).join("");
+  setHTML("nqpc", `<div class="cards">${card("nqpc.pos", "Position in NQ", posTxt)}${card("nqpc.sig", "SPY signals", sigTxt)}${card("nqpc.live", "Live record", liveTxt)}${card("nqpc.bt", "Backtest 2022–26", btTxt)}</div>
+    ${isOn("nqpc.bt") ? `<details class="how" style="margin-top:10px"><summary>All backtest trades in NQ (${bt.length})</summary><div class="scroll"><table class="q">
+      <tr><th>Entry</th><th>NQ</th><th>Add-on</th><th>Exit</th><th>NQ</th><th>Points</th><th>Per MNQ</th><th>% of capital</th></tr>${rows}</table></div></details>` : ""}
+    <details class="how" style="margin-top:10px"><summary>Rules and sizing</summary>Buy 1 NQ unit when SPY gamma reaches ${p.level}bn; add 1 unit once at the US close if SPY is below its entry and SPY's put/call ratio is ${p.add_min_z} std above its 60-day normal; sell both when SPY gamma is back at 0. One micro contract (MNQ) is $2 per NQ point (~$55k of Nasdaq); a full NQ is $20 per point. In the backtest the worst drop during a trade was about −20% — size for that, not for the average. Not investment advice.</details>`);
+}
 
 // ---------- JP + put/call ratio
 let pcsig = null;
@@ -821,7 +870,7 @@ async function gh(path, opts = {}) {
 }
 async function reloadAll() {
   await Promise.all(TICKERS.map(loadData).concat([loadStatus(),
-    getJSON("SPY_signal.json").then(j => { if (j) signal = j; }), getJSON("SPY_pc_signal.json").then(j => { if (j) pcsig = j; }), getJSON("SPY_quant.json").then(j => { if (j) quant = j; }),
+    getJSON("SPY_signal.json").then(j => { if (j) signal = j; }), getJSON("SPY_pc_signal.json").then(j => { if (j) pcsig = j; }), getJSON("NQ_pc_signal.json").then(j => { if (j) nqsig = j; }), getJSON("SPY_quant.json").then(j => { if (j) quant = j; }),
     getJSON("margin.json").then(j => { if (j) margin = j; })]));
   refreshPanels(); TICKERS.forEach(renderHead); drawAll();
 }

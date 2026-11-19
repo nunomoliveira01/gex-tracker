@@ -461,9 +461,49 @@ def pc_backtest(level=-10.0, z_min=1.0):
     return out
 
 
+def write_nq_pc(h, trades, pos, pcd):
+    """Same SPY signals (JP + put/call add-on), traded in NQ futures: NQ price taken from the tracker's NQ readings
+    nearest each SPY event (within 20 min). Backtest from research/data/nq_pc_backtest.json (ThetaData + Yahoo)."""
+    path = DATA / "NQ_history.csv"
+    nq = pd.read_csv(path, parse_dates=["time_et"]).dropna(subset=["spot"]).sort_values("time_et") if path.exists() else pd.DataFrame()
+
+    def nq_at(i):
+        ts = h["time_et"][i]
+        if nq.empty:
+            return None
+        gap = (nq["time_et"] - ts).abs()
+        j = gap.idxmin()
+        return float(nq.at[j, "spot"]) if gap[j] <= pd.Timedelta(minutes=20) else None
+
+    stamp = lambda i: h["time_et"][i].strftime("%Y-%m-%d %H:%M")
+    closed = []
+    for tr in trades:
+        units = [nq_at(tr["entry"][0])] + [nq_at(a[0]) for a in tr["adds"]]
+        x = nq_at(tr["exit"][0])
+        ok = x is not None and all(u is not None for u in units)
+        closed.append({"entry_time": stamp(tr["entry"][0]), "exit_time": stamp(tr["exit"][0]), "entry": units[0],
+                       "adds": units[1:], "exit": x, "pnl_pts": round(sum(x - u for u in units), 2) if ok else None,
+                       "pct": round(sum(x - u for u in units) / sum(units) * 100, 2) if ok else None})
+    position = None
+    if pos:
+        position = {"entry_time": stamp(pos["entry"][0]), "entry": nq_at(pos["entry"][0]),
+                    "adds": [{"time": stamp(a[0]), "price": nq_at(a[0])} for a in pos["adds"]]}
+    bt_path = ROOT / "research" / "data" / "nq_pc_backtest.json"
+    out = {"time_et": h["time_et"].iloc[-1].strftime("%Y-%m-%d %H:%M"), "nq_last": float(nq["spot"].iloc[-1]) if len(nq) else None,
+           "nq_last_time": nq["time_et"].iloc[-1].strftime("%Y-%m-%d %H:%M") if len(nq) else None,
+           "position": position, "closed": closed,
+           "backtest": json.loads(bt_path.read_text()) if bt_path.exists() else [],
+           "backtest_note": "SPY signals (ThetaData daily history) priced in NQ front-month futures, daily closes, to 17 Nov 2026"}
+    (DOCS / "NQ_pc_signal.json").write_text(json.dumps(out))
+
+
 def write_pc_signal(t, h, level, note):
     pcd = daily_pc(h)
     trades, pos = jp_signals(h, level, pcd, need_level=False)
+    try:
+        write_nq_pc(h.reset_index(drop=True), trades, pos, pcd)
+    except Exception as e:
+        print(f"  NQ put/call signal file failed - {e}", file=sys.stderr)
     bt = pc_backtest(level if level is not None else -10.0)
     write_signal_json(t, h, level, note, trades, pos, pcd, name="pc_signal",
                       extra={"backtest": bt, "backtest_note": "ThetaData daily history, closes only, to 17 Nov 2026"})
