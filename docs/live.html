@@ -552,6 +552,7 @@ async function loadData(t) {
   if (!s.last || d.futures || !LIVE().includes(t) || !getKey()) s.last = d.prices.length ? d.prices[d.prices.length - 1][1] : d.spot;
   if (d.prev_close) s.prevClose = s.prevClose || d.prev_close;
   renderHead(t); draw(t); renderStrip();
+  if (t === "NQ" || t === "SPY") refreshPanels(true);   // positions move with the chart, not a second later
 }
 
 // ===================================================================== live prices (Finnhub)
@@ -765,7 +766,7 @@ function renderMy() {
   // live trades: open + closed, SPY and NQ side by side (same signals)
   let tradesHtml = "";
   if (isOn("my.trades") && p) {
-    const spyNow = state.SPY?.last ?? p.spot, nqNow = state.NQ?.last ?? (nqsig && nqsig.nq_last);
+    const spyNow = state.SPY?.last ?? p.spot, nqNow = nqLive().px;
     const nqClosed = (nqsig && nqsig.closed) || [], nqPos = nqsig && nqsig.position;
     const findNq = t => nqClosed.find(c => c.entry_time === t);
     const pts = (units, x) => units.filter(u => u != null).reduce((a, u) => a + (x - u), 0);
@@ -802,12 +803,19 @@ function renderMy() {
     <details class="how" style="margin-top:10px"><summary>How to read this</summary><b>Sharpe</b>: return per unit of swing (higher is better). <b>Beta</b>: how much of the market's moves you carry (1 = same as SPY). <b>Alpha</b>: yearly return left after paying for that market risk. <b>t-stat</b>: how sure we are the alpha isn't luck — about 2 is the usual bar. <b>95% range</b>: where the true alpha probably lies. Account sized for 2 units, idle cash earns the cash rate, daily closes, no costs. The live record is rebuilt every 5 minutes from the tracker's own readings and saved in the project's data/strategy_live.csv. Not investment advice.</details>`);
 }
 
+// ---------- NQ price = the NQ chart's latest point (same number and time as the chart)
+function nqLive() {
+  const s = state.NQ, d = s && s.data;
+  if (d && d.prices && d.prices.length) { const p = d.prices[d.prices.length - 1]; return { px: s.last ?? p[1], t: p[0] }; }
+  return { px: s && s.last != null ? s.last : (nqsig && nqsig.nq_last), t: null };
+}
+
 // ---------- NQ traded on the SPY signals
 let nqsig = null;
 const MNQ = 2;   // $ per NQ point for one micro contract (MNQ); a full NQ is $20
 function renderNqPc() {
   const q = nqsig, p = pcsig; if (!q || !p) return;
-  const nqNow = state.NQ?.last ?? q.nq_last, pos = q.position;
+  const nql = nqLive(), nqNow = nql.px, pos = q.position;
   $("nqpc-sub").innerHTML = (pos ? `<span class="badge blue">in position</span> ` : `<span class="badge off">flat</span> `) + "the same SPY signals, traded in Nasdaq futures (NQ)";
   let posTxt;
   if (pos && pos.entry != null) {
@@ -815,7 +823,7 @@ function renderNqPc() {
     posTxt = `<div class="big ${cls(pts)}">Long ${units.length}x · ${sg(pts, 0)} pts</div>
       <div class="stat"><span>Entry</span><b>${fmt(pos.entry, 2)}</b></div><div class="muted">${pos.entry_time} New York</div>` +
       pos.adds.map(a => `<div class="stat"><span>Add-on</span><b>${fmt(a.price, 2)}</b></div><div class="muted">${a.time}</div>`).join("") +
-      `<div class="stat"><span>NQ now</span><b>${fmt(nqNow, 2)}</b></div>
+      `<div class="stat"><span>NQ now${nql.t ? " · " + lisbon.format(new Date(nql.t)) : ""}</span><b>${fmt(nqNow, 2)}</b></div>
        <div class="stat"><span>Per micro (MNQ, $2/pt)</span><b class="${cls(pts)}">${sg(pts * MNQ, 0)} $</b></div>
        <div class="stat muted"><span>Per full NQ ($20/pt)</span><span class="${cls(pts)}">${sg(pts * 20, 0)} $</span></div>` + ddHtml(pos.dd, pts, units.reduce((a, u) => a + u, 0), MNQ);
   } else if (pos) posTxt = `<div class="big">In position</div><div class="muted">The NQ price at entry wasn't recorded (before the tracker logged NQ).</div>`;
