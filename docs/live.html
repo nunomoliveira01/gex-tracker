@@ -178,6 +178,12 @@
     </aside>
   </div>
 
+  <div class="panel" data-block="pc" id="pc-panel">
+    <div class="ph"><h2>JP + Put/Call Ratio trades · SPY</h2><span class="sub" id="pc-sub">enter at −10bn gamma · add when SPY's put/call ratio is 1 std above normal · exit at 0</span>
+      <div class="tools"><button class="ib" data-collapse="pc" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="pc" title="Hide (bring back in ⚙)">✕</button></div></div>
+    <div class="pb"><div id="pc"><span class="muted">loading…</span></div></div>
+  </div>
+
   <div class="panel" data-block="margin" id="margin-panel">
     <div class="ph"><h2>Borrowed money (margin)</h2><span class="sub">JP's method — "the marginal buyer"</span>
       <div class="tools"><button class="ib" data-collapse="margin" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="margin" title="Hide (bring back in ⚙)">✕</button></div></div>
@@ -252,6 +258,7 @@ $("themebtn").onclick = () => { const d = document.documentElement.classList.tog
 const BLOCKS = [
   ["chart", "Gamma chart", [["chart.stats", "Numbers above the chart"], ["chart.legend", "Line buttons"]]],
   ["rule", "JP rule", [["rule.pos", "Position"], ["rule.gamma", "SPY gamma"], ["rule.retail", "Retail panic"], ["rule.adds", "Add-on conditions"], ["rule.hist", "Trade history"]]],
+  ["pc", "JP + Put/Call Ratio trades", [["pc.pos", "Position"], ["pc.ratio", "Put/call today"], ["pc.adds", "Add-on conditions"], ["pc.live", "Live record"], ["pc.bt", "Backtest 2022–26"]]],
   ["margin", "Margin", [["margin.debt", "Margin debt"], ["margin.SPX", "S&P 500"], ["margin.NDX", "Nasdaq 100"], ["margin.fx", "Dollar signal"]]],
   ["quant", "Quant lab", [["quant.now", "Gamma now / turning"], ["quant.fuel", "Selling fuel"], ["quant.vol", "Volatility"], ["quant.week", "Expiring gamma"], ["quant.variants", "Paper variants"], ["quant.cycles", "Cycles table"]]],
 ];
@@ -646,7 +653,48 @@ function roundRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPat
 window.addEventListener("resize", drawAll);
 
 // ===================================================================== panels
-function refreshPanels(force) { if (force) ["rule", "margin", "quant"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMargin(); renderQuant(); }
+function refreshPanels(force) { if (force) ["rule", "pc", "margin", "quant"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderPc(); renderMargin(); renderQuant(); }
+
+// ---------- JP + put/call ratio
+let pcsig = null;
+function renderPc() {
+  const q = pcsig; if (!q) return;
+  const live = state.SPY?.last ?? q.spot, pos = q.position, lvl = q.level, r = q.retail, zmin = q.add_min_z;
+  $("pc-sub").innerHTML = (pos ? `<span class="badge blue">in position</span> ` : `<span class="badge off">flat</span> `) +
+    `enter at ${lvl}bn gamma · add when SPY's put/call ratio is ${zmin} std above normal · exit at 0`;
+  let posTxt;
+  if (pos) {
+    const units = [pos.entry].concat(pos.adds.map(a => a.price)), pnl = units.reduce((a, u) => a + (live - u), 0);
+    posTxt = `<div class="big ${cls(pnl)}">Long ${units.length}x · ${sg(pnl)} pts</div>
+      <div class="stat"><span>Entry</span><b>${fmt(pos.entry)}</b></div><div class="muted">${pos.entry_time} New York</div>` +
+      pos.adds.map(a => `<div class="stat"><span>Add-on</span><b>${fmt(a.price)}</b></div><div class="muted">${a.time}</div>`).join("") +
+      `<div class="stat"><span>SPY now</span><b>${fmt(live)}</b></div><div class="stat"><span>Gamma now</span><b class="${cls(q.gamma)}">${sg(q.gamma)}bn</b></div>`;
+  } else posTxt = `<div class="big" style="color:var(--muted)">Flat</div><div>Enters when SPY gamma reaches <b>${lvl}bn</b> (now ${sg(q.gamma)}bn).</div>`;
+  const ratioTxt = r.premium == null ? "–" : `<div class="stat"><span>SPY put/call ${r.complete ? "(day closed)" : "(so far today)"}</span><b>${fmt(r.premium)}</b></div>
+    <div class="stat"><span>Trigger (normal + ${zmin} std)</span><b>${fmt(r.bar)}</b></div>
+    <div class="stat"><span>Signal strength (z)</span><b class="${r.z >= zmin ? "warn" : ""}">${fmt(r.z)}</b></div>
+    <div class="muted">Puts traded ÷ calls traded, vs the previous 60 days.</div>`;
+  const addsLeft = pos && pos.adds.length < q.max_adds;
+  const addTxt = pos ? tick(live < pos.entry, "price below the entry") + tick(r.z != null && r.z >= zmin, `put/call z ≥ ${zmin}`) + tick(addsLeft, "add-on still unused") +
+      `<div class="muted">Checked at the close (21:00 Lisbon).</div>` : `<div class="muted">Only applies with an open position.</div>`;
+  const closed = q.closed || [], tot = closed.reduce((a, c) => a + c.pnl, 0), wins = closed.filter(c => c.pnl > 0).length;
+  const liveTxt = closed.length ? `<div class="stat"><span>${closed.length} closed · ${wins} won</span><b class="${cls(tot)}">${sg(tot)} pts</b></div>` +
+      closed.slice(-6).reverse().map(c => `<div class="stat muted"><span>${c.entry_time.slice(5, 10)} → ${c.exit_time.slice(5, 10)}${c.adds.length ? " (+add)" : ""}</span><span class="${cls(c.pnl)}">${sg(c.pnl)}</span></div>`).join("")
+    : `<span class="muted">No closed trades yet — the record builds from here.</span>`;
+  const bt = q.backtest || [], done = bt.filter(b => !b.open);
+  const pctOf = b => b.pnl / (b.entry + (b.add || 0)) * 100;
+  const btTot = done.reduce((a, b) => a + pctOf(b), 0), btWins = done.filter(b => b.pnl > 0).length, btAdds = bt.filter(b => b.add).length;
+  const btTxt = `<div class="stat"><span>Trades (closed)</span><b>${done.length}</b></div><div class="stat"><span>Won</span><b>${done.length ? Math.round(btWins / done.length * 100) : 0}%</b></div>
+    <div class="stat"><span>Average per trade</span><b class="${cls(btTot)}">${done.length ? sg(btTot / done.length) : "–"}%</b></div>
+    <div class="stat"><span>Trades with an add-on</span><b>${btAdds}</b></div><div class="muted">${q.backtest_note}. Not proof of an edge — see the ThetaData results note.</div>`;
+  const btRows = bt.slice().reverse().map(b => `<tr><td>${b.entry_date}</td><td>${fmt(b.entry)}</td><td>${b.add ? b.add_date.slice(5) + " @ " + fmt(b.add) : "–"}</td>` +
+    `<td>${b.open ? '<span class="badge blue">open</span> ' + b.exit_date.slice(5) : b.exit_date}</td><td>${fmt(b.exit)}</td><td class="${cls(b.pnl)}">${sg(b.pnl)}</td><td class="${cls(b.pnl)}">${sg(pctOf(b))}%</td></tr>`).join("");
+  setHTML("pc", `<div class="cards">${card("pc.pos", "Position", posTxt)}${card("pc.ratio", "Put/call today", ratioTxt)}${card("pc.adds", "Add-on conditions", addTxt)}
+      ${card("pc.live", "Live record", liveTxt)}${card("pc.bt", "Backtest 2022–26", btTxt)}</div>
+    ${isOn("pc.bt") ? `<details class="how" style="margin-top:10px"><summary>All backtest trades (${bt.length})</summary><div class="scroll"><table class="q">
+      <tr><th>Entry</th><th>Price</th><th>Add-on</th><th>Exit</th><th>Price</th><th>SPY pts</th><th>% of capital</th></tr>${btRows}</table></div></details>` : ""}
+    <details class="how" style="margin-top:10px"><summary>Rules</summary>Enter 1 unit when SPY gamma reaches ${lvl}bn. Add 1 unit (once) at the close if the price is below the entry and SPY's put/call ratio is at least ${zmin} standard deviation above its last-60-day average. Exit both when gamma is back at 0. The live record uses the tracker's 5-minute readings; the backtest uses daily closes rebuilt from ThetaData (put/call history up to 17 Nov 2026, then the tracker's own daily readings). Not investment advice.</details>`);
+}
 
 // ---------- JP rule
 let signal = null;
@@ -773,7 +821,7 @@ async function gh(path, opts = {}) {
 }
 async function reloadAll() {
   await Promise.all(TICKERS.map(loadData).concat([loadStatus(),
-    getJSON("SPY_signal.json").then(j => { if (j) signal = j; }), getJSON("SPY_quant.json").then(j => { if (j) quant = j; }),
+    getJSON("SPY_signal.json").then(j => { if (j) signal = j; }), getJSON("SPY_pc_signal.json").then(j => { if (j) pcsig = j; }), getJSON("SPY_quant.json").then(j => { if (j) quant = j; }),
     getJSON("margin.json").then(j => { if (j) margin = j; })]));
   refreshPanels(); TICKERS.forEach(renderHead); drawAll();
 }

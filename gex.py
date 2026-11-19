@@ -343,7 +343,7 @@ def entry_level(h, t=None):
     return None, "collecting history"
 
 
-def jp_signals(h, level, retail_daily):
+def jp_signals(h, level, retail_daily, need_level=True):
     """JP's rule: first entry when gamma <= level; add (max N) at a day's close if gamma is still
     <= level, the retail gauge z >= add_min_z AND the close is below the first entry; exit when gamma >= 0."""
     trades, pos = [], None
@@ -365,15 +365,15 @@ def jp_signals(h, level, retail_daily):
             pos = {"entry": (i, p), "adds": []}
             continue
         is_close = i in last_of_day and r["time_et"].hour >= 16
-        if pos is not None and is_close and g <= level and len(pos["adds"]) < max_adds:
+        if pos is not None and is_close and (g <= level or not need_level) and len(pos["adds"]) < max_adds:
             z = zmap.get(dates[i])
             if z is not None and not pd.isna(z) and z >= zmin and p < pos["entry"][1]:
                 pos["adds"].append((i, p))
     return trades, pos
 
 
-def write_signal_json(t, h, level, note, trades, pos, retail_daily):
-    """Status of JP's rule for the live page."""
+def write_signal_json(t, h, level, note, trades, pos, retail_daily, name="signal", extra=None):
+    """Status of JP's rule (or a variant of it) for the live page."""
     rd = retail_daily.iloc[-1].to_dict() if len(retail_daily) else {}
     clean = lambda v: None if v is None or (isinstance(v, float) and math.isnan(v)) else v
     last = h.iloc[-1]
@@ -394,7 +394,79 @@ def write_signal_json(t, h, level, note, trades, pos, retail_daily):
                            "entry": pos["entry"][1],
                            "adds": [{"time": h["time_et"][a[0]].strftime("%Y-%m-%d %H:%M"), "price": a[1]}
                                     for a in pos["adds"]]}
-    (DOCS / f"{t}_signal.json").write_text(json.dumps(out))
+    if extra:
+        out.update(extra)
+    (DOCS / f"{t}_{name}.json").write_text(json.dumps(out, default=lambda o: None if o is None else float(o)))
+
+
+# ----------------------------------------------------------------------------- JP + put/call ratio
+PC_SEED = ROOT / "research" / "data" / "daily.csv"   # SPY put/call history rebuilt from ThetaData (to 17 Nov 2026)
+
+
+def daily_pc(h, lookback=60):
+    """Daily SPY put/call volume ratio: ThetaData history, then the tracker's last reading of each day.
+    z = today's ratio vs the previous `lookback` complete days. Same shape as daily_retail()."""
+    parts = []
+    if PC_SEED.exists():
+        seed = pd.read_csv(PC_SEED, usecols=["date", "pc_volume"]).rename(columns={"pc_volume": "premium"})
+        seed["date"] = pd.to_datetime(seed["date"]).dt.date
+        seed["complete"] = True
+        parts.append(seed)
+    if len(h) and "pc_volume_ratio" in h:
+        live = h[["time_et", "pc_volume_ratio"]].dropna().copy()
+        live["date"] = live["time_et"].dt.date
+        live = live.groupby("date").last().reset_index().rename(columns={"pc_volume_ratio": "premium"})
+        live["complete"] = live["time_et"].dt.hour >= 16
+        if parts:
+            live = live[~live["date"].isin(set(parts[0]["date"]))]
+        parts.append(live[["date", "premium", "complete"]])
+    if not parts:
+        return pd.DataFrame(columns=["date", "premium", "mean", "std", "bar", "z", "complete"])
+    d = pd.concat(parts).sort_values("date").drop_duplicates("date", keep="last").reset_index(drop=True)
+    d = d[d["premium"] > 0]
+    prior = d["premium"].where(d["complete"]).shift(1).rolling(lookback, min_periods=20)
+    d["mean"], d["std"] = prior.mean(), prior.std()
+    d["bar"] = d["mean"] + CONFIG.get("add_min_z", 1.0) * d["std"]
+    d["z"] = (d["premium"] - d["mean"]) / d["std"]
+    return d[["date", "premium", "mean", "std", "bar", "z", "complete"]].reset_index(drop=True)
+
+
+def pc_backtest(level=-10.0, z_min=1.0):
+    """Same rule on the ThetaData daily history (daily closes): enter at the close of the day gamma at the low
+    <= level; add 1 unit at the first close below the entry with put/call z >= z_min; exit when gamma closes >= 0."""
+    if not PC_SEED.exists():
+        return []
+    d = pd.read_csv(PC_SEED, parse_dates=["date"]).drop_duplicates("date").sort_values("date").reset_index(drop=True)
+    prev = d["pc_volume"].shift(1).rolling(60)
+    d["z"] = (d["pc_volume"] - prev.mean()) / prev.std()
+    out, pos = [], None
+    for _, r in d.iterrows():
+        if pos is None:
+            if r["gex_low"] <= level:
+                pos = {"entry_date": str(r["date"].date()), "entry": round(r["spy_close"], 2), "add_date": None, "add": None}
+            continue
+        if r["gex_close"] >= 0:
+            units = [pos["entry"]] + ([pos["add"]] if pos["add"] else [])
+            out.append({**pos, "exit_date": str(r["date"].date()), "exit": round(r["spy_close"], 2),
+                        "pnl": round(sum(r["spy_close"] - u for u in units), 2), "open": False})
+            pos = None
+            continue
+        if pos["add"] is None and r["spy_close"] < pos["entry"] and r["z"] >= z_min:
+            pos.update(add_date=str(r["date"].date()), add=round(r["spy_close"], 2))
+    if pos:
+        r = d.iloc[-1]
+        units = [pos["entry"]] + ([pos["add"]] if pos["add"] else [])
+        out.append({**pos, "exit_date": str(r["date"].date()), "exit": round(r["spy_close"], 2),
+                    "pnl": round(sum(r["spy_close"] - u for u in units), 2), "open": True})
+    return out
+
+
+def write_pc_signal(t, h, level, note):
+    pcd = daily_pc(h)
+    trades, pos = jp_signals(h, level, pcd, need_level=False)
+    bt = pc_backtest(level if level is not None else -10.0)
+    write_signal_json(t, h, level, note, trades, pos, pcd, name="pc_signal",
+                      extra={"backtest": bt, "backtest_note": "ThetaData daily history, closes only, to 17 Nov 2026"})
 
 
 # ----------------------------------------------------------------------------- quant lab (JP's thesis, measured)
@@ -589,6 +661,11 @@ def draw_timeline(t, h):
         write_signal_json(t, h, level, level_note, trades, open_pos, daily)
     except Exception as e:
         print(f"  {t}: signal file failed - {e}", file=sys.stderr)
+    try:
+        if t == CONFIG.get("signal_ticker", "SPY"):   # the history and put/call seed are SPY's
+            write_pc_signal(t, h, level, level_note)
+    except Exception as e:
+        print(f"  {t}: put/call signal file failed - {e}", file=sys.stderr)
 
     fig, (a1, a2, a3) = plt.subplots(3, 1, figsize=(16, 10), sharex=True,
                                      gridspec_kw={"height_ratios": [3, 1.6, 1.1]})
