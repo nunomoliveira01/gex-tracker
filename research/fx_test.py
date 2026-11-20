@@ -24,12 +24,25 @@ def yahoo(sym):
 
 
 def fred(series):
-    r = requests.get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}", headers=UA, timeout=60)
-    r.raise_for_status()
+    import time
+    for i in range(4):
+        try:
+            r = requests.get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}", headers=UA, timeout=120)
+            r.raise_for_status()
+            df = pd.read_csv(io.StringIO(r.text))
+            df.columns = ["date", "v"]
+            df["date"] = pd.to_datetime(df["date"]); df["v"] = pd.to_numeric(df["v"], errors="coerce")
+            return df.set_index("date")["v"]
+        except Exception as e:
+            print("FRED", series, "try", i + 1, "failed:", e); time.sleep(10)
+    print("FRED unavailable, using backup source for", series)
+    if series == "DTB3":
+        return yahoo("^IRX")
+    url = "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.DFR.LEV?format=csvdata"
+    r = requests.get(url, headers=UA, timeout=120); r.raise_for_status()
     df = pd.read_csv(io.StringIO(r.text))
-    df.columns = ["date", "v"]
-    df["date"] = pd.to_datetime(df["date"]); df["v"] = pd.to_numeric(df["v"], errors="coerce")
-    return df.set_index("date")["v"]
+    v = pd.Series(pd.to_numeric(df["OBS_VALUE"], errors="coerce").to_numpy(), index=pd.to_datetime(df["TIME_PERIOD"]))
+    return v.sort_index()
 
 
 def cot_euro():
