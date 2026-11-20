@@ -1,0 +1,20 @@
+name: FX research — EUR/USD crowd-positioning test
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas numpy yfinance requests
+      - run: cd research && python fx_test.py
+      - run: |
+          git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
+          git add research/results_fx.md research/results_fx.json
+          git diff --cached --quiet || git commit -m "research: FX test results"
+          for i in 1 2 3; do git pull --rebase --autostash -q && git push && break; sleep 5; done
