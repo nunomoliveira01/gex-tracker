@@ -91,7 +91,7 @@ def write_symbols(max_age_h=24):
     import io
     text = None
     try:
-        r = requests.get(SYMBOLS_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+        r = requests.get(SYMBOLS_URL, headers=HEADERS, timeout=30)
         r.raise_for_status()
         if r.text.count("\n") > 1000:
             text = r.text
@@ -136,11 +136,15 @@ def write_tickers():
     DOCS.mkdir(exist_ok=True)
     path.write_text(json.dumps(out, separators=(",", ":")))
 
-CBOE_URL = "https://cdn.cboe.com/api/global/delayed_quotes/options/{}.json"
+CBOE_URL = "https://cdn-api.cboe.com/api/global/delayed_quotes/options/{}.json"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-    "Accept": "application/json",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    # since 20 Nov 2026 Cboe only answers requests that look like they come from its own website
+    "Referer": "https://www.cboe.com/",
+    "Origin": "https://www.cboe.com",
 }
 OPT_RE = re.compile(r"^(?P<root>[A-Z_]+?)(?P<exp>\d{6})(?P<cp>[CP])(?P<strike>\d{8})$")
 HIST_COLS = ["time_et", "spot", "net_gex_bn", "call_wall", "put_wall", "flip", "iv30", "rv5", "rv20", "gex_week_bn",

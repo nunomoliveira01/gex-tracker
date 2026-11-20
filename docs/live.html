@@ -329,8 +329,7 @@ const card = (id, label, html, extra = "") => isOn(id)
   ? `<div class="card" ${extra}><button class="ib close" data-hide="${id}" title="Hide this card">✕</button><div class="lbl">${label}</div>${html}</div>` : "";
 
 // chart lines that can be switched on/off
-const LINES = [["flip", "Flip (where total gamma changes sign)"], ["walls", "Call wall / put wall"], ["majors", "Biggest +γ / −γ bars"],
-  ["margin", "Margin levels (M Dec22 / M Jun25)"], ["entry", "JP entry"], ["vol", "Today's volume bars"], ["dots", "5/15/30 min dots"]];
+const LINES = [["flip", "Gamma flip"], ["walls", "Call wall (gamma wall) / put wall"], ["majors", "Gamma levels (biggest +γ / −γ)"]];
 let lineOff = new Set(store.get("lineOff", []));
 const lineOn = k => !lineOff.has(k);
 function toggleLine(k) { lineOff.has(k) ? lineOff.delete(k) : lineOff.add(k); store.set("lineOff", [...lineOff]); renderBlockList(); TICKERS.forEach(renderHead); drawAll(); }
@@ -544,9 +543,7 @@ function renderHead(t) {
       <span class="chip" title="Strike with the most call gamma above the price — tends to slow rallies">Call wall <b class="up">${d.call_wall == null ? "–" : +d.call_wall.toFixed(2)}</b></span>
       <span class="chip muted">${d.futures ? `${d.index}${d.etf ? " + " + d.etf : ""} options · price ~${d.price_delay_min} min delayed` : `gamma as of ${d.time_et.slice(11, 16)} New York`}</span>
       ${staleNote(d)}</div>` : "";
-  const legend = isOn("chart.legend") ? [["flip", "Flip", "var(--amber)"], ["walls", "Walls", "var(--green)"], ["majors", "+γ / −γ", "var(--red)"],
-      ["margin", "Margin", "var(--purple)"], ["entry", "JP entry", "var(--blue)"], ["vol", "Volume", "var(--orange)"], ["dots", "5/15/30 min", "var(--muted)"]]
-    .filter(([k]) => k !== "margin" || MARGIN_IDX[t]).filter(([k]) => k !== "entry" || t === SIGNAL)
+  const legend = isOn("chart.legend") ? [["flip", "Flip", "var(--amber)"], ["walls", "Walls", "var(--green)"], ["majors", "Gamma levels", "var(--red)"]]
     .map(([k, n, c]) => `<span class="tog ${lineOn(k) ? "" : "off"}" data-tog="${k}"><i style="background:${c}"></i>${n}</span>`).join("") : "";
   setHTML("head-" + t, stats + legend);
 }
@@ -667,21 +664,21 @@ function draw(t) {
 
   // gamma bars: wide/pale = open interest, thin/strong = today's volume
   const oiMax = Math.max(...d.strikes.map(x => Math.abs(x.oi)), 1e-9);
-  const volQ = lineOn("vol") ? quantile(d.strikes.map(x => Math.abs(x.vol)), 0.9) : 0;
+  const volQ = 0 ? quantile(d.strikes.map(x => Math.abs(x.vol)), 0.9) : 0;
   const xmax = Math.max(oiMax * 1.3, volQ * 1.1);
   const BX = v => L + Math.min(Math.abs(v) / xmax, 1) * pw;
   const bh = Math.max(2, Math.abs(Y(0) - Y(step)) * 0.78);
   for (const x of d.strikes) {
     const y = Y(x.k);
     g.fillStyle = alpha(x.oi < 0 ? C.red : C.green, 0.28); roundRect(g, L, y - bh / 2, Math.max(1, BX(x.oi) - L), bh, Math.min(3, bh / 2)); g.fill();
-    if (lineOn("vol")) { g.fillStyle = alpha(x.vol < 0 ? C.red : C.green, 0.85); g.fillRect(L, y - bh * 0.15, BX(x.vol) - L, bh * 0.3); }
-    if (lineOn("dots")) [["oi30", alpha(C.blue, .35)], ["oi15", alpha(C.blue, .65)], ["oi5", C.blue]].forEach(([f, c]) => {
+    if (false) { g.fillStyle = alpha(x.vol < 0 ? C.red : C.green, 0.85); g.fillRect(L, y - bh * 0.15, BX(x.vol) - L, bh * 0.3); }
+    if (false) [["oi30", alpha(C.blue, .35)], ["oi15", alpha(C.blue, .65)], ["oi5", C.blue]].forEach(([f, c]) => {
       if (x[f] != null) { g.fillStyle = c; g.beginPath(); g.arc(BX(x[f]), y, 2.4, 0, 7); g.fill(); } });
   }
   g.fillStyle = C.muted; g.textAlign = "center"; g.textBaseline = "bottom";
   const xs = niceStep(xmax / Math.max(2, Math.floor(pw / 90)));
   for (let v = xs; v <= xmax; v += xs) g.fillText(v.toFixed(xs < 0.01 ? 3 : xs < 0.1 ? 2 : xs < 1 ? 1 : 0), L + v / xmax * pw, T - 5);
-  g.textAlign = "left"; g.fillText("bars: dealer gamma, $bn per 1%", L, T - 19);
+  g.textAlign = "left"; g.fillText("bars: dealer gamma by strike, $bn per 1%", L, T - 19);
 
   // level lines with tags on the right
   const tags = [];
@@ -690,10 +687,10 @@ function draw(t) {
     const y = Y(v); g.strokeStyle = c; g.lineWidth = 1.3; g.setLineDash(dash); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.setLineDash([]);
     tags.push([y, c, label, false]); };
   if (lineOn("flip")) lvl(d.flip, C.amber, "flip " + fmt(d.flip, 1));
-  if (lineOn("walls")) { lvl(d.call_wall, C.green, "call wall " + d.call_wall, [2, 3]); lvl(d.put_wall, C.red, "put wall " + d.put_wall, [2, 3]); }
-  if (lineOn("majors")) { lvl(d.major_pos, alpha(C.green, .8), "+γ " + d.major_pos, [8, 3]); lvl(d.major_neg, alpha(C.red, .8), "−γ " + d.major_neg, [8, 3]); }
-  if (lineOn("margin")) (marginLevels(t) || []).forEach(([v, c, label]) => lvl(v, c === "a" ? C.purple : C.pink, label, [3, 3]));
-  if (lineOn("entry") && t === SIGNAL && signal && signal.position) {
+  if (lineOn("walls")) { lvl(d.call_wall, C.green, "call (gamma) wall " + d.call_wall, [2, 3]); lvl(d.put_wall, C.red, "put wall " + d.put_wall, [2, 3]); }
+  if (lineOn("majors")) { lvl(d.major_pos, alpha(C.green, .8), "+γ level " + d.major_pos, [8, 3]); lvl(d.major_neg, alpha(C.red, .8), "−γ level " + d.major_neg, [8, 3]); }
+  if (false) (marginLevels(t) || []).forEach(([v, c, label]) => lvl(v, c === "a" ? C.purple : C.pink, label, [3, 3]));
+  if (false && t === SIGNAL && signal && signal.position) {
     lvl(signal.position.entry, C.blue, "JP entry " + fmt(signal.position.entry), [10, 3]);
     signal.position.adds.forEach(a => lvl(a.price, C.orange, "add-on " + fmt(a.price), [10, 3])); }
   // place tags without overlapping
