@@ -60,10 +60,11 @@ def pair_test(d, tr, nq, es, fill_nq, fill_es, beta_series, fixed=None):
 
 def random_pair(nq_c, es_c, beta_series, holds, target, reps=10000):
     n, a, e, b = len(nq_c), nq_c.to_numpy(), es_c.to_numpy(), beta_series.fillna(1.25).to_numpy()
+    assert not np.isnan(a).any() and not np.isnan(e).any(), "missing futures prices in the random window"
     hits = 0
     h_arr = np.array(holds)
     for _ in range(reps):
-        h = rng.choice(h_arr, len(h_arr)); s = rng.integers(60, n - h.max() - 1, len(h_arr))
+        h = rng.choice(h_arr, len(h_arr)); s = rng.integers(0, n - h.max() - 1, len(h_arr))
         r = (a[s + h] / a[s] - 1) - b[s] * (e[s + h] / e[s] - 1)
         hits += r.mean() >= target
     return round(hits / reps, 4)
@@ -96,20 +97,20 @@ def main(run_all):
     # ---------------- Test 6: hedged pair during signals
     L += ["# Market-neutral versions of the JP + Put/Call rule (2022-01-03 → 2026-11-17, daily, no costs)", "",
           "## Test 6 — long MNQ / short MES during signals (hedge = NQ's 60-day beta to ES at entry)", "",
-          "| Hedge | Trades | Avg pair return per trade | Won | Random did as well | Beta vs SPY | Pair return/yr | Sharpe | Worst fall | Alpha t |",
+          "| Hedge | Trades | Avg pair return per trade | Won | Random did as well | Beta vs SPY | Pair gain/yr (over cash) | Sharpe | Worst fall | Alpha t |",
           "|---|---|---|---|---|---|---|---|---|---|"]
     res6 = {}
     for name, fixed in (("60-day beta (rule)", None), ("fixed 1.25", 1.25)):
         daily, tret, holds, tl = pair_test(d, tr, nq, es, fill_nq, fill_es, beta_ne, fixed)
         done = [r for r, t in zip(tret, tl) if not t["open"]]
         bser = beta_ne if fixed is None else pd.Series(fixed, index=d.index)
-        p = random_pair(nq["Close"], es["Close"], bser, holds, np.mean(done))
+        p = random_pair(nq["Close"].loc[START:END], es["Close"].loc[START:END], bser.loc[START:END], holds, np.mean(done))
         st = acct_stats(daily.loc[idx], spy_ex, rf)
         yr = yearly(done, [t for t in tl if not t["open"]])
         res6[name] = {"n": len(done), "avg_pct": round(np.mean(done) * 100, 2), "won_pct": int(round(np.mean(np.array(done) > 0) * 100)),
                       "random_p": p, "per_year": yr, **st, "avg_hedge": round(float(np.mean([beta_ne.get(t["e"], 1.25) for t in tl])), 2) if fixed is None else 1.25}
         r = res6[name]
-        L.append(f"| {name} | {r['n']} | {r['avg_pct']}% | {r['won_pct']}% | {r['random_p']} | {r['beta']} | {r['cagr_pct']}% | {r['sharpe']} | {r['max_dd_pct']}% | {r['alpha_t']} |")
+        L.append(f"| {name} | {r['n']} | {r['avg_pct']}% | {r['won_pct']}% | {r['random_p']} | {r['beta']} | {round(daily.loc[idx].mean() * 252 * 100, 2)}% | {r['sharpe']} | {r['max_dd_pct']}% | {r['alpha_t']} |")
     r = res6["60-day beta (rule)"]
     yrs_pos = sum(1 for v in r["per_year"].values() if v > 0)
     pass6 = bool(r["avg_pct"] > 0 and r["random_p"] < 0.10 and yrs_pos >= 3 and -0.2 <= r["beta"] <= 0.2)
