@@ -1,6 +1,11 @@
 name: ThetaData research — run the tests
 on:
   workflow_dispatch:
+    inputs:
+      neutral_all:
+        description: "also run market-neutral tests 7 and 8"
+        type: boolean
+        default: false
 permissions:
   contents: write
 jobs:
@@ -18,6 +23,7 @@ jobs:
       - run: cd research && if [ -f data/daily_qqq.csv ]; then python nq_native.py; fi
       - run: cd research && python metrics.py
       - run: cd research && python exact_level.py
+      - run: cd research && python neutral.py ${{ inputs.neutral_all && '--all' || '' }}
       - run: |
           git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
           git add research/results*.md research/results*.json research/data/nq_pc_backtest.json research/data/strategy_daily.csv research/data/spy_pc_backtest.json
