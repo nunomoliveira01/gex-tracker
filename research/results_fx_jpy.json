@@ -1,0 +1,344 @@
+{
+ "currency": "JPY",
+ "pass_C": false,
+ "results": {
+  "C": {
+   "trades": 32,
+   "avg_trade_pct": 0.67,
+   "won_pct": 50,
+   "worst_trade_drop_pct": -9.92,
+   "avg_days": 49.1,
+   "ret_yr_pct": 0.74,
+   "vol_pct": 7.63,
+   "sharpe": 0.13,
+   "max_dd_pct": -29.83,
+   "in_market_pct": 26.4,
+   "by_period": {
+    "2004\u20132010": [
+     2.2,
+     12
+    ],
+    "2011\u20132018": [
+     0.45,
+     11
+    ],
+    "2019\u20132026": [
+     -1.1,
+     9
+    ]
+   },
+   "alpha_pct_yr": 0.86,
+   "alpha_t": 0.56,
+   "betas": [
+    0.02,
+    0.11,
+    -0.07
+   ],
+   "random_p": 0.152
+  },
+  "D": {
+   "trades": 32,
+   "avg_trade_pct": 0.48,
+   "won_pct": 56,
+   "worst_trade_drop_pct": -9.92,
+   "avg_days": 49.1,
+   "ret_yr_pct": 0.34,
+   "vol_pct": 6.04,
+   "sharpe": 0.09,
+   "max_dd_pct": -29.22,
+   "in_market_pct": 26.4,
+   "by_period": {
+    "2004\u20132010": [
+     1.91,
+     12
+    ],
+    "2011\u20132018": [
+     0.26,
+     11
+    ],
+    "2019\u20132026": [
+     -1.14,
+     9
+    ]
+   },
+   "alpha_pct_yr": 0.38,
+   "alpha_t": 0.32,
+   "betas": [
+    0.03,
+    0.12,
+    -0.09
+   ],
+   "adds": 26
+  },
+  "N": {
+   "trades": 41,
+   "avg_trade_pct": 0.18,
+   "won_pct": 41,
+   "worst_trade_drop_pct": -9.61,
+   "avg_days": 53.7,
+   "ret_yr_pct": 0.06,
+   "vol_pct": 8.97,
+   "sharpe": 0.05,
+   "max_dd_pct": -25.03,
+   "in_market_pct": 37.0,
+   "by_period": {
+    "2004\u20132010": [
+     0.04,
+     15
+    ],
+    "2011\u20132018": [
+     0.62,
+     14
+    ],
+    "2019\u20132026": [
+     -0.17,
+     12
+    ]
+   },
+   "alpha_pct_yr": -0.23,
+   "alpha_t": -0.13,
+   "betas": [
+    0.03,
+    0.3,
+    0.04
+   ],
+   "random_p": 0.4183
+  },
+  "T": {
+   "trades": 125,
+   "avg_trade_pct": 0.66,
+   "won_pct": 50,
+   "worst_trade_drop_pct": -12.47,
+   "avg_days": 29.3,
+   "ret_yr_pct": 3.18,
+   "vol_pct": 9.43,
+   "sharpe": 0.38,
+   "max_dd_pct": -20.97,
+   "in_market_pct": 61.6,
+   "by_period": {
+    "2004\u20132010": [
+     0.84,
+     33
+    ],
+    "2011\u20132018": [
+     0.42,
+     49
+    ],
+    "2019\u20132026": [
+     0.8,
+     43
+    ]
+   },
+   "alpha_pct_yr": 2.56,
+   "alpha_t": 1.58,
+   "betas": [
+    -0.02,
+    0.47,
+    0.07
+   ],
+   "random_p": 0.0313
+  }
+ },
+ "notes": [
+  "US rate from Yahoo ^IRX (FRED unavailable).",
+  "JPY rate: IMF M.JP.FIMM_PA (DBnomics)."
+ ],
+ "cot_first": "1986-01-15",
+ "cot_last": "2026-11-10",
+ "z_now": 1.22,
+ "pos_now_pct": 31.7,
+ "trades_C": [
+  {
+   "entry": "2004-02-18",
+   "exit": "2004-03-01",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2004-03-22",
+   "exit": "2004-04-12",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2004-10-08",
+   "exit": "2004-10-25",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2005-04-20",
+   "exit": "2005-07-13",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2005-08-03",
+   "exit": "2005-10-27",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2006-10-27",
+   "exit": "2006-12-11",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2007-02-06",
+   "exit": "2007-05-01",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2007-12-07",
+   "exit": "2008-03-03",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2008-04-02",
+   "exit": "2008-06-26",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2008-07-23",
+   "exit": "2008-11-06",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2008-12-08",
+   "exit": "2009-03-02",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2010-05-06",
+   "exit": "2010-07-05",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2011-02-28",
+   "exit": "2011-03-07",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2011-04-22",
+   "exit": "2011-05-16",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2012-04-03",
+   "exit": "2012-06-25",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2013-04-02",
+   "exit": "2013-06-25",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2013-07-29",
+   "exit": "2013-10-22",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2015-10-23",
+   "exit": "2016-01-15",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2016-02-01",
+   "exit": "2016-04-25",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2016-04-28",
+   "exit": "2016-07-21",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2016-07-22",
+   "exit": "2016-10-14",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2016-10-17",
+   "exit": "2016-12-12",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2018-01-15",
+   "exit": "2018-04-02",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2019-09-06",
+   "exit": "2019-11-29",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2020-03-20",
+   "exit": "2020-06-12",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2020-08-14",
+   "exit": "2020-11-06",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2021-01-18",
+   "exit": "2021-03-22",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2024-06-05",
+   "exit": "2024-08-05",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2024-09-27",
+   "exit": "2024-12-20",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2024-12-23",
+   "exit": "2025-03-18",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2025-03-25",
+   "exit": "2025-06-19",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2025-06-20",
+   "exit": "2025-09-12",
+   "dir": "long",
+   "open": false
+  }
+ ]
+}

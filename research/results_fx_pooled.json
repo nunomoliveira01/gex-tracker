@@ -1,0 +1,139 @@
+{
+ "pass": false,
+ "pos_currencies": 3,
+ "pooled": {
+  "C": {
+   "trades": 182,
+   "avg_trade_pct": 0.13,
+   "won_pct": 46,
+   "worst_trade_drop_pct": -12.63,
+   "avg_days": 51.7,
+   "ret_yr_pct": 0.18,
+   "vol_pct": 2.49,
+   "sharpe": 0.08,
+   "max_dd_pct": -12.27,
+   "in_market_pct": 79.7,
+   "by_period": {
+    "2004\u20132010": [
+     0.89,
+     56
+    ],
+    "2011\u20132018": [
+     -0.07,
+     64
+    ],
+    "2019\u20132026": [
+     -0.35,
+     62
+    ]
+   },
+   "alpha_pct_yr": 0.33,
+   "alpha_t": 0.72,
+   "betas": [
+    0.03,
+    0.16,
+    -0.06
+   ],
+   "random_p": 0.4186
+  },
+  "D": {
+   "trades": 182,
+   "avg_trade_pct": 0.37,
+   "won_pct": 50,
+   "worst_trade_drop_pct": -12.63,
+   "avg_days": 51.7,
+   "ret_yr_pct": 0.12,
+   "vol_pct": 1.98,
+   "sharpe": 0.07,
+   "max_dd_pct": -11.0,
+   "in_market_pct": 79.7,
+   "by_period": {
+    "2004\u20132010": [
+     1.07,
+     56
+    ],
+    "2011\u20132018": [
+     0.21,
+     64
+    ],
+    "2019\u20132026": [
+     -0.11,
+     62
+    ]
+   },
+   "alpha_pct_yr": 0.24,
+   "alpha_t": 0.64,
+   "betas": [
+    0.02,
+    0.12,
+    -0.04
+   ]
+  },
+  "N": {
+   "trades": 233,
+   "avg_trade_pct": -0.19,
+   "won_pct": 45,
+   "worst_trade_drop_pct": -16.79,
+   "avg_days": 54.4,
+   "ret_yr_pct": -0.33,
+   "vol_pct": 3.19,
+   "sharpe": -0.09,
+   "max_dd_pct": -18.44,
+   "in_market_pct": 91.7,
+   "by_period": {
+    "2004\u20132010": [
+     0.05,
+     80
+    ],
+    "2011\u20132018": [
+     -0.1,
+     78
+    ],
+    "2019\u20132026": [
+     -0.53,
+     75
+    ]
+   },
+   "alpha_pct_yr": -0.06,
+   "alpha_t": -0.11,
+   "betas": [
+    0.02,
+    0.27,
+    -0.08
+   ]
+  },
+  "T": {
+   "trades": 772,
+   "avg_trade_pct": 0.23,
+   "won_pct": 45,
+   "worst_trade_drop_pct": -13.72,
+   "avg_days": 29.3,
+   "ret_yr_pct": 1.13,
+   "vol_pct": 4.54,
+   "sharpe": 0.27,
+   "max_dd_pct": -14.89,
+   "in_market_pct": 95.5,
+   "by_period": {
+    "2004\u20132010": [
+     0.4,
+     189
+    ],
+    "2011\u20132018": [
+     0.13,
+     291
+    ],
+    "2019\u20132026": [
+     0.22,
+     292
+    ]
+   },
+   "alpha_pct_yr": 1.39,
+   "alpha_t": 2.58,
+   "betas": [
+    0.01,
+    0.65,
+    0.03
+   ]
+  }
+ }
+}

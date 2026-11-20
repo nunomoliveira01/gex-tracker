@@ -1,0 +1,320 @@
+{
+ "currency": "CAD",
+ "pass_C": false,
+ "results": {
+  "C": {
+   "trades": 28,
+   "avg_trade_pct": -0.83,
+   "won_pct": 29,
+   "worst_trade_drop_pct": -6.48,
+   "avg_days": 50.2,
+   "ret_yr_pct": -1.02,
+   "vol_pct": 3.41,
+   "sharpe": -0.28,
+   "max_dd_pct": -24.4,
+   "in_market_pct": 23.6,
+   "by_period": {
+    "2004\u20132010": [
+     -1.97,
+     6
+    ],
+    "2011\u20132018": [
+     -0.88,
+     12
+    ],
+    "2019\u20132026": [
+     -0.09,
+     10
+    ]
+   },
+   "alpha_pct_yr": -0.94,
+   "alpha_t": -1.37,
+   "betas": [
+    0.02,
+    0.08,
+    0.02
+   ],
+   "random_p": 0.9278
+  },
+  "D": {
+   "trades": 28,
+   "avg_trade_pct": -0.52,
+   "won_pct": 36,
+   "worst_trade_drop_pct": -6.48,
+   "avg_days": 50.2,
+   "ret_yr_pct": -0.76,
+   "vol_pct": 2.51,
+   "sharpe": -0.29,
+   "max_dd_pct": -20.87,
+   "in_market_pct": 23.6,
+   "by_period": {
+    "2004\u20132010": [
+     -1.62,
+     6
+    ],
+    "2011\u20132018": [
+     -0.44,
+     12
+    ],
+    "2019\u20132026": [
+     0.04,
+     10
+    ]
+   },
+   "alpha_pct_yr": -0.72,
+   "alpha_t": -1.43,
+   "betas": [
+    0.02,
+    0.06,
+    0.02
+   ],
+   "adds": 23
+  },
+  "N": {
+   "trades": 35,
+   "avg_trade_pct": -0.68,
+   "won_pct": 40,
+   "worst_trade_drop_pct": -7.86,
+   "avg_days": 54.1,
+   "ret_yr_pct": -1.07,
+   "vol_pct": 4.24,
+   "sharpe": -0.23,
+   "max_dd_pct": -28.65,
+   "in_market_pct": 31.8,
+   "by_period": {
+    "2004\u20132010": [
+     -1.23,
+     10
+    ],
+    "2011\u20132018": [
+     -0.96,
+     14
+    ],
+    "2019\u20132026": [
+     0.17,
+     11
+    ]
+   },
+   "alpha_pct_yr": -0.95,
+   "alpha_t": -1.14,
+   "betas": [
+    0.0,
+    0.15,
+    0.07
+   ],
+   "random_p": 0.9008
+  },
+  "T": {
+   "trades": 137,
+   "avg_trade_pct": 0.3,
+   "won_pct": 42,
+   "worst_trade_drop_pct": -13.62,
+   "avg_days": 29.6,
+   "ret_yr_pct": 1.5,
+   "vol_pct": 7.04,
+   "sharpe": 0.25,
+   "max_dd_pct": -23.17,
+   "in_market_pct": 68.1,
+   "by_period": {
+    "2004\u20132010": [
+     0.79,
+     29
+    ],
+    "2011\u20132018": [
+     0.3,
+     46
+    ],
+    "2019\u20132026": [
+     0.08,
+     62
+    ]
+   },
+   "alpha_pct_yr": 2.49,
+   "alpha_t": 3.12,
+   "betas": [
+    -0.0,
+    0.71,
+    -0.06
+   ],
+   "random_p": 0.1328
+  }
+ },
+ "notes": [
+  "US rate from Yahoo ^IRX (FRED unavailable).",
+  "CAD rate: IMF M.CA.FIMM_PA (DBnomics)."
+ ],
+ "cot_first": "1986-01-15",
+ "cot_last": "2026-11-10",
+ "z_now": 1.36,
+ "pos_now_pct": -9.5,
+ "trades_C": [
+  {
+   "entry": "2004-04-13",
+   "exit": "2004-04-26",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2004-05-27",
+   "exit": "2004-07-12",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2005-06-06",
+   "exit": "2005-07-18",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2006-10-27",
+   "exit": "2007-01-19",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2007-02-09",
+   "exit": "2007-05-04",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2009-04-09",
+   "exit": "2009-05-11",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2011-10-17",
+   "exit": "2012-01-09",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2012-01-18",
+   "exit": "2012-03-26",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2012-10-03",
+   "exit": "2012-12-27",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2013-03-25",
+   "exit": "2013-06-17",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2013-06-18",
+   "exit": "2013-09-10",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2014-02-14",
+   "exit": "2014-05-09",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2016-05-09",
+   "exit": "2016-08-01",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2016-08-08",
+   "exit": "2016-10-31",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2017-02-22",
+   "exit": "2017-03-27",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2017-05-22",
+   "exit": "2017-07-17",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2017-08-10",
+   "exit": "2017-11-02",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2017-11-03",
+   "exit": "2018-01-29",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2019-01-14",
+   "exit": "2019-04-08",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2021-06-14",
+   "exit": "2021-09-06",
+   "dir": "long",
+   "open": false
+  },
+  {
+   "entry": "2023-01-16",
+   "exit": "2023-04-10",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2023-04-12",
+   "exit": "2023-07-03",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2023-11-15",
+   "exit": "2024-01-15",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2024-05-15",
+   "exit": "2024-08-07",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2024-08-14",
+   "exit": "2024-11-06",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2025-01-16",
+   "exit": "2025-04-10",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2025-10-29",
+   "exit": "2025-12-29",
+   "dir": "short",
+   "open": false
+  },
+  {
+   "entry": "2026-02-24",
+   "exit": "2026-04-20",
+   "dir": "long",
+   "open": false
+  }
+ ]
+}
