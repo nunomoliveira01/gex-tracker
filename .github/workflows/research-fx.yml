@@ -1,6 +1,10 @@
 name: FX research — EUR/USD crowd-positioning test
 on:
   workflow_dispatch:
+    inputs:
+      cmd:
+        description: "test to run"
+        default: "fx_follow.py GBP"
 permissions:
   contents: write
 jobs:
@@ -12,9 +16,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pandas numpy yfinance requests
-      - run: cd research && python fx_test.py
+      - run: cd research && python ${{ inputs.cmd || 'fx_test.py' }}
       - run: |
           git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
-          git add research/results_fx.md research/results_fx.json
+          git add research/results_fx*.md research/results_fx*.json
           git diff --cached --quiet || git commit -m "research: FX test results"
           for i in 1 2 3; do git pull --rebase --autostash -q && git push && break; sleep 5; done
