@@ -14,7 +14,9 @@ from fx_test import PERIODS, UA, alpha_vs, leg_returns, random_p, summarise, yah
 
 ROOT = Path(__file__).resolve().parent
 START, END = "2004-01-01", "2026-11-20"
-CUR = {"GBP": ("GBPUSD=X", "096742")}
+CUR = {"GBP": ("GBPUSD=X", "096742", False, "GB", "GB"), "JPY": ("JPY=X", "097741", True, "JP", "JP"),
+       "CHF": ("CHF=X", "092741", True, "CH", "CH"), "AUD": ("AUDUSD=X", "232741", False, "AU", "AU"),
+       "CAD": ("CAD=X", "090741", True, "CA", "CA"), "MXN": ("MXN=X", "095741", True, "MX", "MX")}
 MAXD, ZIN, PB, ADD = 60, 1.5, 1.0, 2.0
 notes = []
 
@@ -36,6 +38,25 @@ def us_rate():
     if s is None:
         notes.append("US rate from Yahoo ^IRX (FRED unavailable)."); s = yahoo("^IRX")
     return s
+
+
+def foreign_rate(cur):
+    if cur == "GBP":
+        return uk_rate()
+    _, _, _, oecd, imf = CUR[cur]
+    s = fred_quick(f"IR3TIB01{oecd}M156N")
+    if s is not None and len(s) > 100:
+        notes.append(f"{cur} rate: OECD 3-month rate (FRED)."); return s
+    for code in (f"M.{imf}.FIMM_PA", f"M.{imf}.FPOLM_PA", f"M.{imf}.FITB_PA"):
+        try:
+            r = requests.get(f"https://api.db.nomics.world/v22/series/IMF/IFS/{code}?observations=1&format=json", headers=UA, timeout=60)
+            r.raise_for_status(); d = r.json()["series"]["docs"][0]
+            v = pd.Series(pd.to_numeric(pd.Series(d["value"]), errors="coerce").to_numpy(), index=pd.to_datetime(d["period"])).dropna()
+            if len(v) > 100:
+                notes.append(f"{cur} rate: IMF {code} (DBnomics)."); return v
+        except Exception as e:
+            print("DBnomics", code, "failed:", e)
+    notes.append(f"{cur} rate unavailable: carry set to 0."); return None
 
 
 def uk_rate():
@@ -118,11 +139,21 @@ def add_on(trs, px, m20, sd20, r_long, idx):
     return acct, pd.DataFrame(per), n
 
 
+US = {}
+
+
 def run(cur):
-    ysym, code = CUR[cur]
-    px = yahoo(ysym).loc[START:END]; idx = px.index
-    us = us_rate().reindex(idx, method="ffill") / 100
-    uk = uk_rate()
+    notes.clear()
+    ysym, code, inv = CUR[cur][:3]
+    px = yahoo(ysym).loc[START:END]
+    px = (1 / px if inv else px).replace([np.inf, -np.inf], np.nan).dropna(); px = px[px > 0]
+    idx = px.index
+    if "s" not in US:
+        US["s"] = us_rate(); US["note"] = list(notes)
+    else:
+        notes.extend(US["note"])
+    us = US["s"].reindex(idx, method="ffill") / 100
+    uk = foreign_rate(cur)
     fx_rate = uk.reindex(idx, method="ffill") / 100 if uk is not None else us
     r_long = (px.pct_change() + (fx_rate - us) / 252).fillna(0)
     dxy = yahoo("DX-Y.NYB").reindex(idx).ffill().pct_change().fillna(0)
@@ -183,7 +214,70 @@ def run(cur):
         L.append(f"| {name} | {g('C')} | {g('N')} | {g('T')} |")
     (ROOT / f"results_fx_{cur.lower()}.md").write_text("\n".join(L))
     print("\n".join(L))
+    return {"cur": cur, "res": res, "pass": passC, "r_long": r_long, "perC": perC, "acc": {"C": accC, "D": accD, "N": accN, "T": accT},
+            "per": {"C": perC, "D": perD, "N": perN, "T": perT}, "dxy": dxy, "trend": trend, "carry": carry, "notes": list(notes)}
+
+
+def pooled_random_p(items, reps=10000):
+    rng = np.random.default_rng(7); prep = []; allret = []
+    for it in items:
+        done = it["perC"][~it["perC"]["open"]]
+        cum = np.log1p(it["r_long"].fillna(0)).cumsum().to_numpy()
+        prep.append((cum, done["days"].clip(lower=1).to_numpy(), done["dir"].to_numpy())); allret += list(done["ret"])
+    target, hits = np.mean(allret), 0
+    for _ in range(reps):
+        rs = []
+        for cum, h, dr in prep:
+            st = rng.integers(0, len(cum) - h.max() - 1, len(h)); rs.append(np.expm1(dr * (cum[st + h] - cum[st])))
+        hits += np.concatenate(rs).mean() >= target
+    return round(hits / reps, 4)
+
+
+def pool(curs):
+    items = [run(c) for c in curs]
+    idx = items[0]["r_long"].index
+    for it in items[1:]:
+        idx = idx.union(it["r_long"].index)
+    al = lambda s: s.reindex(idx).fillna(0)
+    out = {}
+    for k in "CDNT":
+        acc = sum(al(it["acc"][k]) for it in items) / len(items)
+        per = pd.concat([it["per"][k] for it in items], ignore_index=True)
+        dxy = pd.concat([it["dxy"] for it in items], axis=1).mean(axis=1).reindex(idx).fillna(0)
+        trend = sum(al(it["trend"]) for it in items) / len(items); carry = sum(al(it["carry"]) for it in items) / len(items)
+        r = summarise(acc, per, idx); r.update(alpha_vs(acc, [dxy, trend, carry], idx)); out[k] = r
+    out["C"]["random_p"] = pooled_random_p(items)
+    pos_cur = sum(1 for it in items if (it["res"]["C"]["avg_trade_pct"] or 0) > 0)
+    C = out["C"]
+    passP = bool(pos_cur >= 4 and C["avg_trade_pct"] > out["N"]["avg_trade_pct"] and C["avg_trade_pct"] > out["T"]["avg_trade_pct"]
+                 and C["random_p"] < 0.10 and C["alpha_t"] >= 2.0)
+    f = lambda v, u="%": "–" if v is None else f"{v}{u}"
+    L = [f"# FX test 2 — all six currencies together (GBP, JPY, CHF, AUD, CAD, MXN), equal weight — Rule C: {'PASS' if passP else 'FAIL'}", "",
+         f"Currencies with a positive average per trade under Rule C: {pos_cur} of {len(items)}.", "",
+         "| Currency | C trades | C avg | C Sharpe | C alpha t | C random p | Crowd no pullback avg | Trend + pullback avg | Carry source |", "|---|---|---|---|---|---|---|---|---|"]
+    for it in items:
+        r = it["res"]; src = " ".join(n for n in it["notes"] if n.startswith(it["cur"]) or "UK" in n)
+        L.append(f"| {it['cur']} | {r['C']['trades']} | {f(r['C']['avg_trade_pct'])} | {r['C']['sharpe']} | {r['C']['alpha_t']} | {f(r['C']['random_p'], '')} | "
+                 f"{f(r['N']['avg_trade_pct'])} | {f(r['T']['avg_trade_pct'])} | {src} |")
+    L += ["", "| Pooled rule | Trades | Avg per trade | Won | Return/yr | Volatility | Sharpe | Worst fall | Alpha/yr | Alpha t | Random p |",
+          "|---|---|---|---|---|---|---|---|---|---|---|"]
+    names = {"C": "C — crowd + 1 std pullback", "D": "D — C + add-on", "N": "Crowd, no pullback", "T": "Trend + pullback, no CFTC"}
+    for k in "CDNT":
+        r = out[k]
+        L.append(f"| {names[k]} | {r['trades']} | {f(r['avg_trade_pct'])} | {f(r['won_pct'])} | {r['ret_yr_pct']}% | {r['vol_pct']}% | {r['sharpe']} | "
+                 f"{r['max_dd_pct']}% | {r['alpha_pct_yr']}% | {r['alpha_t']} | {f(r.get('random_p'), '')} |")
+    L += ["", "| Period | C pooled avg (trades) | Crowd no pullback | Trend + pullback |", "|---|---|---|---|"]
+    for name, *_ in PERIODS:
+        g = lambda k: f"{f(out[k]['by_period'][name][0])} ({out[k]['by_period'][name][1]})"
+        L.append(f"| {name} | {g('C')} | {g('N')} | {g('T')} |")
+    (ROOT / "results_fx_pooled.md").write_text("\n".join(L))
+    (ROOT / "results_fx_pooled.json").write_text(json.dumps({"pass": passP, "pos_currencies": pos_cur, "pooled": out}, indent=1, default=str))
+    print("\n".join(L))
 
 
 if __name__ == "__main__":
-    run(sys.argv[1] if len(sys.argv) > 1 else "GBP")
+    a = sys.argv[1:] or ["GBP"]
+    if a[0] == "ALL":
+        pool(list(CUR))
+    else:
+        run(a[0])
