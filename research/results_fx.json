@@ -1,0 +1,242 @@
+{
+ "rule_A": {
+  "trades": 12,
+  "avg_trade_pct": -4.32,
+  "won_pct": 0,
+  "worst_trade_drop_pct": -18.98,
+  "avg_days": 202.7,
+  "ret_yr_pct": -2.42,
+  "vol_pct": 8.42,
+  "sharpe": -0.25,
+  "max_dd_pct": -46.57,
+  "in_market_pct": 44.4,
+  "by_period": {
+   "2004\u20132010": [
+    -6.6,
+    6
+   ],
+   "2011\u20132018": [
+    -2.99,
+    4
+   ],
+   "2019\u20132026": [
+    -0.11,
+    2
+   ]
+  },
+  "alpha_pct_yr": -2.45,
+  "alpha_t": -1.86,
+  "betas": [
+   -0.17,
+   -0.2,
+   0.43
+  ],
+  "random_p": 0.9886
+ },
+ "rule_B": {
+  "trades": 12,
+  "avg_trade_pct": -3.44,
+  "won_pct": 25,
+  "worst_trade_drop_pct": -18.98,
+  "avg_days": 202.7,
+  "ret_yr_pct": -1.99,
+  "vol_pct": 8.22,
+  "sharpe": -0.2,
+  "max_dd_pct": -41.01,
+  "in_market_pct": 44.4,
+  "by_period": {
+   "2004\u20132010": [
+    -5.49,
+    6
+   ],
+   "2011\u20132018": [
+    -2.33,
+    4
+   ],
+   "2019\u20132026": [
+    0.5,
+    2
+   ]
+  },
+  "alpha_pct_yr": -2.07,
+  "alpha_t": -1.62,
+  "betas": [
+   -0.16,
+   -0.21,
+   0.42
+  ],
+  "adds": 13
+ },
+ "stretched_twin": {
+  "trades": 10,
+  "avg_trade_pct": 2.02,
+  "won_pct": 70,
+  "worst_trade_drop_pct": -7.01,
+  "avg_days": 14.6,
+  "ret_yr_pct": 0.83,
+  "vol_pct": 4.22,
+  "sharpe": 0.22,
+  "max_dd_pct": -10.57,
+  "in_market_pct": 2.5,
+  "by_period": {
+   "2004\u20132010": [
+    3.87,
+    5
+   ],
+   "2011\u20132018": [
+    0.56,
+    1
+   ],
+   "2019\u20132026": [
+    0.07,
+    4
+   ]
+  },
+  "alpha_pct_yr": 0.72,
+  "alpha_t": 0.84,
+  "betas": [
+   0.02,
+   -0.05,
+   -0.05
+  ],
+  "k": 3.05
+ },
+ "trend": {
+  "trades": 0,
+  "avg_trade_pct": null,
+  "won_pct": null,
+  "worst_trade_drop_pct": null,
+  "avg_days": null,
+  "ret_yr_pct": -3.84,
+  "vol_pct": 10.71,
+  "sharpe": -0.31,
+  "max_dd_pct": -69.37,
+  "in_market_pct": 95.7,
+  "by_period": {
+   "2004\u20132010": [
+    null,
+    0
+   ],
+   "2011\u20132018": [
+    null,
+    0
+   ],
+   "2019\u20132026": [
+    null,
+    0
+   ]
+  }
+ },
+ "carry": {
+  "trades": 0,
+  "avg_trade_pct": null,
+  "won_pct": null,
+  "worst_trade_drop_pct": null,
+  "avg_days": null,
+  "ret_yr_pct": -0.95,
+  "vol_pct": 10.95,
+  "sharpe": -0.03,
+  "max_dd_pct": -43.95,
+  "in_market_pct": 100.0,
+  "by_period": {
+   "2004\u20132010": [
+    null,
+    0
+   ],
+   "2011\u20132018": [
+    null,
+    0
+   ],
+   "2019\u20132026": [
+    null,
+    0
+   ]
+  }
+ },
+ "pass_A": false,
+ "cot_first": "1986-01-15",
+ "cot_last": "2026-11-10",
+ "cot_rows": 1464,
+ "z_now": -2.29,
+ "pos_now_pct": -16.0,
+ "trades_A": [
+  {
+   "entry": "2004-10-04",
+   "exit": "2004-11-29",
+   "dir": "short EUR",
+   "open": false
+  },
+  {
+   "entry": "2004-12-20",
+   "exit": "2005-03-07",
+   "dir": "long EUR",
+   "open": false
+  },
+  {
+   "entry": "2005-04-11",
+   "exit": "2006-01-16",
+   "dir": "long EUR",
+   "open": false
+  },
+  {
+   "entry": "2006-03-27",
+   "exit": "2007-08-27",
+   "dir": "short EUR",
+   "open": false
+  },
+  {
+   "entry": "2008-05-05",
+   "exit": "2009-07-27",
+   "dir": "long EUR",
+   "open": false
+  },
+  {
+   "entry": "2010-01-04",
+   "exit": "2010-09-27",
+   "dir": "long EUR",
+   "open": false
+  },
+  {
+   "entry": "2011-03-07",
+   "exit": "2011-08-15",
+   "dir": "short EUR",
+   "open": false
+  },
+  {
+   "entry": "2011-09-26",
+   "exit": "2012-12-10",
+   "dir": "long EUR",
+   "open": false
+  },
+  {
+   "entry": "2013-09-30",
+   "exit": "2014-06-16",
+   "dir": "short EUR",
+   "open": false
+  },
+  {
+   "entry": "2017-03-27",
+   "exit": "2018-10-15",
+   "dir": "short EUR",
+   "open": false
+  },
+  {
+   "entry": "2020-08-17",
+   "exit": "2021-09-06",
+   "dir": "short EUR",
+   "open": false
+  },
+  {
+   "entry": "2024-10-28",
+   "exit": "2025-03-24",
+   "dir": "long EUR",
+   "open": false
+  },
+  {
+   "entry": "2026-07-27",
+   "exit": "2026-11-20",
+   "dir": "long EUR",
+   "open": true
+  }
+ ]
+}
