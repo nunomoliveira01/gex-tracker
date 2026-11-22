@@ -1494,7 +1494,10 @@ def write_oi_watch():
         return
     path = DATA / "oi_watch.csv"
     old = pd.read_csv(path) if path.exists() else pd.DataFrame(columns=["date", "option", "oi", "vega_musd", "spot", "volume"])
-    day = pd.Timestamp.now(tz=ET).strftime("%Y-%m-%d")
+    d0 = pd.Timestamp.now(tz=ET).normalize()
+    while d0.weekday() >= 5:   # weekend readings belong to Friday
+        d0 -= pd.Timedelta(days=1)
+    day = d0.strftime("%Y-%m-%d")
     rows, out = [], []
     for it in items:
         opt = it["option"]
