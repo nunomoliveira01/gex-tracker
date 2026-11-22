@@ -51,5 +51,13 @@
     "fx_threshold": 0.04,
     "refresh_hours": 3
   },
-  "my_strategy_start": "2026-11-16 00:00"
+  "my_strategy_start": "2026-11-16 00:00",
+  "oi_watch": [
+    {
+      "option": "SPXW261231P07250000",
+      "label": "SPX 31 Dec 7,250 put",
+      "why": "VolSignals: the big put block dealers are short. A sharp drop = someone cashed out, his trigger for a VIX collapse and a rally",
+      "alert_drop_pct": 15
+    }
+  ]
 }

@@ -1483,6 +1483,54 @@ def run_once(force=False, charts_only=False, file=None):
             write_tickers()
 
 
+RAW = {}   # Cboe chains already downloaded this run, by Cboe symbol
+
+
+def write_oi_watch():
+    """Track open interest on single options named in config.json "oi_watch" (one row per option per day).
+    Cboe updates open interest once a day, before the open, so later readings the same day just confirm it."""
+    items = CONFIG.get("oi_watch") or []
+    if not items:
+        return
+    path = DATA / "oi_watch.csv"
+    old = pd.read_csv(path) if path.exists() else pd.DataFrame(columns=["date", "option", "oi", "vega_musd", "spot", "volume"])
+    day = pd.Timestamp.now(tz=ET).strftime("%Y-%m-%d")
+    rows, out = [], []
+    for it in items:
+        opt = it["option"]
+        m = OPT_RE.match(opt)
+        sym = "_" + m.group("root").rstrip("W") if m and m.group("root").startswith("SPX") else (m.group("root") if m else opt)
+        raw = RAW.get(sym) or fetch_chain(sym)
+        RAW[sym] = raw
+        d = raw.get("data", raw)
+        o = next((x for x in d.get("options", []) if x.get("option") == opt), None)
+        if o is None:
+            print(f"  open-interest watch: {opt} not in the {sym} chain", file=sys.stderr)
+            continue
+        rows.append({"date": day, "option": opt, "oi": int(o.get("open_interest") or 0),
+                     "vega_musd": round(float(o.get("vega") or 0) * float(o.get("open_interest") or 0) * 100 / 1e6, 2),
+                     "spot": d.get("current_price"), "volume": int(o.get("volume") or 0)})
+    if rows:
+        new = pd.DataFrame(rows)
+        old = old[~((old["date"] == day) & old["option"].isin(new["option"]))]
+        old = pd.concat([old, new], ignore_index=True).sort_values(["option", "date"])
+        DATA.mkdir(exist_ok=True); old.to_csv(path, index=False)
+    for it in items:
+        h = old[old["option"] == it["option"]].sort_values("date")
+        if h.empty:
+            continue
+        hist = [{"date": r.date, "oi": int(r.oi), "vega_musd": float(r.vega_musd), "spot": r.spot, "volume": int(r.volume)} for r in h.itertuples()]
+        now, prev = hist[-1], (hist[-2] if len(hist) > 1 else None)
+        peak = max(x["oi"] for x in hist)
+        chg_d = (now["oi"] / prev["oi"] - 1) * 100 if prev and prev["oi"] else None
+        chg_peak = (now["oi"] / peak - 1) * 100 if peak else None
+        lim = it.get("alert_drop_pct", 15)
+        alert = bool((chg_d is not None and chg_d <= -lim) or (chg_peak is not None and chg_peak <= -lim))
+        out.append({**it, "latest": now, "prev": prev, "peak": peak, "chg_day_pct": None if chg_d is None else round(chg_d, 1),
+                    "chg_peak_pct": None if chg_peak is None else round(chg_peak, 1), "alert": alert, "history": hist[-60:]})
+    (DOCS / "oi_watch.json").write_text(json.dumps({"updated_utc": pd.Timestamp.now(tz="UTC").isoformat(), "items": out}, default=str))
+
+
 def _run_once(force=False, charts_only=False, file=None):
     if not charts_only and not file:
         try:
@@ -1528,6 +1576,7 @@ def _run_once(force=False, charts_only=False, file=None):
                 continue
             raw = fetch_chain(CONFIG.get("cboe_symbols", {}).get(t, t),
                               file.format(t) if file else None)
+            RAW[CONFIG.get("cboe_symbols", {}).get(t, t)] = raw
             spot, snap_time, df = parse_chain(raw)
             row, by_strike = analyse(spot, snap_time, df)
             row["rv5"], row["rv20"] = realized_vol(t)
@@ -1553,6 +1602,11 @@ def _run_once(force=False, charts_only=False, file=None):
         except Exception as e:
             STATUS[t] = {"ok": False, "error": str(e)[:160], "utc": pd.Timestamp.now(tz="UTC").isoformat()}
             print(f"  {t}: FAILED - {e}", file=sys.stderr)
+    if not charts_only and not file:
+        try:
+            write_oi_watch()
+        except Exception as e:
+            print(f"  open-interest watch FAILED - {e}", file=sys.stderr)
     write_page(latest)
     print(f"Open {DOCS / 'index.html'} to see the charts.")
     if not charts_only and not latest:
