@@ -199,13 +199,13 @@
   "entry_date": "2019-03-12",
   "entry_spy": 280.0,
   "entry": 7221.02,
-  "add_date": "2019-03-13",
-  "add": 7267.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2019-03-20",
   "exit_spy": 280.34,
   "exit": 7374.27,
-  "pnl_pts": -259.77,
-  "pct": -1.79
+  "pnl_pts": -153.25,
+  "pct": -2.12
  },
  {
   "period": "oos",
@@ -238,13 +238,13 @@
   "entry_date": "2019-03-28",
   "entry_spy": 280.35,
   "entry": 7341.59,
-  "add_date": "2019-04-03",
-  "add": 7582.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2019-05-02",
   "exit_spy": 290.67,
   "exit": 7719.25,
-  "pnl_pts": -514.67,
-  "pct": -3.45
+  "pnl_pts": -377.67,
+  "pct": -5.14
  },
  {
   "period": "oos",
@@ -264,26 +264,26 @@
   "entry_date": "2019-06-10",
   "entry_spy": 290.0,
   "entry": 7545.08,
-  "add_date": "2019-06-18",
-  "add": 7645.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2019-06-25",
   "exit_spy": 292.07,
   "exit": 7666.67,
-  "pnl_pts": -143.02,
-  "pct": -0.94
+  "pnl_pts": -121.59,
+  "pct": -1.61
  },
  {
   "period": "oos",
   "entry_date": "2019-07-01",
   "entry_spy": 296.68,
   "entry": 7819.68,
-  "add_date": "2019-07-03",
-  "add": 7887.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2019-07-18",
   "exit_spy": 297.19,
   "exit": 7885.42,
-  "pnl_pts": -63.67,
-  "pct": -0.41
+  "pnl_pts": -65.75,
+  "pct": -0.84
  },
  {
   "period": "oos",
@@ -355,13 +355,13 @@
   "entry_date": "2019-09-06",
   "entry_spy": 298.17,
   "entry": 7861.24,
-  "add_date": "2019-09-19",
-  "add": 7896.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2019-09-20",
   "exit_spy": 298.53,
   "exit": 7906.81,
-  "pnl_pts": -56.13,
-  "pct": -0.36
+  "pnl_pts": -45.57,
+  "pct": -0.58
  },
  {
   "period": "oos",
@@ -407,26 +407,26 @@
   "entry_date": "2019-12-06",
   "entry_spy": 315.0,
   "entry": 8404.08,
-  "add_date": "2019-12-12",
-  "add": 8465.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-01-06",
   "exit_spy": 320.49,
   "exit": 8752.41,
-  "pnl_pts": -635.49,
-  "pct": -3.77
+  "pnl_pts": -348.33,
+  "pct": -4.14
  },
  {
   "period": "oos",
   "entry_date": "2020-01-08",
   "entry_spy": 325.0,
   "entry": 8961.24,
-  "add_date": "2020-01-09",
-  "add": 9009.0,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-01-23",
   "exit_spy": 329.6,
   "exit": 9183.03,
-  "pnl_pts": -395.82,
-  "pct": -2.2
+  "pnl_pts": -221.79,
+  "pct": -2.47
  },
  {
   "period": "oos",
@@ -459,13 +459,13 @@
   "entry_date": "2020-02-05",
   "entry_spy": 332.27,
   "entry": 9363.14,
-  "add_date": "2020-02-11",
-  "add": 9527.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-02-20",
   "exit_spy": 334.78,
   "exit": 9555.74,
-  "pnl_pts": -221.09,
-  "pct": -1.17
+  "pnl_pts": -192.6,
+  "pct": -2.06
  },
  {
   "period": "oos",
@@ -680,13 +680,13 @@
   "entry_date": "2020-06-03",
   "entry_spy": 310.24,
   "entry": 9618.29,
-  "add_date": "2020-06-05",
-  "add": 9808.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-06-11",
   "exit_spy": 309.17,
   "exit": 9919.09,
-  "pnl_pts": -411.4,
-  "pct": -2.12
+  "pnl_pts": -300.8,
+  "pct": -3.13
  },
  {
   "period": "oos",
@@ -706,13 +706,13 @@
   "entry_date": "2020-06-30",
   "entry_spy": 310.0,
   "entry": 10206.84,
-  "add_date": "2020-07-01",
-  "add": 10268.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-07-07",
   "exit_spy": 313.71,
   "exit": 10529.81,
-  "pnl_pts": -584.04,
-  "pct": -2.85
+  "pnl_pts": -322.97,
+  "pct": -3.16
  },
  {
   "period": "oos",
@@ -732,26 +732,26 @@
   "entry_date": "2020-07-15",
   "entry_spy": 322.41,
   "entry": 10703.78,
-  "add_date": "2020-07-20",
-  "add": 10951.0,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-07-30",
   "exit_spy": 321.9,
   "exit": 10718.21,
-  "pnl_pts": 218.36,
-  "pct": 1.01
+  "pnl_pts": -14.43,
+  "pct": -0.13
  },
  {
   "period": "oos",
   "entry_date": "2020-07-31",
   "entry_spy": 325.9,
   "entry": 10867.67,
-  "add_date": "2020-08-03",
-  "add": 11044.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-08-20",
   "exit_spy": 335.36,
   "exit": 11367.85,
-  "pnl_pts": -823.79,
-  "pct": -3.76
+  "pnl_pts": -500.19,
+  "pct": -4.6
  },
  {
   "period": "oos",
@@ -784,13 +784,13 @@
   "entry_date": "2020-09-11",
   "entry_spy": 335.82,
   "entry": 11125.85,
-  "add_date": "2020-09-14",
-  "add": 11280.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-09-17",
   "exit_spy": 333.56,
   "exit": 11006.86,
-  "pnl_pts": 392.63,
-  "pct": 1.75
+  "pnl_pts": 118.99,
+  "pct": 1.07
  },
  {
   "period": "oos",
@@ -810,13 +810,13 @@
   "entry_date": "2020-09-28",
   "entry_spy": 333.22,
   "entry": 11358.23,
-  "add_date": "2020-10-12",
-  "add": 12098.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-10-15",
   "exit_spy": 343.71,
   "exit": 11731.0,
-  "pnl_pts": -5.52,
-  "pct": -0.02
+  "pnl_pts": -372.77,
+  "pct": -3.28
  },
  {
   "period": "oos",
@@ -849,13 +849,13 @@
   "entry_date": "2020-11-05",
   "entry_spy": 350.0,
   "entry": 12067.36,
-  "add_date": "2020-11-16",
-  "add": 12005.0,
+  "add_date": null,
+  "add": null,
   "exit_date": "2020-12-18",
   "exit_spy": 367.15,
   "exit": 12722.39,
-  "pnl_pts": -1372.42,
-  "pct": -5.7
+  "pnl_pts": -655.03,
+  "pct": -5.43
  },
  {
   "period": "oos",
@@ -966,26 +966,26 @@
   "entry_date": "2021-03-08",
   "entry_spy": 385.0,
   "entry": 12413.93,
-  "add_date": "2021-03-12",
-  "add": 12933.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2021-03-19",
   "exit_spy": 387.67,
   "exit": 12742.85,
-  "pnl_pts": -138.28,
-  "pct": -0.55
+  "pnl_pts": -328.92,
+  "pct": -2.65
  },
  {
   "period": "oos",
   "entry_date": "2021-03-26",
   "entry_spy": 395.0,
   "entry": 12931.31,
-  "add_date": "2021-03-29",
-  "add": 12944.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2021-04-20",
   "exit_spy": 413.36,
   "exit": 13838.26,
-  "pnl_pts": -1800.7,
-  "pct": -6.96
+  "pnl_pts": -906.94,
+  "pct": -7.01
  },
  {
   "period": "oos",
@@ -1005,13 +1005,13 @@
   "entry_date": "2021-04-23",
   "entry_spy": 415.0,
   "entry": 13862.79,
-  "add_date": "2021-04-26",
-  "add": 14011.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2021-04-29",
   "exit_spy": 417.59,
   "exit": 13862.97,
-  "pnl_pts": 148.34,
-  "pct": 0.53
+  "pnl_pts": -0.18,
+  "pct": -0.0
  },
  {
   "period": "oos",
@@ -1044,26 +1044,26 @@
   "entry_date": "2021-05-21",
   "entry_spy": 416.87,
   "entry": 13473.85,
-  "add_date": "2021-06-01",
-  "add": 13648.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2021-06-03",
   "exit_spy": 417.85,
   "exit": 13496.43,
-  "pnl_pts": 129.74,
-  "pct": 0.48
+  "pnl_pts": -22.58,
+  "pct": -0.17
  },
  {
   "period": "oos",
   "entry_date": "2021-06-04",
   "entry_spy": 420.75,
   "entry": 13700.2,
-  "add_date": "2021-06-16",
-  "add": 13981.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2021-06-17",
   "exit_spy": 419.37,
   "exit": 14068.95,
-  "pnl_pts": -456.45,
-  "pct": -1.65
+  "pnl_pts": -368.75,
+  "pct": -2.69
  },
  {
   "period": "oos",
@@ -1083,13 +1083,13 @@
   "entry_date": "2021-07-09",
   "entry_spy": 435.0,
   "entry": 14790.97,
-  "add_date": "2021-07-12",
-  "add": 14869.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2021-07-15",
   "exit_spy": 433.1,
   "exit": 14725.44,
-  "pnl_pts": 209.35,
-  "pct": 0.71
+  "pnl_pts": 65.53,
+  "pct": 0.44
  },
  {
   "period": "oos",
@@ -1109,13 +1109,13 @@
   "entry_date": "2021-07-23",
   "entry_spy": 440.0,
   "entry": 15100.27,
-  "add_date": "2021-07-26",
-  "add": 15117.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2021-08-03",
   "exit_spy": 437.93,
   "exit": 14925.07,
-  "pnl_pts": 367.89,
-  "pct": 1.22
+  "pnl_pts": 175.2,
+  "pct": 1.16
  },
  {
   "period": "oos",
@@ -1135,13 +1135,13 @@
   "entry_date": "2021-08-19",
   "entry_spy": 440.0,
   "entry": 14933.25,
-  "add_date": "2021-08-30",
-  "add": 15597.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2021-09-10",
   "exit_spy": 445.73,
   "exit": 15452.46,
-  "pnl_pts": -374.18,
-  "pct": -1.23
+  "pnl_pts": -519.21,
+  "pct": -3.48
  },
  {
   "period": "oos",
@@ -1200,13 +1200,13 @@
   "entry_date": "2021-11-01",
   "entry_spy": 460.3,
   "entry": 15904.17,
-  "add_date": "2021-11-04",
-  "add": 16330.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2021-11-10",
   "exit_spy": 462.31,
   "exit": 15930.57,
-  "pnl_pts": 373.78,
-  "pct": 1.16
+  "pnl_pts": -26.4,
+  "pct": -0.17
  },
  {
   "period": "oos",
@@ -1278,13 +1278,13 @@
   "entry_date": "2021-12-23",
   "entry_spy": 470.0,
   "entry": 16276.05,
-  "add_date": "2021-12-27",
-  "add": 16560.0,
+  "add_date": null,
+  "add": null,
   "exit_date": "2022-01-05",
   "exit_spy": 472.35,
   "exit": 15913.9,
-  "pnl_pts": 1008.25,
-  "pct": 3.07
+  "pnl_pts": 362.15,
+  "pct": 2.23
  },
  {
   "period": "oos",
@@ -2097,13 +2097,13 @@
   "entry_date": "2022-11-10",
   "entry_spy": 390.0,
   "entry": 11479.62,
-  "add_date": "2022-11-11",
-  "add": 11848.0,
+  "add_date": null,
+  "add": null,
   "exit_date": "2022-11-14",
   "exit_spy": 395.9,
   "exit": 11760.44,
-  "pnl_pts": -193.26,
-  "pct": -0.83
+  "pnl_pts": -280.82,
+  "pct": -2.45
  },
  {
   "period": "oos",
@@ -2136,26 +2136,26 @@
   "entry_date": "2022-11-22",
   "entry_spy": 400.0,
   "entry": 11757.75,
-  "add_date": "2022-11-23",
-  "add": 11862.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2022-11-25",
   "exit_spy": 401.83,
   "exit": 11766.58,
-  "pnl_pts": 87.33,
-  "pct": 0.37
+  "pnl_pts": -8.83,
+  "pct": -0.08
  },
  {
   "period": "oos",
   "entry_date": "2022-11-30",
   "entry_spy": 400.0,
   "entry": 11791.75,
-  "add_date": "2022-12-01",
-  "add": 12062.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2022-12-02",
   "exit_spy": 402.25,
   "exit": 11858.37,
-  "pnl_pts": 137.76,
-  "pct": 0.58
+  "pnl_pts": -66.62,
+  "pct": -0.56
  },
  {
   "period": "oos",
@@ -2578,26 +2578,26 @@
   "entry_date": "2023-06-01",
   "entry_spy": 420.0,
   "entry": 14403.3,
-  "add_date": "2023-06-02",
-  "add": 14575.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2023-06-06",
   "exit_spy": 426.67,
   "exit": 14535.32,
-  "pnl_pts": -92.1,
-  "pct": -0.32
+  "pnl_pts": -132.02,
+  "pct": -0.92
  },
  {
   "period": "oos",
   "entry_date": "2023-06-09",
   "entry_spy": 430.0,
   "entry": 14559.99,
-  "add_date": "2023-06-13",
-  "add": 14914.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2023-06-15",
   "exit_spy": 436.33,
   "exit": 14950.42,
-  "pnl_pts": -426.59,
-  "pct": -1.45
+  "pnl_pts": -390.43,
+  "pct": -2.68
  },
  {
   "period": "oos",
@@ -2773,13 +2773,13 @@
   "entry_date": "2023-12-08",
   "entry_spy": 460.0,
   "entry": 16089.28,
-  "add_date": "2023-12-12",
-  "add": 16362.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2023-12-15",
   "exit_spy": 467.69,
   "exit": 16456.2,
-  "pnl_pts": -460.38,
-  "pct": -1.42
+  "pnl_pts": -366.92,
+  "pct": -2.28
  },
  {
   "period": "is",
@@ -2799,13 +2799,13 @@
   "entry_date": "2023-12-22",
   "entry_spy": 473.86,
   "entry": 16989.65,
-  "add_date": "2023-12-28",
-  "add": 17090.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2023-12-29",
   "exit_spy": 473.54,
   "exit": 16942.43,
-  "pnl_pts": 195.29,
-  "pct": 0.57
+  "pnl_pts": 47.22,
+  "pct": 0.28
  },
  {
   "period": "is",
@@ -3254,13 +3254,13 @@
   "entry_date": "2024-06-17",
   "entry_spy": 545.0,
   "entry": 19823.19,
-  "add_date": "2024-06-18",
-  "add": 19919.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2024-06-20",
   "exit_spy": 545.99,
   "exit": 19716.48,
-  "pnl_pts": 309.48,
-  "pct": 0.78
+  "pnl_pts": 106.71,
+  "pct": 0.54
  },
  {
   "period": "is",
@@ -3683,26 +3683,26 @@
   "entry_date": "2024-11-06",
   "entry_spy": 589.2,
   "entry": 20810.59,
-  "add_date": "2024-11-07",
-  "add": 21224.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2024-11-14",
   "exit_spy": 593.36,
   "exit": 21012.17,
-  "pnl_pts": 11.0,
-  "pct": 0.03
+  "pnl_pts": -201.58,
+  "pct": -0.97
  },
  {
   "period": "is",
   "entry_date": "2024-11-22",
   "entry_spy": 595.0,
   "entry": 20826.85,
-  "add_date": "2024-11-25",
-  "add": 20880.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2024-12-18",
   "exit_spy": 597.08,
   "exit": 21720.16,
-  "pnl_pts": -1733.23,
-  "pct": -4.16
+  "pnl_pts": -893.31,
+  "pct": -4.29
  },
  {
   "period": "is",
@@ -4060,13 +4060,13 @@
   "entry_date": "2025-05-12",
   "entry_spy": 581.47,
   "entry": 20878.71,
-  "add_date": "2025-05-14",
-  "add": 21392.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-05-19",
   "exit_spy": 588.1,
   "exit": 21213.75,
-  "pnl_pts": -156.29,
-  "pct": -0.37
+  "pnl_pts": -335.04,
+  "pct": -1.6
  },
  {
   "period": "is",
@@ -4086,13 +4086,13 @@
   "entry_date": "2025-06-06",
   "entry_spy": 600.0,
   "entry": 21829.61,
-  "add_date": "2025-06-10",
-  "add": 21962.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-06-13",
   "exit_spy": 598.5,
   "exit": 21713.99,
-  "pnl_pts": 364.13,
-  "pct": 0.83
+  "pnl_pts": 115.62,
+  "pct": 0.53
  },
  {
   "period": "is",
@@ -4125,13 +4125,13 @@
   "entry_date": "2025-06-23",
   "entry_spy": 600.0,
   "entry": 22066.42,
-  "add_date": "2025-07-01",
-  "add": 22692.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-07-07",
   "exit_spy": 620.76,
   "exit": 22888.36,
-  "pnl_pts": -1017.55,
-  "pct": -2.27
+  "pnl_pts": -821.94,
+  "pct": -3.72
  },
  {
   "period": "is",
@@ -4177,13 +4177,13 @@
   "entry_date": "2025-07-23",
   "entry_spy": 631.55,
   "entry": 23185.37,
-  "add_date": "2025-07-28",
-  "add": 23491.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-07-29",
   "exit_spy": 635.81,
   "exit": 23478.05,
-  "pnl_pts": -279.49,
-  "pct": -0.6
+  "pnl_pts": -292.68,
+  "pct": -1.26
  },
  {
   "period": "is",
@@ -4281,13 +4281,13 @@
   "entry_date": "2025-09-11",
   "entry_spy": 655.0,
   "entry": 23894.58,
-  "add_date": "2025-09-16",
-  "add": 24284.0,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-09-17",
   "exit_spy": 658.2,
   "exit": 24176.21,
-  "pnl_pts": -173.85,
-  "pct": -0.36
+  "pnl_pts": -281.64,
+  "pct": -1.18
  },
  {
   "period": "is",
@@ -4528,13 +4528,13 @@
   "entry_date": "2025-11-26",
   "entry_spy": 680.0,
   "entry": 25317.53,
-  "add_date": "2025-11-28",
-  "add": 25482.0,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-12-01",
   "exit_spy": 678.81,
   "exit": 25321.37,
-  "pnl_pts": 156.79,
-  "pct": 0.31
+  "pnl_pts": -3.84,
+  "pct": -0.02
  },
  {
   "period": "is",
@@ -4606,12 +4606,12 @@
   "entry_date": "2025-12-24",
   "entry_spy": 690.0,
   "entry": 25862.23,
-  "add_date": "2025-12-26",
-  "add": 25863.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-12-29",
   "exit_spy": 687.54,
   "exit": 25724.87,
-  "pnl_pts": 275.73,
+  "pnl_pts": 137.36,
   "pct": 0.53
  },
  {
@@ -4957,13 +4957,13 @@
   "entry_date": "2026-04-15",
   "entry_spy": 700.0,
   "entry": 26368.4,
-  "add_date": "2026-04-16",
-  "add": 26487.25,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-04-21",
   "exit_spy": 707.32,
   "exit": 26792.07,
-  "pnl_pts": -728.5,
-  "pct": -1.38
+  "pnl_pts": -423.67,
+  "pct": -1.61
  },
  {
   "period": "is",
@@ -5035,13 +5035,13 @@
   "entry_date": "2026-05-13",
   "entry_spy": 740.0,
   "entry": 29361.61,
-  "add_date": "2026-05-14",
-  "add": 29687.75,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-05-15",
   "exit_spy": 740.99,
   "exit": 29324.26,
-  "pnl_pts": 400.84,
-  "pct": 0.68
+  "pnl_pts": 37.35,
+  "pct": 0.13
  },
  {
   "period": "is",
@@ -5074,13 +5074,13 @@
   "entry_date": "2026-05-22",
   "entry_spy": 746.24,
   "entry": 29589.25,
-  "add_date": "2026-05-26",
-  "add": 30073.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-06-03",
   "exit_spy": 754.97,
   "exit": 30671.35,
-  "pnl_pts": -1679.95,
-  "pct": -2.82
+  "pnl_pts": -1082.1,
+  "pct": -3.66
  },
  {
   "period": "is",
@@ -5217,13 +5217,13 @@
   "entry_date": "2026-08-03",
   "entry_spy": 750.0,
   "entry": 28516.69,
-  "add_date": "2026-08-04",
-  "add": 29863.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-08-18",
   "exit_spy": 768.7,
   "exit": 29647.8,
-  "pnl_pts": -915.4,
-  "pct": -1.57
+  "pnl_pts": -1131.1,
+  "pct": -3.97
  },
  {
   "period": "is",
@@ -5295,13 +5295,13 @@
   "entry_date": "2026-09-21",
   "entry_spy": 770.0,
   "entry": 30606.12,
-  "add_date": "2026-09-22",
-  "add": 31028.5,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-09-23",
   "exit_spy": 769.55,
   "exit": 30854.07,
-  "pnl_pts": -73.51,
-  "pct": -0.12
+  "pnl_pts": -247.94,
+  "pct": -0.81
  },
  {
   "period": "is",
