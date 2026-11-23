@@ -435,7 +435,7 @@ def jp_signals(h, level, retail_daily, need_level=True):
     return trades, pos
 
 
-def excursion(times, prices, legs, end=None):
+def excursion(times, prices, legs, end=None, sign=1):
     """Worst and best open result of a position between its first leg and `end` (or now).
     legs: [(time, entry price)], a leg counts from its own time. Points summed over legs; % of the money in the legs open then."""
     legs = [(pd.Timestamp(t), float(p)) for t, p in legs if t is not None and p is not None and not (isinstance(p, float) and math.isnan(p))]
@@ -449,7 +449,7 @@ def excursion(times, prices, legs, end=None):
     pts = np.zeros(len(df)); cap = np.zeros(len(df))
     for t, p in legs:
         on = (df["t"] >= t).to_numpy()
-        pts += np.where(on, df["p"].to_numpy() - p, 0.0); cap += np.where(on, p, 0.0)
+        pts += np.where(on, sign * (df["p"].to_numpy() - p), 0.0); cap += np.where(on, p, 0.0)
     pct = np.where(cap > 0, pts / np.where(cap > 0, cap, 1) * 100, 0.0)
     i, j = int(np.argmin(pts)), int(np.argmax(pts))
     return {"worst": round(float(min(pts[i], 0.0)), 2), "worst_pct": round(float(min(pct[i], 0.0)), 2),
@@ -557,12 +557,16 @@ def pc_backtest_close(level=-10.0, z_min=1.0):
     return out
 
 
-def write_nq_pc(h, trades, pos, pcd):
-    """Same SPY signals (JP + put/call add-on), traded in NQ futures: NQ price taken from the tracker's NQ readings
-    nearest each SPY event (within 20 min). Backtest from research/data/nq_pc_backtest.json (ThetaData + Yahoo)."""
+_NQ = {}
+
+
+def load_nq():
+    """NQ prices: the tracker's own NQ readings, with Yahoo's 5-minute bars filling earlier gaps (last ~60 days)."""
+    if "nq" in _NQ:
+        return _NQ["nq"]
     path = DATA / "NQ_history.csv"
     nq = pd.read_csv(path, parse_dates=["time_et"]).dropna(subset=["spot"])[["time_et", "spot"]] if path.exists() else pd.DataFrame(columns=["time_et", "spot"])
-    try:   # the tracker logs NQ only since 17 Nov 2026; Yahoo's 5-minute NQ bars fill earlier gaps (last ~60 days)
+    try:
         import yfinance as yf
         bars = yf.Ticker("NQ=F").history(period="60d", interval="5m", prepost=True)["Close"].dropna()
         bars.index = bars.index.tz_convert(ET).tz_localize(None)
@@ -571,7 +575,92 @@ def write_nq_pc(h, trades, pos, pcd):
         nq = pd.concat([y[y["time_et"] < first_log], nq], ignore_index=True)
     except Exception as e:
         print(f"  NQ 5-minute bars unavailable ({e})", file=sys.stderr)
-    nq = nq.sort_values("time_et").reset_index(drop=True)
+    _NQ["nq"] = nq.sort_values("time_et").reset_index(drop=True)
+    return _NQ["nq"]
+
+
+def wall_signals(h, pcd, side):
+    """Put wall long (side "put") / call wall short (side "call") in NQ, from the SPY tracker readings.
+    The day's wall = the tracker's wall at the first reading from 09:30 New York (that day's open interest).
+    Entry: first reading with SPY at/below the put wall (at/above the call wall). Add-on once, at a later day's close
+    (first reading from 16:00), if SPY is below (above) the entry and SPY's put/call z >= +1 (<= -1).
+    Exit: first reading on a later day with SPY gamma >= 0 (<= 0)."""
+    start = pd.Timestamp(CONFIG.get("walls_start", "2026-11-24 00:00"))
+    h = h[h["time_et"] >= start - pd.Timedelta(days=5)].reset_index(drop=True)
+    col = "put_wall" if side == "put" else "call_wall"
+    sign = 1 if side == "put" else -1
+    if h.empty or col not in h:
+        return [], None, {}
+    dates = h["time_et"].dt.date
+    rth = h[(h["time_et"].dt.hour * 60 + h["time_et"].dt.minute >= 570) & (h["time_et"].dt.hour < 16)]
+    day_wall = rth.dropna(subset=[col]).groupby(rth["time_et"].dt.date)[col].first().to_dict()
+    after = h[h["time_et"].dt.hour >= 16]
+    close_of_day = set(after.groupby(after["time_et"].dt.date).head(1).index)
+    zmap = dict(zip(pcd["date"], pcd["z"])) if len(pcd) else {}
+    trades, pos = [], None
+    for i, r in h.iterrows():
+        t, p, g = r["time_et"], r["spot"], r["net_gex_bn"]
+        if t < start:
+            continue
+        rth_now = 570 <= t.hour * 60 + t.minute and t.hour < 16
+        if pos is None:
+            w = day_wall.get(dates[i])
+            if rth_now and w is not None and ((sign > 0 and p <= w) or (sign < 0 and p >= w)):
+                pos = {"entry": (i, p), "wall": w, "adds": [], "day": dates[i]}
+            continue
+        if dates[i] > pos["day"] and ((sign > 0 and g >= 0) or (sign < 0 and g <= 0)):
+            trades.append({**pos, "exit": (i, p)}); pos = None
+            continue
+        if i in close_of_day and dates[i] > pos["day"] and not pos["adds"]:
+            z = zmap.get(dates[i])
+            if z is not None and not pd.isna(z) and ((sign > 0 and z >= 1 and p < pos["entry"][1]) or (sign < 0 and z <= -1 and p > pos["entry"][1])):
+                pos["adds"].append((i, p))
+    last = h.iloc[-1]
+    today = day_wall.get(last["time_et"].date())
+    return trades, pos, {"wall_today": today, "spot": float(last["spot"]), "gamma": float(last["net_gex_bn"]),
+                         "time_et": last["time_et"].strftime("%Y-%m-%d %H:%M"), "h": h}
+
+
+def write_wall_signals(h, pcd):
+    nq = load_nq()
+
+    def nq_at(hh, i):
+        if nq.empty:
+            return None
+        gap = (nq["time_et"] - hh["time_et"][i]).abs(); j = gap.idxmin()
+        return float(nq.at[j, "spot"]) if gap[j] <= pd.Timedelta(minutes=20) else None
+
+    for side, fname, bt in (("put", "PW_signal.json", "pw_backtest.json"), ("call", "CW_signal.json", "cw_backtest.json")):
+        sign = 1 if side == "put" else -1
+        trades, pos, st = wall_signals(h, pcd, side)
+        hh = st.pop("h", None)
+        stamp = lambda i: hh["time_et"][i].strftime("%Y-%m-%d %H:%M")
+        closed = []
+        for tr in trades:
+            units = [nq_at(hh, tr["entry"][0])] + [nq_at(hh, a[0]) for a in tr["adds"]]
+            x = nq_at(hh, tr["exit"][0])
+            ok = x is not None and all(u is not None for u in units)
+            pts = sum(sign * (x - u) for u in units) if ok else None
+            closed.append({"entry_time": stamp(tr["entry"][0]), "entry_spy": tr["entry"][1], "wall": tr["wall"], "entry": units[0],
+                           "adds": units[1:], "add_spy": [a[1] for a in tr["adds"]], "exit_time": stamp(tr["exit"][0]), "exit_spy": tr["exit"][1],
+                           "exit": x, "pnl_pts": round(pts, 2) if ok else None, "pct": round(pts / sum(units) * 100, 2) if ok else None})
+        position = None
+        if pos:
+            position = {"entry_time": stamp(pos["entry"][0]), "entry_spy": pos["entry"][1], "wall": pos["wall"], "entry": nq_at(hh, pos["entry"][0]),
+                        "adds": [{"time": stamp(a[0]), "spy": a[1], "price": nq_at(hh, a[0])} for a in pos["adds"]], "side": "long" if sign > 0 else "short"}
+            legs = [(hh["time_et"][pos["entry"][0]], position["entry"])] + [(hh["time_et"][a[0]], b["price"]) for a, b in zip(pos["adds"], position["adds"])]
+            if len(nq):
+                position["dd"] = excursion(nq["time_et"], nq["spot"], legs, sign=sign)
+        bp = ROOT / "research" / "data" / bt
+        out = {**st, "side": side, "start": CONFIG.get("walls_start", "2026-11-24 00:00"), "position": position, "closed": closed,
+               "nq_last": float(nq["spot"].iloc[-1]) if len(nq) else None, "backtest": json.loads(bp.read_text()) if bp.exists() else []}
+        (DOCS / fname).write_text(json.dumps(out, default=str))
+
+
+def write_nq_pc(h, trades, pos, pcd):
+    """Same SPY signals (JP + put/call add-on), traded in NQ futures: NQ price taken from the tracker's NQ readings
+    nearest each SPY event (within 20 min). Backtest from research/data/nq_pc_backtest.json (ThetaData + Yahoo)."""
+    nq = load_nq()
 
     def nq_at(i):
         ts = h["time_et"][i]
@@ -726,6 +815,10 @@ def write_pc_signal(t, h, level, note):
         pos = None
     try:
         write_nq_pc(h.reset_index(drop=True), trades, pos, pcd)
+        try:
+            write_wall_signals(h.reset_index(drop=True), pcd)
+        except Exception as e:
+            print(f"  wall strategies FAILED - {e}", file=sys.stderr)
     except Exception as e:
         print(f"  NQ put/call signal file failed - {e}", file=sys.stderr)
     try:

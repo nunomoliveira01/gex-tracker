@@ -59,5 +59,6 @@
       "why": "VolSignals: the big put block dealers are short. A sharp drop = someone cashed out, his trigger for a VIX collapse and a rally",
       "alert_drop_pct": 15
     }
-  ]
+  ],
+  "walls_start": "2026-11-24 00:00"
 }
