@@ -841,7 +841,7 @@ function renderNqPc() {
   const above = mean != null && r.premium != null ? r.premium - mean : null, hit = r.bar != null && r.premium != null && r.premium >= r.bar;
   const sigTxt = `<div class="stat"><span>SPY dealer gamma</span><b class="${cls(p.gamma)}">${sg(p.gamma, 1)}bn</b></div>
     <div class="muted" style="margin:-2px 0 6px">enter at ${p.level}bn or lower · exit at 0 or higher</div>
-    <div class="stat"><span>SPY put/call ratio ${r.complete ? "(at the close)" : "(so far today)"}</span><b class="${hit ? "warn" : ""}">${fmt(r.premium)}</b></div>
+    <div class="stat"><span>SPY put/call ratio <span class="muted">${r.date ? r.date.slice(5) + " · " : ""}${r.complete ? "at the close" : "so far that day"}</span></span><b class="${hit ? "warn" : ""}">${fmt(r.premium)}</b></div>
     <div class="stat muted"><span>Its 60-day average</span><span>${fmt(mean)}</span></div>
     <div class="stat"><span>Above the average by</span><b class="${hit ? "warn" : ""}">${above == null ? "–" : sg(above) + (mean ? " (" + sg(above / mean * 100, 0) + "%)" : "")}</b></div>
     <div class="stat muted"><span>Add-on needs at least</span><span>${fmt(r.bar)} <span class="muted">(average + ${p.add_min_z} std)</span></span></div>
