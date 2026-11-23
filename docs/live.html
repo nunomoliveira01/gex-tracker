@@ -190,7 +190,7 @@
     <aside class="side">
       <div class="panel" data-block="rule" id="rule-panel">
         <div class="ph"><select class="sidepick" id="sidepick" title="Choose what this panel shows">
-            <option value="jp">JP rule · SPY</option><option value="pc">My strategy · SPY</option><option value="nq">My strategy · NQ</option></select>
+            <option value="nq">My strategy · NQ</option></select>
           <span class="sub" id="rule-sub"></span>
           <div class="tools"><button class="ib" data-collapse="rule" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="rule" title="Hide (bring back in ⚙)">✕</button></div></div>
         <div class="pb"><div id="rule"><span class="muted">loading…</span></div></div>
@@ -202,12 +202,6 @@
     <div class="ph"><h2>My strategy · rules & scorecard</h2><span class="sub">JP entry/exit + my put/call add-on · Sharpe, beta, alpha and t-stat, updated with every new trading day</span>
       <div class="tools"><button class="ib" data-collapse="my" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="my" title="Hide (bring back in ⚙)">✕</button></div></div>
     <div class="pb"><div id="my"><span class="muted">loading…</span></div></div>
-  </div>
-
-  <div class="panel" data-block="pc" id="pc-panel">
-    <div class="ph"><h2>JP + Put/Call Ratio trades · SPY</h2><span class="sub" id="pc-sub">enter at −10bn gamma · add when SPY's put/call ratio is 1 std above normal · exit at 0</span>
-      <div class="tools"><button class="ib" data-collapse="pc" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="pc" title="Hide (bring back in ⚙)">✕</button></div></div>
-    <div class="pb"><div id="pc"><span class="muted">loading…</span></div></div>
   </div>
 
   <div class="panel" data-block="nqpc" id="nqpc-panel">
@@ -297,9 +291,8 @@ $("themebtn").onclick = () => { const d = document.documentElement.classList.tog
 // every panel and every signal card has an id; hidden = gone until turned on in ⚙; collapsed = only its title shows
 const BLOCKS = [
   ["chart", "Gamma chart", [["chart.stats", "Numbers above the chart"], ["chart.legend", "Line buttons"]]],
-  ["rule", "JP rule", [["rule.pos", "Position"], ["rule.gamma", "SPY gamma"], ["rule.retail", "Retail panic"], ["rule.adds", "Add-on conditions"], ["rule.hist", "Trade history"]]],
+  ["rule", "Live position · NQ", []],
   ["my", "My strategy · rules & scorecard", [["my.rules", "Rules"], ["my.trades", "Live trades"], ["my.outlook", "Future alpha"], ["my.score", "Scorecard table"], ["my.days", "Daily live record"]]],
-  ["pc", "JP + Put/Call Ratio trades", [["pc.pos", "Position"], ["pc.ratio", "Put/call today"], ["pc.adds", "Add-on conditions"], ["pc.live", "Live record"], ["pc.bt", "Backtest 2022–26"]]],
   ["nqpc", "NQ SPY put/call add-on", [["nqpc.pos", "Position in NQ"], ["nqpc.sig", "SPY signals"], ["nqpc.live", "Live record"], ["nqpc.bt", "Backtest 2022–26"]]],
   ["margin", "Margin", [["margin.debt", "Margin debt"], ["margin.SPX", "S&P 500"], ["margin.NDX", "Nasdaq 100"], ["margin.fx", "Dollar signal"]]],
   ["oiw", "Put block watch", [["oiw.now", "Contracts now"], ["oiw.hist", "Daily history"]]],
@@ -749,7 +742,7 @@ function roundRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPat
 window.addEventListener("resize", drawAll);
 
 // ===================================================================== panels
-function refreshPanels(force) { if (force) ["rule", "my", "pc", "nqpc", "margin", "quant", "oiw"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMy(); renderPc(); renderNqPc(); renderMargin(); renderQuant(); renderOiw(); }
+function refreshPanels(force) { if (force) ["rule", "my", "nqpc", "margin", "quant", "oiw"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMy(); renderPc(); renderNqPc(); renderMargin(); renderQuant(); renderOiw(); }
 
 // ---------- my strategy: rules + scorecard
 let metrics = null;
@@ -761,25 +754,23 @@ function renderMy() {
       <li><b>Add once:</b> at the US close (21:00 Lisbon), buy 1 more unit if the price is <b>below the entry</b> and SPY's <b>put/call ratio</b> is ≥ ${z} standard deviation above its 60-day average.</li>
       <li><b>Exit:</b> sell everything when SPY gamma is back at <b>0</b> or above.</li>
       <li><b>Size:</b> money for 2 units; each unit = half. In NQ use micro futures (MNQ, $2/point).</li>
-      <li><b>Worst case to plan for:</b> −17% (SPY) / −20% (NQ) during a trade. No other stop.</li></ol>`;
+      <li><b>Worst case to plan for:</b> −20% in NQ during a trade. No other stop.</li></ol>`;
   const best = m.nq.combined.days ? m.nq.combined : m.nq.backtest, bs = m.spy.combined.days ? m.spy.combined : m.spy.backtest;
   const outlook = (x, name) => !x.t && x.t !== 0 ? "" : `<div style="margin-top:6px"><b>${name}</b></div>
     <div class="stat"><span>Best estimate of alpha</span><b class="${cls(x.alpha_pct_yr)}">${sg(x.alpha_pct_yr, 1)}% / year</b></div>
     <div class="stat muted"><span>Range the data allows (95%)</span><span>${sg(x.alpha_low, 1)}% to ${sg(x.alpha_high, 1)}%</span></div>
     <div class="stat muted"><span>Rough chance it's really positive</span><span>${x.chance_positive_pct}%</span></div>
     <div class="stat muted"><span>More years needed for t = 2</span><span>${x.years_to_t2 == null ? "–" : x.years_to_t2 === 0 ? "reached" : "~" + x.years_to_t2}</span></div>`;
-  const outTxt = outlook(best, "In NQ") + outlook(bs, "In SPY") +
+  const outTxt = outlook(best, "In NQ") +
     `<div class="muted" style="margin-top:6px">Backtest + ${m.live_days} live day${m.live_days === 1 ? "" : "s"}. Each new day moves these numbers; if the edge is real, the t-stat should creep up and the range should narrow.</div>`;
   const row = (label, x) => !x.sharpe && x.sharpe !== 0 ? `<tr><td>${label}</td><td colspan="7" class="muted">${x.days || 0} day${x.days === 1 ? "" : "s"} so far — needs 20+ days</td></tr>`
     : `<tr><td>${label}</td><td>${x.days}</td><td>${fmt(x.sharpe)}</td><td>${fmt(x.beta)}</td><td class="${cls(x.alpha_pct_yr)}">${sg(x.alpha_pct_yr, 1)}%</td><td><b>${fmt(x.t)}</b></td><td>${sg(x.alpha_low, 1)}% to ${sg(x.alpha_high, 1)}%</td><td>${x.chance_positive_pct}%</td></tr>`;
   const table = `<div class="scroll"><table class="q"><tr><th></th><th>Days</th><th>Sharpe</th><th>Beta vs SPY</th><th>Alpha / yr</th><th>t-stat</th><th>95% range</th><th>Chance &gt; 0</th></tr>
       <tr><td colspan="8" class="sublbl" style="text-align:left">Traded in NQ futures</td></tr>
       ${row("Backtest (2022 → 17 Nov 2026, fills at the level)", m.nq.backtest)}${row("Live (from 18 Nov 2026)", m.nq.live)}${row("<b>Combined</b>", m.nq.combined)}
-      <tr><td colspan="8" class="sublbl" style="text-align:left">Traded in SPY</td></tr>
-      ${row("Backtest (2022 → 17 Nov 2026, fills at the level)", m.spy.backtest)}${row("Live (from 18 Nov 2026)", m.spy.live)}${row("<b>Combined</b>", m.spy.combined)}
     </table></div><div class="muted">Benchmark: holding SPY had a Sharpe of ${m.bench ? fmt(m.bench.sharpe) : "–"} over the backtest. Cash rate used: ${m.rf_pct}%/yr.</div>`;
   const days = (m.live_rows || []).slice().reverse().map(r => `<tr><td>${r.date}</td><td>${r.units}</td><td class="${cls(r.spy_ret)}">${sg(r.spy_ret * 100)}%</td>` +
-    `<td class="${cls(r.ours_spy)}">${sg(r.ours_spy * 100)}%</td><td class="${cls(r.ours_nq)}">${sg(r.ours_nq * 100)}%</td></tr>`).join("");
+    `<td class="${cls(r.ours_nq)}">${sg(r.ours_nq * 100)}%</td></tr>`).join("");
   // live trades: open + closed, SPY and NQ side by side (same signals)
   let tradesHtml = "";
   if (isOn("my.trades") && p) {
@@ -794,29 +785,29 @@ function renderMy() {
       const sp = pts(su, spyNow), np = nu.length && nu.every(v => v != null) ? pts(nu, nqNow) : null;
       rows.push(`<tr><td><span class="badge blue">open</span> ${p.position.entry_time.slice(5)}</td><td>${fmt(p.position.entry)}</td><td>${nu[0] != null ? fmt(nu[0], 0) : "–"}</td>` +
         `<td>${p.position.adds.length ? p.position.adds.map(a => a.time.slice(5, 10) + " @ " + fmt(a.price)).join(", ") : "–"}</td><td class="muted">now ${fmt(spyNow)} / ${fmt(nqNow, 0)}</td>` +
-        `<td class="${cls(sp)}">${sg(sp)}</td><td class="${cls(np)}">${np == null ? "–" : sg(np, 0)}</td><td class="${cls(np)}"><b>${np == null ? "–" : sg(np * MNQ, 0) + " $"}</b></td>` +
+        `<td class="${cls(np)}">${np == null ? "–" : sg(np, 0)}</td><td class="${cls(np)}"><b>${np == null ? "–" : sg(np * MNQ, 0) + " $"}</b></td>` +
         `<td class="down">${(() => { const d = nqPos && nqPos.dd; if (!d) return "–"; const w = Math.min(d.worst, np ?? 0, 0); return sg(w * MNQ, 0) + " $ (" + sg(Math.min(d.worst_pct, 0), 1) + "%)"; })()}</td></tr>`);
     }
     (p.closed || []).slice().reverse().forEach(c => {
       const n = findNq(c.entry_time);
       rows.push(`<tr><td>${c.entry_time.slice(5)}</td><td>${fmt(c.entry)}</td><td>${n && n.entry != null ? fmt(n.entry, 0) : "–"}</td><td>${c.adds.length ? c.adds.map(a => fmt(a)).join(", ") : "–"}</td>` +
-        `<td>${c.exit_time.slice(5)} @ ${fmt(c.exit)}</td><td class="${cls(c.pnl)}">${sg(c.pnl)}</td>` +
+        `<td>${c.exit_time.slice(5)} @ ${fmt(c.exit)}</td>` +
         `<td class="${cls(n && n.pnl_pts)}">${n && n.pnl_pts != null ? sg(n.pnl_pts, 0) : "–"}</td><td class="${cls(n && n.pnl_pts)}">${n && n.pnl_pts != null ? sg(n.pnl_pts * MNQ, 0) + " $" : "–"}</td>` +
         `<td class="down">${n && n.dd ? sg(n.dd.worst * MNQ, 0) + " $ (" + sg(n.dd.worst_pct, 1) + "%)" : c.dd ? sg(c.dd.worst, 2) + " SPY pts" : "–"}</td></tr>`);
     });
     const done = (p.closed || []), totS = done.reduce((a, c) => a + c.pnl, 0);
     const totN = nqClosed.filter(c => c.pnl_pts != null).reduce((a, c) => a + c.pnl_pts, 0);
     tradesHtml = `<div class="sublbl">Live trades <button class="ib" data-hide="my.trades" title="Hide">✕</button></div>
-      <div class="scroll"><table class="q"><tr><th>Entry (New York)</th><th>SPY</th><th>NQ</th><th>Add-on</th><th>Exit</th><th>SPY pts</th><th>NQ pts</th><th>Per MNQ</th><th title="Worst open result during the trade, per MNQ">Max drawdown</th></tr>
-      ${rows.join("") || '<tr><td colspan="9" class="muted">No live trades yet</td></tr>'}
-      ${done.length ? `<tr><td><b>Closed total</b></td><td colspan="4" class="muted">${done.length} trade${done.length === 1 ? "" : "s"} · ${done.filter(c => c.pnl > 0).length} won</td><td class="${cls(totS)}"><b>${sg(totS)}</b></td>${nqClosed.some(c => c.pnl_pts != null) ? `<td class="${cls(totN)}"><b>${sg(totN, 0)}</b></td><td class="${cls(totN)}"><b>${sg(totN * MNQ, 0)} $</b></td>` : "<td>–</td><td>–</td>"}<td></td></tr>` : ""}
+      <div class="scroll"><table class="q"><tr><th>Entry (New York)</th><th title="SPY price when the signal fired">SPY signal</th><th>NQ</th><th>Add-on (SPY)</th><th>Exit (SPY)</th><th>NQ pts</th><th>Per MNQ</th><th title="Worst open result during the trade, per MNQ">Max drawdown</th></tr>
+      ${rows.join("") || '<tr><td colspan="8" class="muted">No live trades yet</td></tr>'}
+      ${done.length ? `<tr><td><b>Closed total</b></td><td colspan="4" class="muted">${done.length} trade${done.length === 1 ? "" : "s"} · ${nqClosed.filter(c => c.pnl_pts > 0).length} won in NQ</td>${nqClosed.some(c => c.pnl_pts != null) ? `<td class="${cls(totN)}"><b>${sg(totN, 0)}</b></td><td class="${cls(totN)}"><b>${sg(totN * MNQ, 0)} $</b></td>` : "<td>–</td><td>–</td>"}<td></td></tr>` : ""}
       </table></div><div class="muted">From the tracker's signals (5-minute readings). NQ prices ~10–15 min delayed; "–" where NQ wasn't recorded yet. Your real fills will differ slightly.</div>`;
   }
   setHTML("my", `<div class="cards">${card("my.rules", "My rules", rules)}${card("my.outlook", "Future alpha — what the data says so far", outTxt)}</div>
     ${tradesHtml}
     ${isOn("my.score") ? `<div class="sublbl">Scorecard <button class="ib" data-hide="my.score" title="Hide">✕</button></div>${table}` : ""}
     ${isOn("my.days") ? `<details class="how" style="margin-top:10px"><summary>Daily live record (${m.live_days} day${m.live_days === 1 ? "" : "s"})</summary><div class="scroll"><table class="q">
-      <tr><th>Day</th><th>Legs held</th><th>SPY</th><th>My account in SPY</th><th>My account in NQ</th></tr>${days || '<tr><td colspan="5" class="muted">No complete live day yet</td></tr>'}</table></div></details>` : ""}
+      <tr><th>Day</th><th>Legs held</th><th>SPY</th><th>My account in NQ</th></tr>${days || '<tr><td colspan="4" class="muted">No complete live day yet</td></tr>'}</table></div></details>` : ""}
     <details class="how" style="margin-top:10px"><summary>How to read this</summary><b>Sharpe</b>: return per unit of swing (higher is better). <b>Beta</b>: how much of the market's moves you carry (1 = same as SPY). <b>Alpha</b>: yearly return left after paying for that market risk. <b>t-stat</b>: how sure we are the alpha isn't luck — about 2 is the usual bar. <b>95% range</b>: where the true alpha probably lies. Account sized for 2 units, idle cash earns the cash rate, daily closes, no costs. The live record is rebuilt every 5 minutes from the tracker's own readings and saved in the project's data/strategy_live.csv. Not investment advice.</details>`);
 }
 
@@ -928,7 +919,7 @@ function ddHtml(dd, nowPts, capital, perPoint) {
 }
 
 // ---------- right-hand panel: JP rule, or my strategy in SPY or NQ
-let sidePick = store.get("sidePick", "jp");
+let sidePick = "nq";   // only the NQ strategy is shown now
 function sideOut(kind, html, sub) { if (sidePick !== kind) return; setHTML("rule", html); if (sub != null) $("rule-sub").innerHTML = sub; }
 $("sidepick").value = sidePick;
 $("sidepick").onchange = e => { sidePick = e.target.value; store.set("sidePick", sidePick); refreshPanels(true); };
