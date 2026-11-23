@@ -837,8 +837,15 @@ function renderNqPc() {
   } else if (pos) posTxt = `<div class="big">In position</div><div class="muted">The NQ price at entry wasn't recorded (before the tracker logged NQ).</div>`;
   else posTxt = `<div class="big" style="color:var(--muted)">Flat</div><div>Buys NQ when SPY gamma reaches <b>${p.level}bn</b> (now ${sg(p.gamma)}bn).</div>`;
   const r = p.retail;
-  const sigTxt = `<div class="stat"><span>SPY gamma</span><b class="${cls(p.gamma)}">${sg(p.gamma)}bn</b></div>
-    <div class="stat"><span>SPY put/call (z)</span><b class="${r.z >= p.add_min_z ? "warn" : ""}">${fmt(r.premium)} (${fmt(r.z)})</b></div>
+  const mean = r.mean != null ? r.mean : (r.bar != null && r.z != null && r.premium != null && r.z !== p.add_min_z ? (r.bar * r.z - r.premium * p.add_min_z) / (r.z - p.add_min_z) : null);
+  const above = mean != null && r.premium != null ? r.premium - mean : null, hit = r.bar != null && r.premium != null && r.premium >= r.bar;
+  const sigTxt = `<div class="stat"><span>SPY dealer gamma</span><b class="${cls(p.gamma)}">${sg(p.gamma, 1)}bn</b></div>
+    <div class="muted" style="margin:-2px 0 6px">enter at ${p.level}bn or lower · exit at 0 or higher</div>
+    <div class="stat"><span>SPY put/call ratio ${r.complete ? "(at the close)" : "(so far today)"}</span><b class="${hit ? "warn" : ""}">${fmt(r.premium)}</b></div>
+    <div class="stat muted"><span>Its 60-day average</span><span>${fmt(mean)}</span></div>
+    <div class="stat"><span>Above the average by</span><b class="${hit ? "warn" : ""}">${above == null ? "–" : sg(above) + (mean ? " (" + sg(above / mean * 100, 0) + "%)" : "")}</b></div>
+    <div class="stat muted"><span>Add-on needs at least</span><span>${fmt(r.bar)} <span class="muted">(average + ${p.add_min_z} std)</span></span></div>
+    ${tick(hit, hit ? "put/call high enough for the add-on" : "put/call not high enough for the add-on")}
     ${pos && pos.entry != null ? tick(nqNow < pos.entry, "NQ below the entry") : ""}
     <div class="muted">Entry, add-on and exit come from SPY — see the panel above. NQ prices are ~10–15 min delayed.</div>`;
   const closed = (q.closed || []).filter(c => c.pnl_pts != null), tot = closed.reduce((a, c) => a + c.pnl_pts, 0);

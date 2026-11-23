@@ -467,6 +467,7 @@ def write_signal_json(t, h, level, note, trades, pos, retail_daily, name="signal
            "add_min_z": CONFIG.get("add_min_z", 1.0), "max_adds": CONFIG.get("max_adds", 1),
            "retail": {"date": str(rd.get("date", "")), "premium": clean(rd.get("premium")),
                       "bar": clean(rd.get("bar")), "z": clean(rd.get("z")),
+                      "mean": clean(rd.get("mean")), "std": clean(rd.get("std")),
                       "complete": bool(rd.get("complete", False)),
                       "days": int(len(retail_daily))},
            "position": None,
