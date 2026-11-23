@@ -1,0 +1,148 @@
+{
+ "signal: A \u2014 0DTE (or \u22642-day), out at 15:55": {
+  "n": 415,
+  "avg_ret_pct": 40.6,
+  "median_ret_pct": -36.4,
+  "won_pct": 39,
+  "worst_pct": -99.4,
+  "per_exposure_pct": 0.218,
+  "nq_same_days_pct": 0.346,
+  "ret_yr_1pct": 21.45,
+  "worst_run_pct": -13.3,
+  "pos_years_2019_24": 6,
+  "by_year": {
+   "2018": 48.0,
+   "2019": 45.1,
+   "2020": 9.6,
+   "2021": 25.5,
+   "2022": 40.8,
+   "2023": 10.1,
+   "2024": 8.5,
+   "2025": 120.9,
+   "2026": 37.2
+  },
+  "avg_dte": 0.1
+ },
+ "random: A \u2014 0DTE (or \u22642-day), out at 15:55": {
+  "n": 195,
+  "avg_ret_pct": -15.1,
+  "median_ret_pct": -53.2,
+  "won_pct": 32,
+  "worst_pct": -99.6,
+  "per_exposure_pct": -0.084,
+  "nq_same_days_pct": null,
+  "ret_yr_1pct": -5.45,
+  "worst_run_pct": -27.8,
+  "pos_years_2019_24": 2,
+  "by_year": {
+   "2019": -37.5,
+   "2020": 5.8,
+   "2021": -23.4,
+   "2022": 7.3,
+   "2023": -30.2,
+   "2024": -6.0,
+   "2025": -25.3,
+   "2026": -11.5
+  },
+  "avg_dte": 0.2
+ },
+ "signal: B1 \u2014 2\u20133 day, out at 15:55": {
+  "n": 415,
+  "avg_ret_pct": 18.7,
+  "median_ret_pct": -0.6,
+  "won_pct": 49,
+  "worst_pct": -83.5,
+  "per_exposure_pct": 0.224,
+  "nq_same_days_pct": 0.346,
+  "ret_yr_1pct": 10.02,
+  "worst_run_pct": -4.2,
+  "pos_years_2019_24": 6,
+  "by_year": {
+   "2018": 26.6,
+   "2019": 18.3,
+   "2020": 3.0,
+   "2021": 9.5,
+   "2022": 28.0,
+   "2023": 8.1,
+   "2024": 9.6,
+   "2025": 40.7,
+   "2026": 16.2
+  },
+  "avg_dte": 2.2
+ },
+ "random: B1 \u2014 2\u20133 day, out at 15:55": {
+  "n": 195,
+  "avg_ret_pct": -2.7,
+  "median_ret_pct": -9.5,
+  "won_pct": 40,
+  "worst_pct": -78.8,
+  "per_exposure_pct": -0.046,
+  "nq_same_days_pct": null,
+  "ret_yr_1pct": -0.99,
+  "worst_run_pct": -6.2,
+  "pos_years_2019_24": 3,
+  "by_year": {
+   "2019": -14.4,
+   "2020": -0.1,
+   "2021": 0.1,
+   "2022": 3.7,
+   "2023": -7.5,
+   "2024": 1.4,
+   "2025": -6.5,
+   "2026": 0.1
+  },
+  "avg_dte": 2.2
+ },
+ "signal: B2 \u2014 2\u20133 day, out 9:45 next day": {
+  "n": 414,
+  "avg_ret_pct": 18.7,
+  "median_ret_pct": -14.6,
+  "won_pct": 43,
+  "worst_pct": -95.6,
+  "per_exposure_pct": 0.248,
+  "nq_same_days_pct": 0.342,
+  "ret_yr_1pct": 9.87,
+  "worst_run_pct": -7.8,
+  "pos_years_2019_24": 5,
+  "by_year": {
+   "2018": 27.5,
+   "2019": 0.2,
+   "2020": 7.1,
+   "2021": 14.9,
+   "2022": 40.8,
+   "2023": -5.5,
+   "2024": 9.6,
+   "2025": 38.1,
+   "2026": 18.3
+  },
+  "avg_dte": 2.2
+ },
+ "random: B2 \u2014 2\u20133 day, out 9:45 next day": {
+  "n": 194,
+  "avg_ret_pct": -9.8,
+  "median_ret_pct": -28.5,
+  "won_pct": 29,
+  "worst_pct": -94.9,
+  "per_exposure_pct": -0.15,
+  "nq_same_days_pct": null,
+  "ret_yr_1pct": -3.52,
+  "worst_run_pct": -18.1,
+  "pos_years_2019_24": 1,
+  "by_year": {
+   "2019": -26.1,
+   "2020": -22.7,
+   "2021": -11.9,
+   "2022": 11.2,
+   "2023": -9.3,
+   "2024": -10.2,
+   "2025": -13.8,
+   "2026": -0.6
+  },
+  "avg_dte": 2.2
+ },
+ "pass": {
+  "A \u2014 0DTE (or \u22642-day), out at 15:55": false,
+  "B1 \u2014 2\u20133 day, out at 15:55": false,
+  "B2 \u2014 2\u20133 day, out 9:45 next day": false
+ }
+}
