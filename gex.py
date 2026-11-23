@@ -615,7 +615,7 @@ def wall_signals(h, pcd, side, max_days=None):
         if max_days and i in close_of_day and day_no[dates[i]] - day_no[pos["day"]] >= max_days:   # time limit: out at that close
             trades.append({**pos, "exit": (i, p), "timed_out": True}); pos = None
             continue
-        if i in close_of_day and dates[i] > pos["day"] and not pos["adds"]:
+        if CONFIG.get("walls_add_on", False) and i in close_of_day and dates[i] > pos["day"] and not pos["adds"]:
             z = zmap.get(dates[i])
             if z is not None and not pd.isna(z) and ((sign > 0 and z >= 1 and p < pos["entry"][1]) or (sign < 0 and z <= -1 and p > pos["entry"][1])):
                 pos["adds"].append((i, p))

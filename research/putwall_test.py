@@ -14,7 +14,7 @@ START, END = "2023-11-17", "2026-11-17"
 rng = np.random.default_rng(9)
 
 
-def trades_wall(d, col, need_neg=False):
+def trades_wall(d, col, need_neg=False, add=True):
     prev = d["pc_volume"].shift(1).rolling(60)
     z = (d["pc_volume"] - prev.mean()) / prev.std()
     out, pos = [], None
@@ -30,7 +30,7 @@ def trades_wall(d, col, need_neg=False):
             px = r["open"] if (fp is None or fp <= r["open"]) else fp
             out.append({**pos, "x": t, "x_px": float(min(max(px, r["spy_low"]), r["spy_high"])), "open": False}); pos = None
             continue
-        if pos["a"] is None and r["spy_close"] < pos["e_px"] and z.iloc[i] >= 1:
+        if add and pos["a"] is None and r["spy_close"] < pos["e_px"] and z.iloc[i] >= 1:
             pos["a"], pos["a_px"] = t, r["spy_close"]
     if pos:
         out.append({**pos, "x": d.index[-1], "x_px": d["spy_close"].iloc[-1], "open": True})

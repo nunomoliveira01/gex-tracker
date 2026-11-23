@@ -79,18 +79,24 @@ def main():
         PW.START, CW.START = a, a
         P, Pn, Po = PW.trades_wall(dd, "put_wall"), PW.trades_wall(dd, "put_wall", True), PW.trades_wall(dd, "put_wall_oi")
         S, Sp, So = CW.trades_short(dd, "call_wall"), CW.trades_short(dd, "call_wall", need_pos=True), CW.trades_short(dd, "call_wall_oi")
+        Pn0, Sn0, S5n0 = PW.trades_wall(dd, "put_wall", add=False), CW.trades_short(dd, "call_wall", add=False), CW.trades_short(dd, "call_wall", max_days=5, add=False)
         bn = lambda s: float(beta60.get(s["e"], beta)) if pd.notna(beta60.get(s["e"], np.nan)) else beta
         one = lambda s: 1.0
         cnq, cspy = np.log(nq.loc[a:b]).to_numpy(), np.log(spy.loc[a:b]).to_numpy()
         versions = [("P — long NQ at the put wall", P, 1, None), ("P-neg — only if gamma < 0", Pn, 1, None), ("P-OI — open-interest wall", Po, 1, None),
                     ("S — short NQ at the call wall", S, -1, None), ("S-pos — only if gamma > 0", Sp, -1, None), ("S-OI — open-interest wall", So, -1, None),
                     ("P-hedged — long NQ + short SPY, same $", P, 1, one), ("S-hedged — short NQ + long SPY, same $", S, -1, one),
-                    ("P-hedged, beta-neutral", P, 1, bn), ("S-hedged, beta-neutral", S, -1, bn)]
+                    ("P-hedged, beta-neutral", P, 1, bn), ("S-hedged, beta-neutral", S, -1, bn),
+                    ("P, no add-on (1 unit = all capital)", Pn0, 1, "solo"), ("S, no add-on (1 unit = all capital)", Sn0, -1, "solo"),
+                    ("S-5d, no add-on (1 unit = all capital)", S5n0, -1, "solo")]
         L += [f"## {'Out of sample' if per == 'oos' else 'Original period'}: {a} → {b} (NQ beta to SPY {round(beta, 2)})", "",
               "| Version | Trades | Avg per trade | Won | Avg days | Worst trade | Return/yr | Sharpe | Worst fall | Beta | Alpha/yr | Alpha t | Random p | Avg by year |",
               "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
         for name, tr, sign, hedge in versions:
-            acct = legs_account(d.index, tr, nq, conv, sign)
+            solo = hedge == "solo"
+            if solo:
+                hedge = None
+            acct = legs_account(d.index, tr, nq, conv, sign, (lambda s: 2.0) if solo else one)
             legs = [(conv, sign, one)]
             if hedge is not None:
                 acct = acct + legs_account(d.index, tr, spy, spy_conv, -sign, hedge)
@@ -120,8 +126,8 @@ def main():
             L.append(f"| {name} | {res['n']} | {res['avg_pct']}% | {res['won_pct']}% | {res['avg_days']} | {res['worst_trade_pct']}% | {st['cagr_pct']}% | {st['sharpe']} | "
                      f"{st['max_dd_pct']}% | {st['beta']} | {st['alpha_pct_yr']}% | {st['alpha_t']} | {p} | {' '.join(f'{k}:{v:+.2f}' for k, v in res['by_year'].items())} |")
         # backtest lists for the live page (NQ prices)
-        S5 = CW.trades_short(dd, "call_wall", max_days=5)
-        for key, tr, sign in (("P", P, 1), ("S", S, -1), ("S5", S5, -1)):
+        # the live page shows the rules WITHOUT the add-on (Nuno's choice, 23 Nov 2026)
+        for key, tr, sign in (("P", Pn0, 1), ("S", Sn0, -1), ("S5", S5n0, -1)):
             for s in tr:
                 if s["open"]:
                     continue
