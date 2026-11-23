@@ -8,11 +8,18 @@ import pandas as pd
 import callwall_test as CW
 import putwall_test as PW
 from backtest import ROOT
-from exact_level import yahoo
 from metrics import stats as acct_stats
 
 PERIODS = {"oos": ("2018-11-19", "2023-07-31"), "is": ("2023-11-17", "2026-11-17")}
 rng = np.random.default_rng(11)
+
+
+def yahoo(sym, adjust=False):
+    """Daily Yahoo prices from mid-2018 (exact_level.yahoo starts in Oct 2021, too late for this test)."""
+    import yfinance as yf
+    h = yf.Ticker(sym).history(start="2018-06-01", interval="1d", auto_adjust=adjust)
+    h.index = pd.to_datetime(h.index).tz_localize(None).normalize()
+    return h[~h.index.duplicated()]
 
 
 def legs_account(idx_all, tr, inst, conv, sign, weight=lambda s: 1.0):
@@ -59,6 +66,7 @@ def main():
     beta60 = (nq_ret.rolling(60).cov(spy_ret) / spy_ret.rolling(60).var()).shift(1)
     out, L, web = {}, [], {"P": [], "S": []}
     L += ["# Test 11 — wall strategies out of sample (Nov 2018 → Jul 2023) and hedged with SPY; daily, no costs", ""]
+    assert nq.loc["2018-11-19":].notna().all(), "NQ prices missing"
     for per, (a, b) in PERIODS.items():
         idx = d.loc[a:b].index
         win = nq_ret.loc[a:b].dropna().index
