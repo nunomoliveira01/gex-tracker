@@ -64,7 +64,7 @@ def main():
     rf_all = yahoo("^IRX")["Close"].reindex(d.index).ffill() / 100 / 252
     nq_ret, spy_ret = nq.pct_change(), spy.pct_change()
     beta60 = (nq_ret.rolling(60).cov(spy_ret) / spy_ret.rolling(60).var()).shift(1)
-    out, L, web = {}, [], {"P": [], "S": []}
+    out, L, web = {}, [], {"P": [], "S": [], "S5": []}
     L += ["# Test 11 — wall strategies out of sample (Nov 2018 → Jul 2023) and hedged with SPY; daily, no costs", ""]
     assert nq.loc["2018-11-19":].notna().all(), "NQ prices missing"
     for per, (a, b) in PERIODS.items():
@@ -120,7 +120,8 @@ def main():
             L.append(f"| {name} | {res['n']} | {res['avg_pct']}% | {res['won_pct']}% | {res['avg_days']} | {res['worst_trade_pct']}% | {st['cagr_pct']}% | {st['sharpe']} | "
                      f"{st['max_dd_pct']}% | {st['beta']} | {st['alpha_pct_yr']}% | {st['alpha_t']} | {p} | {' '.join(f'{k}:{v:+.2f}' for k, v in res['by_year'].items())} |")
         # backtest lists for the live page (NQ prices)
-        for key, tr, sign in (("P", P, 1), ("S", S, -1)):
+        S5 = CW.trades_short(dd, "call_wall", max_days=5)
+        for key, tr, sign in (("P", P, 1), ("S", S, -1), ("S5", S5, -1)):
             for s in tr:
                 if s["open"]:
                     continue
@@ -147,7 +148,7 @@ def main():
     L += ["## Verdicts (out of sample)", ""] + [f"- {k}: {json.dumps(x)}" for k, x in v.items()]
     (ROOT / "results_walls_oos.json").write_text(json.dumps(out, indent=1, default=str))
     (ROOT / "results_walls_oos.md").write_text("\n".join(L))
-    for key, fname in (("P", "pw_backtest.json"), ("S", "cw_backtest.json")):
+    for key, fname in (("P", "pw_backtest.json"), ("S", "cw_backtest.json"), ("S5", "cw5_backtest.json")):
         (ROOT / "data" / fname).write_text(json.dumps(web[key], indent=1))
     print("\n".join(L))
 

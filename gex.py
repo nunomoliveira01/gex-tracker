@@ -579,7 +579,7 @@ def load_nq():
     return _NQ["nq"]
 
 
-def wall_signals(h, pcd, side):
+def wall_signals(h, pcd, side, max_days=None):
     """Put wall long (side "put") / call wall short (side "call") in NQ, from the SPY tracker readings.
     The day's wall = the tracker's wall at the first reading from 09:30 New York (that day's open interest).
     Entry: first reading with SPY at/below the put wall (at/above the call wall). Add-on once, at a later day's close
@@ -597,6 +597,7 @@ def wall_signals(h, pcd, side):
     after = h[h["time_et"].dt.hour >= 16]
     close_of_day = set(after.groupby(after["time_et"].dt.date).head(1).index)
     zmap = dict(zip(pcd["date"], pcd["z"])) if len(pcd) else {}
+    day_no = {dd: k for k, dd in enumerate(sorted(set(dates)))}   # trading-day counter (for the 5-day exit version)
     trades, pos = [], None
     for i, r in h.iterrows():
         t, p, g = r["time_et"], r["spot"], r["net_gex_bn"]
@@ -610,6 +611,9 @@ def wall_signals(h, pcd, side):
             continue
         if dates[i] > pos["day"] and ((sign > 0 and g >= 0) or (sign < 0 and g <= 0)):
             trades.append({**pos, "exit": (i, p)}); pos = None
+            continue
+        if max_days and i in close_of_day and day_no[dates[i]] - day_no[pos["day"]] >= max_days:   # time limit: out at that close
+            trades.append({**pos, "exit": (i, p), "timed_out": True}); pos = None
             continue
         if i in close_of_day and dates[i] > pos["day"] and not pos["adds"]:
             z = zmap.get(dates[i])
@@ -630,9 +634,9 @@ def write_wall_signals(h, pcd):
         gap = (nq["time_et"] - hh["time_et"][i]).abs(); j = gap.idxmin()
         return float(nq.at[j, "spot"]) if gap[j] <= pd.Timedelta(minutes=20) else None
 
-    for side, fname, bt in (("put", "PW_signal.json", "pw_backtest.json"), ("call", "CW_signal.json", "cw_backtest.json")):
+    def build(side, max_days=None):
         sign = 1 if side == "put" else -1
-        trades, pos, st = wall_signals(h, pcd, side)
+        trades, pos, st = wall_signals(h, pcd, side, max_days)
         hh = st.pop("h", None)
         stamp = lambda i: hh["time_et"][i].strftime("%Y-%m-%d %H:%M")
         closed = []
@@ -643,7 +647,8 @@ def write_wall_signals(h, pcd):
             pts = sum(sign * (x - u) for u in units) if ok else None
             closed.append({"entry_time": stamp(tr["entry"][0]), "entry_spy": tr["entry"][1], "wall": tr["wall"], "entry": units[0],
                            "adds": units[1:], "add_spy": [a[1] for a in tr["adds"]], "exit_time": stamp(tr["exit"][0]), "exit_spy": tr["exit"][1],
-                           "exit": x, "pnl_pts": round(pts, 2) if ok else None, "pct": round(pts / sum(units) * 100, 2) if ok else None})
+                           "exit": x, "pnl_pts": round(pts, 2) if ok else None, "pct": round(pts / sum(units) * 100, 2) if ok else None,
+                           "timed_out": tr.get("timed_out", False)})
         position = None
         if pos:
             position = {"entry_time": stamp(pos["entry"][0]), "entry_spy": pos["entry"][1], "wall": pos["wall"], "entry": nq_at(hh, pos["entry"][0]),
@@ -651,9 +656,20 @@ def write_wall_signals(h, pcd):
             legs = [(hh["time_et"][pos["entry"][0]], position["entry"])] + [(hh["time_et"][a[0]], b["price"]) for a, b in zip(pos["adds"], position["adds"])]
             if len(nq):
                 position["dd"] = excursion(nq["time_et"], nq["spot"], legs, sign=sign)
+            if max_days:
+                ds = sorted(set(hh["time_et"].dt.date))
+                position["days_held"] = ds.index(hh["time_et"].iloc[-1].date()) - ds.index(hh["time_et"][pos["entry"][0]].date())
+        return st, position, closed
+
+    for side, fname, bt in (("put", "PW_signal.json", "pw_backtest.json"), ("call", "CW_signal.json", "cw_backtest.json")):
+        st, position, closed = build(side)
         bp = ROOT / "research" / "data" / bt
         out = {**st, "side": side, "start": CONFIG.get("walls_start", "2026-11-24 00:00"), "position": position, "closed": closed,
                "nq_last": float(nq["spot"].iloc[-1]) if len(nq) else None, "backtest": json.loads(bp.read_text()) if bp.exists() else []}
+        if side == "call":   # second line: same rule with a 5-trading-day time limit (tracked live from 23 Nov 2026)
+            _, p5, c5 = build("call", max_days=5)
+            b5 = ROOT / "research" / "data" / "cw5_backtest.json"
+            out["v5"] = {"position": p5, "closed": c5, "backtest": json.loads(b5.read_text()) if b5.exists() else []}
         (DOCS / fname).write_text(json.dumps(out, default=str))
 
 
