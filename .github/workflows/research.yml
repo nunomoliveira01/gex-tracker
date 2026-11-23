@@ -10,7 +10,7 @@ on:
       mode:
         description: "probe (check access) or fetch (download history)"
         type: choice
-        options: [probe, fetch]
+        options: [probe, fetch, putwall]
         default: probe
       hours:
         description: "hours of downloading in this run"
@@ -71,22 +71,26 @@ jobs:
           grep -viE "password|@" terminal.log | tail -40 || true
           [ "$up" = 1 ] || { echo "::error::Theta Terminal did not start"; exit 1; }
       - name: Run
-        run: python research/theta_fetch.py ${{ inputs.mode }} --hours ${{ inputs.hours }} --symbol ${{ inputs.symbol }}
+        run: |
+          if [ "${{ inputs.mode }}" = putwall ]; then cd research && python putwall_fetch.py --hours ${{ inputs.hours }}
+          else python research/theta_fetch.py ${{ inputs.mode }} --hours ${{ inputs.hours }} --symbol ${{ inputs.symbol }}; fi
       - name: Save derived data
-        if: always() && inputs.mode == 'fetch'
+        if: always() && inputs.mode != 'probe'
         run: |
           git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
+          left=$(cat research/data/remaining.txt 2>/dev/null || echo 0)
+          if [ "${{ inputs.mode }}" = putwall ] && [ "$left" = 0 ]; then (cd research && python putwall_test.py) || true; git add research/results_putwall.* || true; fi
           git add research/data
           git diff --cached --quiet || git commit -m "research: ThetaData daily history"
           for i in 1 2 3; do git pull --rebase --autostash -q && git push && break; sleep 5; done
       - name: Continue if days are left
-        if: success() && inputs.mode == 'fetch' && inputs.chain
+        if: success() && inputs.mode != 'probe' && inputs.chain
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           left=$(cat research/data/remaining.txt 2>/dev/null || echo 0)
           echo "days left: $left"
-          if [ "$left" -gt 0 ]; then gh workflow run research.yml -R "$GITHUB_REPOSITORY" --ref main -f mode=fetch -f symbol=${{ inputs.symbol }}; fi
+          if [ "$left" -gt 0 ]; then gh workflow run research.yml -R "$GITHUB_REPOSITORY" --ref main -f mode=${{ inputs.mode }} -f symbol=${{ inputs.symbol }}; fi
       - name: Stop terminal
         if: always()
         run: pkill -f ThetaTerminal || true; rm -f ~/theta/creds.txt
