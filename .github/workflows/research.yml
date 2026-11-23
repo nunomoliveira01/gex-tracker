@@ -10,7 +10,7 @@ on:
       mode:
         description: "probe (check access) or fetch (download history)"
         type: choice
-        options: [probe, fetch, putwall]
+        options: [probe, fetch, putwall, callwall]
         default: probe
       hours:
         description: "hours of downloading in this run"
@@ -73,6 +73,7 @@ jobs:
       - name: Run
         run: |
           if [ "${{ inputs.mode }}" = putwall ]; then cd research && python putwall_fetch.py --hours ${{ inputs.hours }}
+          elif [ "${{ inputs.mode }}" = callwall ]; then cd research && python putwall_fetch.py --side call --hours ${{ inputs.hours }}
           else python research/theta_fetch.py ${{ inputs.mode }} --hours ${{ inputs.hours }} --symbol ${{ inputs.symbol }}; fi
       - name: Save derived data
         if: always() && inputs.mode != 'probe'
@@ -80,6 +81,7 @@ jobs:
           git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
           left=$(cat research/data/remaining.txt 2>/dev/null || echo 0)
           if [ "${{ inputs.mode }}" = putwall ] && [ "$left" = 0 ]; then (cd research && python putwall_test.py) || true; git add research/results_putwall.* || true; fi
+          if [ "${{ inputs.mode }}" = callwall ] && [ "$left" = 0 ]; then (cd research && python callwall_test.py) || true; git add research/results_callwall.* || true; fi
           git add research/data
           git diff --cached --quiet || git commit -m "research: ThetaData daily history"
           for i in 1 2 3; do git pull --rebase --autostash -q && git push && break; sleep 5; done

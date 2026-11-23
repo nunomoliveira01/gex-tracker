@@ -19,6 +19,7 @@ import yfinance as yf
 import theta_fetch as tf
 
 START = date(2023, 8, 1)
+SIDE = "put"   # --side call: call wall (calls between 100% and 105% of the previous close) -> callwall.csv
 OUT = tf.ROOT / "data" / "putwall.csv"
 COLS = ["date", "prev_close", "put_wall", "put_wall_oi", "put_wall_gamma_bn"]
 
@@ -31,7 +32,10 @@ def day(d, S0):
         return None
     key = ["expiration", "strike", "right"]
     df = eod.merge(oi[key + ["oi"]], on=key, how="inner")
-    df = df[(df["right"] == "P") & (df["strike"] >= S0 * 0.95) & (df["strike"] <= S0)].copy()
+    if SIDE == "call":
+        df = df[(df["right"] == "C") & (df["strike"] >= S0) & (df["strike"] <= S0 * 1.05)].copy()
+    else:
+        df = df[(df["right"] == "P") & (df["strike"] >= S0 * 0.95) & (df["strike"] <= S0)].copy()
     bid, ask = df.get("bid", pd.Series(0, index=df.index)), df.get("ask", pd.Series(0, index=df.index))
     df["px"] = np.where((bid > 0) & (ask > 0), (bid + ask) / 2, df.get("close", np.nan))
     # start-of-day view: options expiring on day d are still alive in the morning -> give them a few hours
@@ -40,13 +44,13 @@ def day(d, S0):
     if df.empty:
         return None
     iv = tf.implied_vol(df["px"].to_numpy(float), S0, df["strike"].to_numpy(float), df["T"].to_numpy(float),
-                        np.zeros(len(df), bool))
+                        np.full(len(df), SIDE == "call"))
     df["iv"] = np.where(np.isnan(iv), np.nanmedian(iv) if np.isfinite(np.nanmedian(iv)) else 0.2, iv)
     df["g"] = tf.gamma(S0, df["strike"].to_numpy(float), df["T"].to_numpy(float), df["iv"].to_numpy(float)) \
         * df["oi"] * 100 * S0 * S0 * 0.01 / 1e9
     by = df.groupby("strike").agg(g=("g", "sum"), oi=("oi", "sum"))
-    return {"put_wall": float(by["g"].idxmax()), "put_wall_oi": float(by["oi"].idxmax()),
-            "put_wall_gamma_bn": round(float(by["g"].max()), 3)}
+    return {f"{SIDE}_wall": float(by["g"].idxmax()), f"{SIDE}_wall_oi": float(by["oi"].idxmax()),
+            f"{SIDE}_wall_gamma_bn": round(float(by["g"].max()), 3)}
 
 
 def main(hours):
@@ -87,4 +91,9 @@ def main(hours):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--hours", type=float, default=5.0)
-    main(ap.parse_args().hours)
+    ap.add_argument("--side", default="put", choices=["put", "call"])
+    a = ap.parse_args()
+    if a.side == "call":
+        SIDE, OUT = "call", tf.ROOT / "data" / "callwall.csv"
+        COLS = ["date", "prev_close", "call_wall", "call_wall_oi", "call_wall_gamma_bn"]
+    main(a.hours)
