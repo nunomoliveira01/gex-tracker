@@ -85,6 +85,7 @@ jobs:
           left=$(cat research/data/remaining.txt 2>/dev/null || echo 0)
           if [ "${{ inputs.mode }}" = putwall ] && [ "$left" = 0 ]; then (cd research && python putwall_test.py) || true; git add research/results_putwall.* || true; fi
           if [ "${{ inputs.mode }}" = callwall ] && [ "$left" = 0 ]; then (cd research && python callwall_test.py) || true; git add research/results_callwall.* || true; fi
+          if [ "${{ inputs.mode }}" = options ] && [ "$left" = 0 ]; then (cd research && python options_test.py) || true; git add research/results_options.* || true; fi
           if [ "${{ inputs.mode }}" = walls-oos ] && [ "$left" = 0 ]; then (cd research && python walls_oos.py) || true; git add research/results_walls_oos.* research/data/*_backtest.json || true; fi
           git add research/data
           git diff --cached --quiet || git commit -m "research: ThetaData daily history"
