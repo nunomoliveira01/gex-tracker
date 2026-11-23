@@ -56,7 +56,17 @@
   .dot.live { background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
   #msg { font-size:13px; color:var(--muted); }
 
-  .wrap { max-width:1400px; margin:0 auto; padding:16px 18px 40px; display:grid; gap:16px; }
+  .wrap { max-width:1400px; margin:0 auto; padding:16px 18px 40px; display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; }
+  .wrap > * { flex:1 1 100%; min-width:0; }
+  .wrap > .sized { flex:0 0 auto; max-width:100%; }
+  /* every window can be resized from its bottom-right corner; sizes are kept in this browser */
+  .wrap > .panel, .side > .panel { resize:both; overflow:auto; min-width:260px; min-height:56px; }
+  .side { resize:horizontal; overflow:auto; width:360px; min-width:240px; max-width:900px; }
+  .cvwrap { resize:vertical; overflow:hidden; height:556px; min-height:220px; }
+  .cvwrap canvas { height:calc(100% - 2px) !important; }
+  .multi .cvwrap { height:396px; }
+  .side-slot + .side-slot { margin-top:14px; padding-top:12px; border-top:1px dashed var(--line); }
+  .side-slot h4 { margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
 
   /* ticker strip */
   .striphead { display:flex; align-items:center; gap:10px; }
@@ -82,7 +92,7 @@
   .tk.all.on { color:var(--blue); }
 
   /* panels */
-  .layout { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:16px; align-items:start; }
+  .layout { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:start; }
   @media (max-width:1050px) { .layout { grid-template-columns:1fr; } }
   .panel { background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); }
   .ph { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
@@ -190,10 +200,13 @@
     <aside class="side">
       <div class="panel" data-block="rule" id="rule-panel">
         <div class="ph"><select class="sidepick" id="sidepick" title="Choose what this panel shows">
-            <option value="nq">My strategy · NQ</option></select>
+            <option value="nq">My strategy · NQ</option><option value="pw">Put wall long · conditions</option>
+            <option value="cw">Call wall short · conditions</option><option value="walls">Both walls · conditions</option>
+            <option value="all">All three</option></select>
           <span class="sub" id="rule-sub"></span>
           <div class="tools"><button class="ib" data-collapse="rule" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="rule" title="Hide (bring back in ⚙)">✕</button></div></div>
-        <div class="pb"><div id="rule"><span class="muted">loading…</span></div></div>
+        <div class="pb"><div id="rule"><div class="side-slot" id="side-nq"><span class="muted">loading…</span></div>
+          <div class="side-slot" id="side-pw"></div><div class="side-slot" id="side-cw"></div></div></div>
       </div>
     </aside>
   </div>
@@ -251,6 +264,7 @@
       <div id="blocklist"></div>
       <button class="btn" id="resetview" style="margin-top:8px">Show everything again</button>
       <button class="btn" id="resetorder" style="margin-top:8px">Reset section order</button>
+      <button class="btn" id="resetsizes" style="margin-top:8px">Reset window sizes</button>
       <div class="muted" style="margin-top:6px">To move a section, drag it by the ⋮⋮ handle in its title bar.</div></div>
     <div class="group"><h4>Second-by-second prices (Finnhub)</h4>
       <div class="muted">Free key at <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a>. Stored only in this browser.</div>
@@ -756,7 +770,7 @@ function roundRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPat
 window.addEventListener("resize", drawAll);
 
 // ===================================================================== panels
-function refreshPanels(force) { if (force) ["rule", "my", "pw", "cw", "nqpc", "margin", "quant", "oiw"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMy(); renderNqPc(); renderMargin(); renderQuant(); renderOiw(); renderWall("pw"); renderWall("cw"); }
+function refreshPanels(force) { if (force) ["rule", "side-nq", "side-pw", "side-cw", "my", "pw", "cw", "nqpc", "margin", "quant", "oiw"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMy(); renderNqPc(); renderMargin(); renderQuant(); renderOiw(); renderWall("pw"); renderWall("cw"); }
 
 // ---------- my strategy: rules + scorecard
 let metrics = null;
@@ -884,6 +898,17 @@ function renderWall(key) {
     <table class="q"><tr><th>Entry</th><th>SPY in</th><th>NQ in</th><th>Add NQ</th><th>Exit</th><th>SPY out</th><th>NQ out</th><th>Result</th></tr>` +
     bt.slice().reverse().map(x => `<tr><td>${x.entry_date}</td><td>${fmt(x.entry_spy)}</td><td>${fmt(x.entry, 0)}</td><td>${x.add ? fmt(x.add, 0) : "–"}</td><td>${x.exit_date}</td><td>${fmt(x.exit_spy)}</td><td>${fmt(x.exit, 0)}</td><td class="${cls(x.pct)}">${sg(x.pct)}%</td></tr>`).join("") +
     `</table></div></details><div class="muted" style="margin-top:6px">ThetaData daily history; fills at the wall and the flip; NQ mapped from SPY; no costs. Not investment advice.</div>`;
+  {
+    let pl = "";
+    if (pos && pos.entry != null) {
+      const units = [pos.entry].concat(pos.adds.map(a => a.price)).filter(v => v != null), pts = units.reduce((a, u) => a + d * (nqNow - u), 0);
+      pl = `<div class="stat"><span>${d > 0 ? "Long" : "Short"} ${units.length}x NQ since ${pos.entry_time.slice(5)}</span><b class="${cls(pts)}">${sg(pts, 0)} pts · ${sg(pts * MNQ, 0)} $/MNQ</b></div>`;
+    }
+    const addOk = pos && !pos.adds.length;
+    const addLine = pos ? tick(false, addOk ? (d > 0 ? "add-on at the close: below entry + put/call ≥ +1 std" : "add-on at the close: above entry + put/call ≤ −1 std") : "add-on used") : "";
+    sideOut(key, `<div class="big" style="font-size:18px">${pos ? (d > 0 ? "In: long NQ" : "In: short NQ") : "Flat — waiting"}</div>${pl}${nowTxt}${addLine}`,
+      `${T.wall} ${fmt(w)} · SPY ${fmt(spy)}`);
+  }
   const html = card(key + ".rules", "Rules", T.rules) + card(key + ".now", "Now", nowTxt) + card(key + ".pos", "Live position", posTxt) +
     card(key + ".live", "Live record", liveTxt) + card(key + ".bt", "Backtest", btTxt);
   if (el._h === html) return; el._h = html; el.innerHTML = `<div class="cards">${html}</div>`;
@@ -993,8 +1018,16 @@ function ddHtml(dd, nowPts, capital, perPoint) {
 }
 
 // ---------- right-hand panel: JP rule, or my strategy in SPY or NQ
-let sidePick = "nq";   // only the NQ strategy is shown now
-function sideOut(kind, html, sub) { if (sidePick !== kind) return; setHTML("rule", html); if (sub != null) $("rule-sub").innerHTML = sub; }
+let sidePick = store.get("sidePick", "nq");
+if (!["nq", "pw", "cw", "walls", "all"].includes(sidePick)) sidePick = "nq";
+const SIDE_SHOWS = { nq: ["nq"], pw: ["pw"], cw: ["cw"], walls: ["pw", "cw"], all: ["nq", "pw", "cw"] };
+function sideOut(kind, html, sub) {
+  const show = SIDE_SHOWS[sidePick] || ["nq"];
+  ["nq", "pw", "cw"].forEach(k => { const el = $("side-" + k); if (el) el.classList.toggle("hidden", !show.includes(k)); });
+  if (!show.includes(kind)) return;
+  setHTML("side-" + kind, show.length > 1 ? `<h4>${{ nq: "My strategy · NQ", pw: "Put wall long", cw: "Call wall short" }[kind]}</h4>` + html : html);
+  if (sub != null && show[0] === kind) $("rule-sub").innerHTML = show.length > 1 ? "" : sub;
+}
 $("sidepick").value = sidePick;
 $("sidepick").onchange = e => { sidePick = e.target.value; store.set("sidePick", sidePick); refreshPanels(true); };
 
@@ -1269,6 +1302,41 @@ setPool(pool); applyView(); renderBlockList();
 loadPool().then(() => { reloadAll(); startLive(); });
 setInterval(reloadAll, 60000);                  // the script publishes every 5 min
 setInterval(loadPool, 10 * 60000);
+
+// ===================================================================== resize windows (drag the bottom-right corner), sizes saved in this browser
+const SIZE_KEY = "panelSizes";
+const sizable = () => [...document.querySelectorAll("#wrap > .panel, .side, .side > .panel, .cvwrap")].filter(el => el.id || el.querySelector("canvas"));
+const sizeId = el => el.id || ("cv:" + (el.querySelector("canvas")?.id || ""));
+function applySizes() {
+  const saved = store.get(SIZE_KEY, {});
+  sizable().forEach(el => { const v = saved[sizeId(el)]; if (!v) return;
+    if (v.w) { el.style.width = v.w + "px"; if (el.parentElement.id === "wrap") el.classList.add("sized"); }
+    if (v.h) el.style.height = v.h + "px"; });
+}
+let sizeTimer = null;
+const sizeObs = new ResizeObserver(entries => {
+  clearTimeout(sizeTimer);
+  sizeTimer = setTimeout(() => {
+    const saved = store.get(SIZE_KEY, {});
+    entries.forEach(({ target: el }) => {
+      // only remember sizes the user set by dragging (the browser writes them as inline width/height)
+      if (!el.style.width && !el.style.height) return;
+      saved[sizeId(el)] = { w: el.style.width ? Math.round(el.getBoundingClientRect().width) : null, h: el.style.height ? Math.round(el.getBoundingClientRect().height) : null };
+      if (el.style.width && el.parentElement.id === "wrap") el.classList.add("sized");
+    });
+    store.set(SIZE_KEY, saved); drawAll();
+  }, 150);
+});
+function watchSizes() {   // new windows (e.g. a chart drawn after the ticker list changes) get their saved size, then are watched
+  const saved = store.get(SIZE_KEY, {});
+  sizable().forEach(el => { if (el._sizeWatched) return; el._sizeWatched = true;
+    const v = saved[sizeId(el)];
+    if (v && v.w) { el.style.width = v.w + "px"; if (el.parentElement.id === "wrap") el.classList.add("sized"); }
+    if (v && v.h) el.style.height = v.h + "px";
+    sizeObs.observe(el); });
+}
+watchSizes(); setInterval(watchSizes, 2000);
+$("resetsizes").onclick = () => { store.set(SIZE_KEY, {}); sizable().forEach(el => { el.style.width = ""; el.style.height = ""; el.classList.remove("sized"); }); drawAll(); toast("Window sizes reset"); };
 </script>
 </body>
 </html>
