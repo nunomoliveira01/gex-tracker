@@ -742,7 +742,7 @@ function roundRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPat
 window.addEventListener("resize", drawAll);
 
 // ===================================================================== panels
-function refreshPanels(force) { if (force) ["rule", "my", "nqpc", "margin", "quant", "oiw"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMy(); renderPc(); renderNqPc(); renderMargin(); renderQuant(); renderOiw(); }
+function refreshPanels(force) { if (force) ["rule", "my", "nqpc", "margin", "quant", "oiw"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMy(); renderNqPc(); renderMargin(); renderQuant(); renderOiw(); }
 
 // ---------- my strategy: rules + scorecard
 let metrics = null;
