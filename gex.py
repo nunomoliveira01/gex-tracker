@@ -346,6 +346,22 @@ def record_day_walls(t, now, df):
     pd.concat([old, row], ignore_index=True).to_csv(DAY_WALLS, index=False)
 
 
+def steady_walls(t, row, by_strike, spot, now):
+    """Keep the previous reading's live wall unless another strike is clearly bigger (by more than 15%).
+    Stops the wall flip-flopping between two almost-tied strikes (seen 24 Nov 2026: SPY 720 <-> 750 every reading)."""
+    h = load_history(t)
+    if h.empty or h["time_et"].iloc[-1].date() != now.date():
+        return
+    last = h.iloc[-1]
+    wb = by_strike[(by_strike.index > spot * 0.95) & (by_strike.index < spot * 1.05)]
+    above, below = wb[wb.index >= spot], wb[wb.index <= spot]
+    pc, pp = last.get("call_wall"), last.get("put_wall")
+    if pd.notna(pc) and pc in above.index and above["C"].max() > 0 and above.at[pc, "C"] >= 0.85 * above["C"].max():
+        row["call_wall"] = float(pc)
+    if pd.notna(pp) and pp in below.index and below["P"].min() < 0 and below.at[pp, "P"] <= 0.85 * below["P"].min():
+        row["put_wall"] = float(pp)
+
+
 # ----------------------------------------------------------------------------- history
 def hist_path(t):
     return DATA / f"{t}_history.csv"
@@ -1735,6 +1751,10 @@ def _run_once(force=False, charts_only=False, file=None):
             RAW[CONFIG.get("cboe_symbols", {}).get(t, t)] = raw
             spot, snap_time, df = parse_chain(raw)
             row, by_strike = analyse(spot, snap_time, df)
+            try:
+                steady_walls(t, row, by_strike, spot, snap_time)
+            except Exception as e:
+                print(f"  {t}: steady walls failed - {e}", file=sys.stderr)
             try:
                 record_day_walls(t, snap_time, df)
             except Exception as e:

@@ -376,7 +376,7 @@ const card = (id, label, html, extra = "") => isOn(id)
   ? `<div class="card" ${extra}><button class="ib close" data-hide="${id}" title="Hide this card">✕</button><div class="lbl">${label}</div>${html}</div>` : "";
 
 // chart lines that can be switched on/off
-const LINES = [["flip", "Gamma flip"], ["walls", "Call wall (gamma wall) / put wall"], ["majors", "Gamma levels (biggest +γ / −γ)"]];
+const LINES = [["flip", "Gamma flip"], ["walls", "Live call wall / put wall"], ["strat", "Strategy walls (SPY, fixed for the day)"], ["majors", "Gamma levels (biggest +γ / −γ)"]];
 let lineOff = new Set(store.get("lineOff", []));
 const lineOn = k => !lineOff.has(k);
 function toggleLine(k) { lineOff.has(k) ? lineOff.delete(k) : lineOff.add(k); store.set("lineOff", [...lineOff]); renderBlockList(); TICKERS.forEach(renderHead); drawAll(); }
@@ -586,11 +586,11 @@ function renderHead(t) {
   const px = state[t].last ?? d.spot, dist = d.flip ? (px / d.flip - 1) * 100 : null;
   const stats = isOn("chart.stats") ? `<div class="stats" style="width:100%">
       <span class="chip" title="Price where total gamma turns from negative to positive">Flip <b style="color:var(--amber)">${fmt(d.flip)}</b>${dist != null ? ` <span class="muted">(${sg(dist, 1)}%)</span>` : ""}</span>
-      <span class="chip" title="Strike with the most put gamma below the price — tends to slow falls">Put wall <b class="down">${d.put_wall == null ? "–" : +d.put_wall.toFixed(2)}</b></span>
-      <span class="chip" title="Strike with the most call gamma above the price — tends to slow rallies">Call wall <b class="up">${d.call_wall == null ? "–" : +d.call_wall.toFixed(2)}</b></span>
+      <span class="chip" title="Live: strike with the most put gamma below the price right now (updates every ~5 min) — tends to slow falls">Put wall (live) <b class="down">${d.put_wall == null ? "–" : +d.put_wall.toFixed(2)}</b></span>
+      <span class="chip" title="Live: strike with the most call gamma above the price right now (updates every ~5 min) — tends to slow rallies">Call wall (live) <b class="up">${d.call_wall == null ? "–" : +d.call_wall.toFixed(2)}</b></span>
       <span class="chip muted">${d.futures ? `${d.index}${d.etf ? " + " + d.etf : ""} options · price ~${d.price_delay_min} min delayed` : `gamma as of ${d.time_et.slice(11, 16)} New York`}</span>
       ${staleNote(d)}</div>` : "";
-  const legend = isOn("chart.legend") ? [["flip", "Flip", "var(--amber)"], ["walls", "Walls", "var(--green)"], ["majors", "Gamma levels", "var(--red)"]]
+  const legend = isOn("chart.legend") ? [["flip", "Flip", "var(--amber)"], ["walls", "Live walls", "var(--green)"], ["strat", "Strategy walls", "var(--purple)"], ["majors", "Gamma levels", "var(--red)"]].filter(([k]) => k !== "strat" || t === "SPY")
     .map(([k, n, c]) => `<span class="tog ${lineOn(k) ? "" : "off"}" data-tog="${k}"><i style="background:${c}"></i>${n}</span>`).join("") : "";
   setHTML("head-" + t, stats + legend);
 }
@@ -734,7 +734,10 @@ function draw(t) {
     const y = Y(v); g.strokeStyle = c; g.lineWidth = 1.3; g.setLineDash(dash); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.setLineDash([]);
     tags.push([y, c, label, false]); };
   if (lineOn("flip")) lvl(d.flip, C.amber, "flip " + fmt(d.flip, 1));
-  if (lineOn("walls")) { lvl(d.call_wall, C.green, "call (gamma) wall " + d.call_wall, [2, 3]); lvl(d.put_wall, C.red, "put wall " + d.put_wall, [2, 3]); }
+  if (lineOn("walls")) { lvl(d.call_wall, C.green, "call wall (live) " + d.call_wall, [2, 3]); lvl(d.put_wall, C.red, "put wall (live) " + d.put_wall, [2, 3]); }
+  if (lineOn("strat") && t === "SPY") {   // the levels the wall strategies trade on: measured at yesterday's close, fixed all day
+    if (walls && walls.cw && walls.cw.wall_today != null) lvl(walls.cw.wall_today, C.purple, "strategy call wall " + walls.cw.wall_today, [1, 0]);
+    if (walls && walls.pw && walls.pw.wall_today != null) lvl(walls.pw.wall_today, C.purple, "strategy put wall " + walls.pw.wall_today, [1, 0]); }
   if (lineOn("majors")) { lvl(d.major_pos, alpha(C.green, .8), "+γ level " + d.major_pos, [8, 3]); lvl(d.major_neg, alpha(C.red, .8), "−γ level " + d.major_neg, [8, 3]); }
   if (false) (marginLevels(t) || []).forEach(([v, c, label]) => lvl(v, c === "a" ? C.purple : C.pink, label, [3, 3]));
   if (false && t === SIGNAL && signal && signal.position) {
@@ -869,7 +872,7 @@ function nqLive() {
 let nqsig = null;
 const MNQ = 2;   // $ per NQ point for one micro contract (MNQ); a full NQ is $20
 // ---------- wall strategies (put wall long / call wall short, in NQ)
-const walls = { pw: null, cw: null };
+var walls = { pw: null, cw: null };
 const OL = `<ol style="margin:4px 0 0;padding-left:18px">`;
 const WALL_TXT = {
   pw: { dir: 1, wall: "put wall", rules: `${OL}
