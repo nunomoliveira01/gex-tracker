@@ -362,6 +362,41 @@ def steady_walls(t, row, by_strike, spot, now):
         row["put_wall"] = float(pp)
 
 
+def write_mt5_feed(t, h, row, snap_time):
+    """Small flat file for the MT5 robot (GammaStrategies.mq5): docs/mt5_feed.json.
+    Live SPY numbers, the day's strategy walls (previous-close definition, from day_walls.csv) and put/call z."""
+    def num(v, nd=None):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return None
+        if np.isnan(v):
+            return None
+        return round(v, nd) if nd is not None else v
+    ts = pd.Timestamp(snap_time)
+    ts = ts.tz_localize(ET) if ts.tzinfo is None else ts
+    day = ts.strftime("%Y-%m-%d")
+    pw_prev = cw_prev = None
+    if DAY_WALLS.exists():
+        dw = pd.read_csv(DAY_WALLS)
+        dw = dw[(dw["ticker"] == t) & (dw["date"] == day)]
+        if len(dw):
+            pw_prev, cw_prev = num(dw["put_wall"].iloc[-1]), num(dw["call_wall"].iloc[-1])
+    pc_z = None
+    try:
+        pcd = daily_pc(h)
+        z = pcd.loc[pcd["date"] == ts.date(), "z"]
+        pc_z = num(z.iloc[-1], 3) if len(z) else None
+    except Exception as e:
+        print(f"  {t}: mt5 feed put/call z failed - {e}", file=sys.stderr)
+    feed = {"ts_unix": int(ts.timestamp()), "time_et": row["time_et"], "spy_price": num(row["spot"], 2),
+            "gamma_bn": num(row["net_gex_bn"], 3), "flip": num(row["flip"], 2),
+            "put_wall": num(row["put_wall"]), "call_wall": num(row["call_wall"]),
+            "pc_ratio": num(row["pc_volume_ratio"], 4), "pc_z": pc_z,
+            "put_wall_prev_close": pw_prev, "call_wall_prev_close": cw_prev}
+    (DOCS / "mt5_feed.json").write_text(json.dumps(feed, separators=(",", ":")))
+
+
 # ----------------------------------------------------------------------------- history
 def hist_path(t):
     return DATA / f"{t}_history.csv"
@@ -1759,6 +1794,10 @@ def _run_once(force=False, charts_only=False, file=None):
             h = append_history(t, row)
             draw_timeline(t, h)
             if t == CONFIG.get("signal_ticker", "SPY"):
+                try:
+                    write_mt5_feed(t, h, row, snap_time)
+                except Exception as e:
+                    print(f"  {t}: mt5 feed failed - {e}", file=sys.stderr)
                 try:
                     write_quant(t, h)
                 except Exception as e:
