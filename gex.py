@@ -725,10 +725,6 @@ def write_wall_signals(h, pcd):
         bp = ROOT / "research" / "data" / bt
         out = {**st, "side": side, "start": CONFIG.get("walls_start", "2026-11-24 00:00"), "position": position, "closed": closed,
                "nq_last": float(nq["spot"].iloc[-1]) if len(nq) else None, "backtest": json.loads(bp.read_text()) if bp.exists() else []}
-        if side == "call":   # second line: same rule with a 5-trading-day time limit (tracked live from 23 Nov 2026)
-            _, p5, c5 = build("call", max_days=5)
-            b5 = ROOT / "research" / "data" / "cw5_backtest.json"
-            out["v5"] = {"position": p5, "closed": c5, "backtest": json.loads(b5.read_text()) if b5.exists() else []}
         (DOCS / fname).write_text(json.dumps(out, default=str))
 
 

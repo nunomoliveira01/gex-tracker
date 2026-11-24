@@ -339,7 +339,7 @@ const BLOCKS = [
   ["rule", "Live position · NQ", []],
   ["my", "My strategy · rules & scorecard", [["my.rules", "Rules"], ["my.trades", "Live trades"], ["my.outlook", "Future alpha"], ["my.score", "Scorecard table"], ["my.days", "Daily live record"]]],
   ["pw", "Put wall long · NQ", [["pw.rules", "Rules"], ["pw.now", "Now"], ["pw.pos", "Live position"], ["pw.live", "Live record"], ["pw.bt", "Backtest"]]],
-  ["cw", "Call wall short · NQ", [["cw.rules", "Rules"], ["cw.now", "Now"], ["cw.pos", "Live position"], ["cw.live", "Live record"], ["cw.bt", "Backtest"], ["cw.v5", "5-day exit version"]]],
+  ["cw", "Call wall short · NQ", [["cw.rules", "Rules"], ["cw.now", "Now"], ["cw.pos", "Live position"], ["cw.live", "Live record"], ["cw.bt", "Backtest"]]],
   ["nqpc", "NQ SPY put/call add-on", [["nqpc.pos", "Position in NQ"], ["nqpc.sig", "SPY signals"], ["nqpc.live", "Live record"], ["nqpc.bt", "Backtest 2022–26"]]],
   ["margin", "Margin", [["margin.debt", "Margin debt"], ["margin.SPX", "S&P 500"], ["margin.NDX", "Nasdaq 100"], ["margin.fx", "Dollar signal"]]],
   ["oiw", "Put block watch", [["oiw.now", "Contracts now"], ["oiw.hist", "Daily history"]]],
@@ -926,34 +926,11 @@ function renderWall(key) {
       pl = `<div class="stat"><span>${d > 0 ? "Long" : "Short"} ${units.length}x NQ since ${pos.entry_time.slice(5)}</span><b class="${cls(pts)}">${sg(pts, 0)} pts · ${sg(pts * MNQ, 0)} $/MNQ</b></div>`;
     }
     const addLine = "";
-    let v5line = "";
-    if (key === "cw" && q.v5) { const p5 = q.v5.position;
-      v5line = `<div class="stat"><span>5-day version</span><b>${p5 && p5.entry != null ? "short · day " + (p5.days_held ?? 0) + " of 5" : "flat"}</b></div>`; }
-    sideOut(key, `<div class="big" style="font-size:18px">${pos ? (d > 0 ? "In: long NQ" : "In: short NQ") : "Flat — waiting"}</div>${pl}${nowTxt}${addLine}${v5line}`,
+    sideOut(key, `<div class="big" style="font-size:18px">${pos ? (d > 0 ? "In: long NQ" : "In: short NQ") : "Flat — waiting"}</div>${pl}${nowTxt}${addLine}`,
       `${T.wall} ${fmt(w)} · SPY ${fmt(spy)}`);
   }
-  let v5Txt = "";
-  if (key === "cw" && q.v5) {
-    const v = q.v5, p5 = v.position, b5 = v.backtest || [];
-    let pp = `<div class="stat"><span>Position</span><b style="color:var(--muted)">Flat</b></div>`;
-    if (p5 && p5.entry != null) {
-      const u = [p5.entry].concat(p5.adds.map(a => a.price)).filter(x => x != null), pts = u.reduce((a, x) => a + d * (nqNow - x), 0);
-      pp = `<div class="stat"><span>Short ${u.length}x since ${p5.entry_time.slice(5)}</span><b class="${cls(pts)}">${sg(pts, 0)} pts · ${sg(pts * MNQ, 0)} $/MNQ</b></div>
-        <div class="stat"><span>Days held</span><b>${p5.days_held ?? 0} of 5</b></div><div class="muted">Closed at the US close on day 5 if gamma hasn't reached 0 by then.</div>`;
-    }
-    const s5 = per => { const b = b5.filter(x => x.period === per); if (!b.length) return `<td colspan="3" class="muted">running…</td>`;
-      const avg = b.reduce((a, x) => a + x.pct, 0) / b.length, worst = Math.min(...b.map(x => x.pct));
-      return `<td>${b.length}</td><td class="${cls(avg)}">${sg(avg)}%</td><td class="neg">${sg(worst)}%</td>`; };
-    const c5 = v.closed || [];
-    v5Txt = card("cw.v5", "5-day exit version (tracked side by side)",
-      `<div class="muted" style="margin-bottom:6px">Same entry, one unit, no add-on. Exit at the flip as before, <b>or at the US close of the 5th trading day</b>, whichever comes first. Added after seeing the 2018–26 results (it cut the worst stuck trades), so it is tracked live next to the original rule before trusting it.</div>` +
-      pp + `<table class="q" style="margin-top:6px"><tr><th>Backtest</th><th>Trades</th><th>Avg</th><th>Worst</th></tr>
-        <tr><td>2018–23</td>${s5("oos")}</tr><tr><td>2023–26</td>${s5("is")}</tr></table>` +
-      (c5.length ? `<table class="q" style="margin-top:6px"><tr><th>Entry</th><th>Exit</th><th>Points</th></tr>` + c5.slice().reverse().map(c => `<tr><td>${c.entry_time.slice(5)}</td><td>${c.exit_time.slice(5)}${c.timed_out ? " ⏱" : ""}</td><td class="${cls(c.pnl_pts)}">${sg(c.pnl_pts, 0)} (${sg(c.pct)}%)</td></tr>`).join("") + `</table>`
-        : `<div class="muted" style="margin-top:6px">No closed live trades yet. ⏱ will mark trades closed by the time limit.</div>`));
-  }
   const html = card(key + ".rules", "Rules", T.rules) + card(key + ".now", "Now", nowTxt) + card(key + ".pos", "Live position", posTxt) +
-    card(key + ".live", "Live record", liveTxt) + card(key + ".bt", "Backtest", btTxt) + v5Txt;
+    card(key + ".live", "Live record", liveTxt) + card(key + ".bt", "Backtest", btTxt);
   if (el._h === html) return; el._h = html; el.innerHTML = `<div class="cards">${html}</div>`;
 }
 function renderNqPc() {
