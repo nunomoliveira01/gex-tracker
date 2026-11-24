@@ -211,6 +211,7 @@ def parse_chain(raw):
         raise ValueError("Cboe data incomplete (no open interest) - reading skipped")
     if df.loc[df["iv"] > 0, "iv"].median() > 3:  # volatility given in percent -> decimals
         df["iv"] = df["iv"] / 100
+    df.attrs["prev_close"] = float(d.get("prev_day_close") or 0)
     return float(spot), t, df
 
 
@@ -305,6 +306,44 @@ def analyse(spot, now, df, reprice=False):
         "iv30": iv30,
         "gex_week_bn": round(gex_week / 1e9, 3),
     }, by_strike
+
+
+# ----------------------------------------------------------------------------- the day's walls for the wall strategies
+DAY_WALLS = DATA / "day_walls.csv"
+
+
+def strategy_walls(df, now):
+    """Put and call walls exactly as in the backtests (Tests 9-11): gamma x open interest measured at the PREVIOUS
+    close, puts 95-100% and calls 100-105% of it. Known from the first reading, so it doesn't jump around with the
+    opening prices (Cboe's data is ~15 min delayed, so the first readings of the day carry pre-open quotes)."""
+    S0 = df.attrs.get("prev_close") or 0
+    if not S0:
+        return None
+    x = df[(df["expiry"] >= now.date()) & (df["oi"] > 0) & (df["iv"] > 0.01)].copy()
+    if x.empty:
+        return None
+    T = years_to_expiry(x["expiry"].to_numpy(), now)
+    x["g"] = bs_gamma(S0, x["strike"].to_numpy(), x["iv"].to_numpy(), T) * x["oi"] * 100 * S0 * S0 * 0.01
+    p = x[(x["type"] == "P") & (x["strike"] >= S0 * 0.95) & (x["strike"] <= S0)].groupby("strike")["g"].sum()
+    c = x[(x["type"] == "C") & (x["strike"] >= S0) & (x["strike"] <= S0 * 1.05)].groupby("strike")["g"].sum()
+    if p.empty or c.empty:
+        return None
+    return {"prev_close": round(S0, 2), "put_wall": float(p.idxmax()), "call_wall": float(c.idxmax())}
+
+
+def record_day_walls(t, now, df):
+    """First reading of the US session fixes the day's walls (one row per ticker per day)."""
+    if not (9 * 60 + 30 <= now.hour * 60 + now.minute < 16 * 60):
+        return
+    day = now.strftime("%Y-%m-%d")
+    old = pd.read_csv(DAY_WALLS) if DAY_WALLS.exists() else pd.DataFrame(columns=["date", "ticker", "prev_close", "put_wall", "call_wall", "time_et"])
+    if ((old["date"] == day) & (old["ticker"] == t)).any():
+        return
+    w = strategy_walls(df, now)
+    if not w:
+        return
+    row = pd.DataFrame([{"date": day, "ticker": t, **w, "time_et": now.strftime("%H:%M")}])
+    pd.concat([old, row], ignore_index=True).to_csv(DAY_WALLS, index=False)
 
 
 # ----------------------------------------------------------------------------- history
@@ -594,6 +633,10 @@ def wall_signals(h, pcd, side, max_days=None):
     dates = h["time_et"].dt.date
     rth = h[(h["time_et"].dt.hour * 60 + h["time_et"].dt.minute >= 570) & (h["time_et"].dt.hour < 16)]
     day_wall = rth.dropna(subset=[col]).groupby(rth["time_et"].dt.date)[col].first().to_dict()
+    if DAY_WALLS.exists():   # the backtest definition (gamma at the previous close), fixed at the first reading
+        dw = pd.read_csv(DAY_WALLS)
+        dw = dw[dw["ticker"] == CONFIG.get("signal_ticker", "SPY")]
+        day_wall.update({pd.Timestamp(r["date"]).date(): float(r[col]) for _, r in dw.iterrows() if pd.notna(r[col])})
     after = h[h["time_et"].dt.hour >= 16]
     close_of_day = set(after.groupby(after["time_et"].dt.date).head(1).index)
     zmap = dict(zip(pcd["date"], pcd["z"])) if len(pcd) else {}
@@ -1692,6 +1735,10 @@ def _run_once(force=False, charts_only=False, file=None):
             RAW[CONFIG.get("cboe_symbols", {}).get(t, t)] = raw
             spot, snap_time, df = parse_chain(raw)
             row, by_strike = analyse(spot, snap_time, df)
+            try:
+                record_day_walls(t, snap_time, df)
+            except Exception as e:
+                print(f"  {t}: day walls failed - {e}", file=sys.stderr)
             row["rv5"], row["rv20"] = realized_vol(t)
             h = append_history(t, row)
             draw_timeline(t, h)

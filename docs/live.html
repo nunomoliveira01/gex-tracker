@@ -873,11 +873,11 @@ const walls = { pw: null, cw: null };
 const OL = `<ol style="margin:4px 0 0;padding-left:18px">`;
 const WALL_TXT = {
   pw: { dir: 1, wall: "put wall", rules: `${OL}
-      <li><b>Entry:</b> buy 1 NQ unit when SPY falls to the day's <b>put wall</b> (the tracker's put wall at the open: the strike with the most put gamma 0–5% below the price).</li>
+      <li><b>Entry:</b> buy 1 NQ unit when SPY falls to the day's <b>put wall</b> (fixed for the day at the first reading: the strike with the most put gamma 0–5% below yesterday's close, using today's open interest — the same definition as the backtest).</li>
       <li><b>Exit:</b> sell the first later day SPY gamma is back at 0 or above (price back at the gamma flip).</li>
       <li><b>One unit per trade</b>, no add-on, no other stop.</li></ol>` },
   cw: { dir: -1, wall: "call wall", rules: `${OL}
-      <li><b>Entry:</b> sell (short) 1 NQ unit when SPY rises to the day's <b>call wall</b> (the tracker's call wall at the open: the strike with the most call gamma 0–5% above the price).</li>
+      <li><b>Entry:</b> sell (short) 1 NQ unit when SPY rises to the day's <b>call wall</b> (fixed for the day at the first reading: the strike with the most call gamma 0–5% above yesterday's close, using today's open interest — the same definition as the backtest).</li>
       <li><b>Exit:</b> buy back the first later day SPY gamma is at 0 or below (price back down at the gamma flip).</li>
       <li><b>One unit per trade</b>, no add-on, no other stop.</li>
       <li><b>Note:</b> almost all of the backtest gain came on the entry day, and only when gamma was negative.</li></ol>` } };
