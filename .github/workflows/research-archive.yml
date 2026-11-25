@@ -1,0 +1,85 @@
+name: ThetaData private archive (encrypted, not committed)
+
+# Downloads SPY/QQQ end-of-day option chains (open interest + quotes, every contract) for the owner's private archive.
+# Raw data is NEVER committed (public repo): each file is encrypted (AES key wrapped with research/archive_public.pem) and uploaded as an
+# artifact kept 3 days, then decrypted and saved on Nuno's PC.
+on:
+  workflow_dispatch:
+    inputs:
+      tickers:
+        default: '["SPY","QQQ"]'
+      years:
+        default: '[2018,2019,2020,2021,2022,2023,2024,2025,2026]'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: thetadata
+  cancel-in-progress: false
+
+jobs:
+  year:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      max-parallel: 1        # one Theta Terminal per account
+      fail-fast: false
+      matrix:
+        ticker: ${{ fromJSON(inputs.tickers) }}
+        year: ${{ fromJSON(inputs.years) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests pandas numpy scipy yfinance pyarrow
+      - name: Start Theta Terminal
+        env:
+          TD_EMAIL: ${{ secrets.THETADATA_EMAIL }}
+          TD_PASSWORD: ${{ secrets.THETADATA_PASSWORD }}
+          TD_JAR_URL: ${{ vars.THETADATA_JAR_URL }}
+        run: |
+          if [ -z "$TD_EMAIL" ] || [ -z "$TD_PASSWORD" ]; then
+            echo "::error::Secrets THETADATA_EMAIL / THETADATA_PASSWORD are missing or empty (Settings > Secrets and variables > Actions > Repository secrets)"; exit 1; fi
+          mkdir -p ~/theta && cd ~/theta
+          printf '%s\n%s\n' "$TD_EMAIL" "$TD_PASSWORD" > creds.txt
+          ok=0
+          for u in "$TD_JAR_URL" https://download-unstable.thetadata.us/ThetaTerminalv3.jar https://download-stable.thetadata.us/ThetaTerminalv3.jar https://download.thetadata.us/ThetaTerminalv3.jar; do
+            [ -z "$u" ] && continue
+            if curl -fsSL -o ThetaTerminalv3.jar "$u" && unzip -tq ThetaTerminalv3.jar >/dev/null 2>&1; then echo "jar from $u"; ok=1; break; fi
+          done
+          [ "$ok" = 1 ] || { echo "Could not download ThetaTerminalv3.jar - set repository variable THETADATA_JAR_URL"; exit 1; }
+          nohup java -Xmx6g -jar ThetaTerminalv3.jar --creds-file=creds.txt > terminal.log 2>&1 &
+          up=0
+          for i in $(seq 1 60); do
+            curl -s -o /dev/null "http://127.0.0.1:25503/v3/option/list/symbols?format=csv" && { echo "terminal up after ${i}x5s"; up=1; break; }
+            sleep 5
+          done
+          # terminal log without anything that looks like an email or password
+          grep -viE "password|@" terminal.log | tail -40 || true
+          [ "$up" = 1 ] || { echo "::error::Theta Terminal did not start"; exit 1; }
+      - name: Download one year
+        run: cd research && python archive_fetch.py ${{ matrix.ticker }} ${{ matrix.year }}
+      - name: Encrypt (public key in the repo; only the private key, kept outside GitHub, can open the files)
+        run: |
+          cd research/archive_out
+          for f in *.parquet; do
+            k=$(openssl rand -hex 32)
+            openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -in "$f" -out "$f.enc" -pass pass:$k
+            printf '%s' "$k" | openssl pkeyutl -encrypt -pubin -inkey ../archive_public.pem -pkeyopt rsa_padding_mode:oaep -out "$f.key"
+            rm "$f"
+          done
+          ls -la
+      - uses: actions/upload-artifact@v4
+        with:
+          name: archive-${{ matrix.ticker }}-${{ matrix.year }}
+          path: |
+            research/archive_out/*.enc
+            research/archive_out/*.key
+          retention-days: 3
