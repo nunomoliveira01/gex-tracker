@@ -1,0 +1,55 @@
+{
+ "beta": 1.28,
+ "window": [
+  "2024-07-07 18:00:00",
+  "2026-11-25 09:00:00"
+ ],
+ "Put wall long": {
+  "n": 120,
+  "changed": 104,
+  "avg_ny": 0.725,
+  "avg_any": 0.608,
+  "won_ny": 73,
+  "won_any": 83,
+  "worst_ny": -7.04,
+  "worst_any": -5.73,
+  "days_ny": 3.76,
+  "days_any": 2.03,
+  "changed_better_share": 0.38,
+  "changed_avg_ny": 0.661,
+  "changed_avg_any": 0.526,
+  "verdict_anytime_better": false
+ },
+ "Call wall short": {
+  "n": 162,
+  "changed": 140,
+  "avg_ny": 0.344,
+  "avg_any": 0.306,
+  "won_ny": 65,
+  "won_any": 70,
+  "worst_ny": -4.29,
+  "worst_any": -4.29,
+  "days_ny": 2.21,
+  "days_any": 0.94,
+  "changed_better_share": 0.47,
+  "changed_avg_ny": 0.384,
+  "changed_avg_any": 0.34,
+  "verdict_anytime_better": false
+ },
+ "\u221210bn strategy (my strategy)": {
+  "n": 33,
+  "changed": 23,
+  "avg_ny": 2.045,
+  "avg_any": 1.708,
+  "won_ny": 97,
+  "won_any": 94,
+  "worst_ny": -6.18,
+  "worst_any": -4.86,
+  "days_ny": 8.48,
+  "days_any": 6.39,
+  "changed_better_share": 0.26,
+  "changed_avg_ny": 2.15,
+  "changed_avg_any": 1.666,
+  "verdict_anytime_better": false
+ }
+}
