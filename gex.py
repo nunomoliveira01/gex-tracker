@@ -394,7 +394,9 @@ def write_mt5_feed(t, h, row, snap_time):
             "put_wall": num(row["put_wall"]), "call_wall": num(row["call_wall"]),
             "pc_ratio": num(row["pc_volume_ratio"], 4), "pc_z": pc_z,
             "put_wall_prev_close": pw_prev, "call_wall_prev_close": cw_prev}
-    (DOCS / "mt5_feed.json").write_text(json.dumps(feed, separators=(",", ":")))
+    txt = json.dumps(feed, separators=(",", ":"))
+    (DOCS / "mt5_feed.json").write_text(txt)
+    (DATA / "mt5_feed.json").write_text(txt)   # backup copy, committed with the data (raw.githubusercontent.com)
 
 
 # ----------------------------------------------------------------------------- history
