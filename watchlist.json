@@ -1,7 +1,6 @@
 {
  "tickers": [
-  "SPY",
-  "QQQ"
+  "SPY"
  ],
  "futures": [
   "NQ"
