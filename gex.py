@@ -671,7 +671,24 @@ def load_nq():
     return _NQ["nq"]
 
 
-def wall_signals(h, pcd, side, max_days=None):
+def spy_minute_bars():
+    """SPY 1-minute bars (regular hours, last ~7 days) from Yahoo: close to real time, unlike Cboe's ~15-minute delay.
+    Used to catch the exact minute SPY touches a wall."""
+    if "spy1m" in _NQ:
+        return _NQ["spy1m"]
+    try:
+        import yfinance as yf
+        b = yf.Ticker(CONFIG.get("signal_ticker", "SPY")).history(period="7d", interval="1m", prepost=False)
+        b.index = b.index.tz_convert(ET).tz_localize(None)
+        b = b[(b.index.hour * 60 + b.index.minute >= 570) & (b.index.hour < 16)][["Open", "High", "Low"]].dropna()
+    except Exception as e:
+        print(f"  SPY 1-minute bars unavailable ({e})", file=sys.stderr)
+        b = pd.DataFrame(columns=["Open", "High", "Low"])
+    _NQ["spy1m"] = b
+    return b
+
+
+def wall_signals(h, pcd, side, max_days=None, bars=None):
     """Put wall long (side "put") / call wall short (side "call") in NQ, from the SPY tracker readings.
     The day's wall = the tracker's wall at the first reading from 09:30 New York (that day's open interest).
     Entry: first reading with SPY at/below the put wall (at/above the call wall). Add-on once, at a later day's close
@@ -690,10 +707,24 @@ def wall_signals(h, pcd, side, max_days=None):
         dw = pd.read_csv(DAY_WALLS)
         dw = dw[dw["ticker"] == CONFIG.get("signal_ticker", "SPY")]
         day_wall.update({pd.Timestamp(r["date"]).date(): float(r[col]) for _, r in dw.iterrows() if pd.notna(r[col])})
-    after = h[h["time_et"].dt.hour >= 16]
+    # entries are checked on near-real-time 1-minute bars where available (fill at the wall, or at the open on a gap,
+    # as in the backtest); gamma-based exits still use the tracker's Cboe readings
+    h = h.assign(kind="r", bar_open=np.nan)
+    bar_days = set()
+    if bars is not None and len(bars):
+        b = bars[bars.index >= start]
+        if len(b):
+            bar_days = set(b.index.date)
+            hb = pd.DataFrame({"time_et": b.index, "spot": (b["Low"] if sign > 0 else b["High"]).to_numpy(),
+                               "net_gex_bn": np.nan, "kind": "b", "bar_open": b["Open"].to_numpy()})
+            h = pd.concat([h, hb], ignore_index=True).sort_values(["time_et", "kind"], kind="stable").reset_index(drop=True)
+    dates = h["time_et"].dt.date
+    rd = h[h["kind"] == "r"]
+    after = rd[rd["time_et"].dt.hour >= 16]
     close_of_day = set(after.groupby(after["time_et"].dt.date).head(1).index)
     zmap = dict(zip(pcd["date"], pcd["z"])) if len(pcd) else {}
     day_no = {dd: k for k, dd in enumerate(sorted(set(dates)))}   # trading-day counter (for the 5-day exit version)
+    first_bar = set(h[h["kind"] == "b"].groupby(dates[h["kind"] == "b"]).head(1).index)
     trades, pos = [], None
     for i, r in h.iterrows():
         t, p, g = r["time_et"], r["spot"], r["net_gex_bn"]
@@ -702,8 +733,16 @@ def wall_signals(h, pcd, side, max_days=None):
         rth_now = 570 <= t.hour * 60 + t.minute and t.hour < 16
         if pos is None:
             w = day_wall.get(dates[i])
+            if r["kind"] == "r" and dates[i] in bar_days:
+                continue   # that day's entries come from the 1-minute bars
             if rth_now and w is not None and ((sign > 0 and p <= w) or (sign < 0 and p >= w)):
-                pos = {"entry": (i, p), "wall": w, "adds": [], "day": dates[i]}
+                fill = p
+                if r["kind"] == "b":   # resting order at the wall; on a gap through it at the open, fill at the open
+                    gap = i in first_bar and ((sign > 0 and r["bar_open"] <= w) or (sign < 0 and r["bar_open"] >= w))
+                    fill = float(r["bar_open"]) if gap else float(w)
+                pos = {"entry": (i, fill), "wall": w, "adds": [], "day": dates[i]}
+            continue
+        if r["kind"] != "r":
             continue
         if dates[i] > pos["day"] and ((sign > 0 and g >= 0) or (sign < 0 and g <= 0)):
             trades.append({**pos, "exit": (i, p)}); pos = None
@@ -715,7 +754,7 @@ def wall_signals(h, pcd, side, max_days=None):
             z = zmap.get(dates[i])
             if z is not None and not pd.isna(z) and ((sign > 0 and z >= 1 and p < pos["entry"][1]) or (sign < 0 and z <= -1 and p > pos["entry"][1])):
                 pos["adds"].append((i, p))
-    last = h.iloc[-1]
+    last = h[h["kind"] == "r"].iloc[-1]
     today = day_wall.get(last["time_et"].date())
     return trades, pos, {"wall_today": today, "spot": float(last["spot"]), "gamma": float(last["net_gex_bn"]),
                          "time_et": last["time_et"].strftime("%Y-%m-%d %H:%M"), "h": h}
@@ -730,9 +769,11 @@ def write_wall_signals(h, pcd):
         gap = (nq["time_et"] - hh["time_et"][i]).abs(); j = gap.idxmin()
         return float(nq.at[j, "spot"]) if gap[j] <= pd.Timedelta(minutes=20) else None
 
+    bars = spy_minute_bars()
+
     def build(side, max_days=None):
         sign = 1 if side == "put" else -1
-        trades, pos, st = wall_signals(h, pcd, side, max_days)
+        trades, pos, st = wall_signals(h, pcd, side, max_days, bars)
         hh = st.pop("h", None)
         stamp = lambda i: hh["time_et"][i].strftime("%Y-%m-%d %H:%M")
         closed = []
