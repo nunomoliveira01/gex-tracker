@@ -159,9 +159,15 @@ def fetch_chain(ticker, file=None):
     last_err = None
     for attempt in range(3):
         try:
-            r = requests.get(CBOE_URL.format(ticker), headers=HEADERS, timeout=30)
+            # cache-buster: on 25 Nov 2026 Cboe's CDN kept serving GitHub a broken 9:41 copy for over an hour
+            r = requests.get(CBOE_URL.format(ticker), params={"_": int(time.time() * 1000)},
+                             headers={**HEADERS, "Cache-Control": "no-cache", "Pragma": "no-cache"}, timeout=30)
             r.raise_for_status()
-            return r.json()
+            j = r.json()
+            d = j.get("data", j)
+            if attempt < 2 and not any(float(o.get("gamma") or 0) for o in d.get("options", [])[:3000]):
+                raise ValueError("chain without gamma (stale copy?)")   # try again before giving up
+            return j
         except Exception as e:  # network hiccup -> retry
             last_err = e
             time.sleep(5 * (attempt + 1))
