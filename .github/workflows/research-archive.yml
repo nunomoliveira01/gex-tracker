@@ -12,7 +12,7 @@ on:
         default: '[2018,2019,2020,2021,2022,2023,2024,2025,2026]'
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 concurrency:
@@ -76,10 +76,14 @@ jobs:
             rm "$f"
           done
           ls -la
-      - uses: actions/upload-artifact@v4
-        with:
-          name: archive-${{ matrix.ticker }}-${{ matrix.year }}
-          path: |
-            research/archive_out/*.enc
-            research/archive_out/*.key
-          retention-days: 3
+      - name: Push the encrypted files to the temporary branch archive-tmp (deleted after the transfer)
+        run: |
+          git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
+          mkdir -p /tmp/enc && cp research/archive_out/*.enc research/archive_out/*.key /tmp/enc/
+          for i in 1 2 3 4 5; do
+            rm -rf /tmp/br && git clone -q --depth 1 --branch archive-tmp "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" /tmp/br 2>/dev/null \
+              || { rm -rf /tmp/br && mkdir /tmp/br && cd /tmp/br && git init -q && git checkout -q --orphan archive-tmp && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" && cd -; }
+            mkdir -p /tmp/br/enc && cp /tmp/enc/* /tmp/br/enc/
+            cd /tmp/br && git add enc && git -c user.name=gex-bot -c user.email=gex-bot@users.noreply.github.com commit -qm "archive ${{ matrix.ticker }} ${{ matrix.year }} (encrypted)" && git push -q origin HEAD:archive-tmp && break
+            cd - ; sleep 5
+          done
