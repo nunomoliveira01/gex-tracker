@@ -107,5 +107,48 @@ def main():
     print("\n".join(L))
 
 
+
+
+def combined():
+    """Put wall long + call wall short in one account, half the capital each, for each pair of exit rules."""
+    import sys
+    d = pd.read_csv(ROOT / "data" / "daily.csv", parse_dates=["date"]).drop_duplicates("date").set_index("date").sort_index()
+    pw = pd.read_csv(ROOT / "data" / "putwall.csv", parse_dates=["date"]).drop_duplicates("date").set_index("date")
+    cw = pd.read_csv(ROOT / "data" / "callwall.csv", parse_dates=["date"]).drop_duplicates("date").set_index("date")
+    d = d.join(pw[["put_wall"]]).join(cw[["call_wall"]])
+    d["open"] = yahoo("SPY")["Open"].reindex(d.index)
+    nq = yahoo("NQ=F").reindex(d.index).ffill()["Close"]
+    spy_tr = yahoo("SPY", adjust=True)["Close"].reindex(d.index).ffill()
+    rf_all = yahoo("^IRX")["Close"].reindex(d.index).ffill() / 100 / 252
+    nq_ret, spy_ret = nq.pct_change(), d["spy_close"].pct_change()
+    pairs = [("flip", "flip", "Both flip (current)"), ("first", "first", "Both wall-or-flip first"),
+             ("wall", "first", "Long: call wall only · Short: first"), ("wall", "flip", "Long: call wall only · Short: flip")]
+    per_all = {**PERIODS, "all": ("2018-11-19", "2026-11-17")}
+    out, L = {}, ["# Test 12b — both wall strategies in ONE account (half the capital each), NQ, no add-on, daily, no costs", "",
+                  "| Period | Exits | Return/yr | Sharpe | Worst fall | Beta | Alpha/yr | Alpha t | Days in a trade | Days long AND short |",
+                  "|---|---|---|---|---|---|---|---|---|---|"]
+    for per, (a, b) in per_all.items():
+        idx = d.loc[a:b].index
+        win = nq_ret.loc[a:b].dropna().index
+        beta = float(np.cov(nq_ret.loc[win], spy_ret.loc[win].fillna(0))[0, 1] / spy_ret.loc[win].var())
+        conv = lambda t, px, beta=beta: nq.at[t] * (1 + beta * (px / d.at[t, "spy_close"] - 1))
+        rf = rf_all.loc[idx].fillna(0)
+        spy_ex = spy_tr.pct_change().loc[idx].fillna(0) - rf
+        dd = d.loc[:b]
+        for mp, ms, nm in pairs:
+            P, S = trades(dd, "P", mp, a), trades(dd, "S", ms, a)
+            acct = (legs_account(d.index, P, nq, conv, 1) + legs_account(d.index, S, nq, conv, -1)).loc[idx].fillna(0)
+            st = acct_stats(acct, spy_ex, rf)
+            inp = lambda tr: pd.Series(False, index=idx) | pd.Series(idx, index=idx).apply(lambda t: any(s["e"] <= t <= s["x"] for s in tr))
+            ip, is_ = inp(P), inp(S)
+            res = {**st, "in_trade_pct": round(float((ip | is_).mean() * 100)), "both_pct": round(float((ip & is_).mean() * 100))}
+            out[f"{per}|{nm}"] = res
+            L.append(f"| {per} | {nm} | {st['cagr_pct']}% | {st['sharpe']} | {st['max_dd_pct']}% | {st['beta']} | {st['alpha_pct_yr']}% | {st['alpha_t']} | {res['in_trade_pct']}% | {res['both_pct']}% |")
+    (ROOT / "results_exit_walls_combined.json").write_text(json.dumps(out, indent=1, default=str))
+    (ROOT / "results_exit_walls_combined.md").write_text("\n".join(L))
+    print("\n".join(L))
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    combined() if "combined" in sys.argv else main()
