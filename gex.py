@@ -699,30 +699,35 @@ def wall_signals(h, pcd, side, max_days=None, bars=None):
     The day's wall = the tracker's wall at the first reading from 09:30 New York (that day's open interest).
     Entry: first reading with SPY at/below the put wall (at/above the call wall). Add-on once, at a later day's close
     (first reading from 16:00), if SPY is below (above) the entry and SPY's put/call z >= +1 (<= -1).
-    Exit: first reading on a later day with SPY gamma >= 0 (<= 0)."""
+    Exit (from 26 Nov 2026, Test 12): on a later day, whichever comes first — SPY reaches the day's opposite wall
+    (call wall for the long, put wall for the short; checked on 1-minute bars) or SPY gamma is back at 0 (the flip)."""
     start = pd.Timestamp(CONFIG.get("walls_start", "2026-11-24 00:00"))
     h = h[h["time_et"] >= start - pd.Timedelta(days=5)].reset_index(drop=True)
     col = "put_wall" if side == "put" else "call_wall"
+    ocol = "call_wall" if side == "put" else "put_wall"    # the exit wall
     sign = 1 if side == "put" else -1
     if h.empty or col not in h:
         return [], None, {}
     dates = h["time_et"].dt.date
     rth = h[(h["time_et"].dt.hour * 60 + h["time_et"].dt.minute >= 570) & (h["time_et"].dt.hour < 16)]
     day_wall = rth.dropna(subset=[col]).groupby(rth["time_et"].dt.date)[col].first().to_dict()
+    opp_wall = rth.dropna(subset=[ocol]).groupby(rth["time_et"].dt.date)[ocol].first().to_dict() if ocol in rth else {}
     if DAY_WALLS.exists():   # the backtest definition (gamma at the previous close), fixed at the first reading
         dw = pd.read_csv(DAY_WALLS)
         dw = dw[dw["ticker"] == CONFIG.get("signal_ticker", "SPY")]
         day_wall.update({pd.Timestamp(r["date"]).date(): float(r[col]) for _, r in dw.iterrows() if pd.notna(r[col])})
+        opp_wall.update({pd.Timestamp(r["date"]).date(): float(r[ocol]) for _, r in dw.iterrows() if pd.notna(r[ocol])})
     # entries are checked on near-real-time 1-minute bars where available (fill at the wall, or at the open on a gap,
     # as in the backtest); gamma-based exits still use the tracker's Cboe readings
-    h = h.assign(kind="r", bar_open=np.nan)
+    h = h.assign(kind="r", bar_open=np.nan, bar_high=np.nan, bar_low=np.nan)
     bar_days = set()
     if bars is not None and len(bars):
         b = bars[bars.index >= start]
         if len(b):
             bar_days = set(b.index.date)
             hb = pd.DataFrame({"time_et": b.index, "spot": (b["Low"] if sign > 0 else b["High"]).to_numpy(),
-                               "net_gex_bn": np.nan, "kind": "b", "bar_open": b["Open"].to_numpy()})
+                               "net_gex_bn": np.nan, "kind": "b", "bar_open": b["Open"].to_numpy(),
+                               "bar_high": b["High"].to_numpy(), "bar_low": b["Low"].to_numpy()})
             h = pd.concat([h, hb], ignore_index=True).sort_values(["time_et", "kind"], kind="stable").reset_index(drop=True)
     dates = h["time_et"].dt.date
     rd = h[h["kind"] == "r"]
@@ -748,10 +753,22 @@ def wall_signals(h, pcd, side, max_days=None, bars=None):
                     fill = float(r["bar_open"]) if gap else float(w)
                 pos = {"entry": (i, fill), "wall": w, "adds": [], "day": dates[i]}
             continue
+        ow = opp_wall.get(dates[i]) if dates[i] > pos["day"] else None
+        if ow is not None and rth_now and (r["kind"] == "b" or dates[i] not in bar_days):
+            hi = r["bar_high"] if r["kind"] == "b" else p
+            lo = r["bar_low"] if r["kind"] == "b" else p
+            if (sign > 0 and hi >= ow) or (sign < 0 and lo <= ow):   # reached the opposite wall
+                fill = float(ow)
+                if r["kind"] == "b" and i in first_bar and ((sign > 0 and r["bar_open"] >= ow) or (sign < 0 and r["bar_open"] <= ow)):
+                    fill = float(r["bar_open"])
+                elif r["kind"] == "r":
+                    fill = float(p)
+                trades.append({**pos, "exit": (i, fill), "exit_reason": "wall"}); pos = None
+                continue
         if r["kind"] != "r":
             continue
         if dates[i] > pos["day"] and ((sign > 0 and g >= 0) or (sign < 0 and g <= 0)):
-            trades.append({**pos, "exit": (i, p)}); pos = None
+            trades.append({**pos, "exit": (i, p), "exit_reason": "flip"}); pos = None
             continue
         if max_days and i in close_of_day and day_no[dates[i]] - day_no[pos["day"]] >= max_days:   # time limit: out at that close
             trades.append({**pos, "exit": (i, p), "timed_out": True}); pos = None
@@ -762,7 +779,7 @@ def wall_signals(h, pcd, side, max_days=None, bars=None):
                 pos["adds"].append((i, p))
     last = h[h["kind"] == "r"].iloc[-1]
     today = day_wall.get(last["time_et"].date())
-    return trades, pos, {"wall_today": today, "spot": float(last["spot"]), "gamma": float(last["net_gex_bn"]),
+    return trades, pos, {"wall_today": today, "exit_wall_today": opp_wall.get(last["time_et"].date()), "spot": float(last["spot"]), "gamma": float(last["net_gex_bn"]),
                          "time_et": last["time_et"].strftime("%Y-%m-%d %H:%M"), "h": h}
 
 
@@ -791,7 +808,7 @@ def write_wall_signals(h, pcd):
             closed.append({"entry_time": stamp(tr["entry"][0]), "entry_spy": tr["entry"][1], "wall": tr["wall"], "entry": units[0],
                            "adds": units[1:], "add_spy": [a[1] for a in tr["adds"]], "exit_time": stamp(tr["exit"][0]), "exit_spy": tr["exit"][1],
                            "exit": x, "pnl_pts": round(pts, 2) if ok else None, "pct": round(pts / sum(units) * 100, 2) if ok else None,
-                           "timed_out": tr.get("timed_out", False)})
+                           "timed_out": tr.get("timed_out", False), "exit_reason": tr.get("exit_reason")})
         position = None
         if pos:
             position = {"entry_time": stamp(pos["entry"][0]), "entry_spy": pos["entry"][1], "wall": pos["wall"], "entry": nq_at(hh, pos["entry"][0]),

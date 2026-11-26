@@ -127,7 +127,10 @@ def main():
                      f"{st['max_dd_pct']}% | {st['beta']} | {st['alpha_pct_yr']}% | {st['alpha_t']} | {p} | {' '.join(f'{k}:{v:+.2f}' for k, v in res['by_year'].items())} |")
         # backtest lists for the live page (NQ prices)
         # the live page shows the rules WITHOUT the add-on (Nuno's choice, 23 Nov 2026)
-        for key, tr, sign in (("P", Pn0, 1), ("S", Sn0, -1), ("S5", S5n0, -1)):
+        # from 26 Nov 2026 the site's exits are "opposite wall or flip, whichever comes first" (Test 12)
+        import exit_walls as EW
+        Pf, Sf = EW.trades(dd, "P", "first", a), EW.trades(dd, "S", "first", a)
+        for key, tr, sign in (("P", Pf, 1), ("S", Sf, -1), ("S5", S5n0, -1)):
             for s in tr:
                 if s["open"]:
                     continue

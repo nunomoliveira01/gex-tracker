@@ -875,13 +875,13 @@ const MNQ = 2;   // $ per NQ point for one micro contract (MNQ); a full NQ is $2
 var walls = { pw: null, cw: null };
 const OL = `<ol style="margin:4px 0 0;padding-left:18px">`;
 const WALL_TXT = {
-  pw: { dir: 1, wall: "put wall", rules: `${OL}
+  pw: { dir: 1, wall: "put wall", exitWall: "call wall", rules: `${OL}
       <li><b>Entry:</b> buy 1 NQ unit when SPY falls to the day's <b>put wall</b> (fixed for the day at the first reading: the strike with the most put gamma 0–5% below yesterday's close, using today's open interest — the same definition as the backtest).</li>
-      <li><b>Exit:</b> sell the first later day SPY gamma is back at 0 or above (price back at the gamma flip).</li>
+      <li><b>Exit:</b> from the next day on, sell at whichever comes first: SPY reaches that day's <b>call wall</b>, or SPY gamma is back at 0 or above (price back at the gamma flip).</li>
       <li><b>One unit per trade</b>, no add-on, no other stop.</li></ol>` },
-  cw: { dir: -1, wall: "call wall", rules: `${OL}
+  cw: { dir: -1, wall: "call wall", exitWall: "put wall", rules: `${OL}
       <li><b>Entry:</b> sell (short) 1 NQ unit when SPY rises to the day's <b>call wall</b> (fixed for the day at the first reading: the strike with the most call gamma 0–5% above yesterday's close, using today's open interest — the same definition as the backtest).</li>
-      <li><b>Exit:</b> buy back the first later day SPY gamma is at 0 or below (price back down at the gamma flip).</li>
+      <li><b>Exit:</b> from the next day on, buy back at whichever comes first: SPY reaches that day's <b>put wall</b>, or SPY gamma is at 0 or below (price back down at the gamma flip).</li>
       <li><b>One unit per trade</b>, no add-on, no other stop.</li>
       <li><b>Note:</b> almost all of the backtest gain came on the entry day, and only when gamma was negative.</li></ol>` } };
 function renderWall(key) {
@@ -894,7 +894,10 @@ function renderWall(key) {
     <div class="stat"><span>SPY now</span><b>${fmt(spy)}</b></div>
     <div class="stat"><span>SPY vs the wall</span><b>${dist == null ? "–" : sg(dist) + "%"}</b></div>
     <div class="stat"><span>SPY dealer gamma</span><b class="${cls(q.gamma)}">${sg(q.gamma, 1)}bn</b></div>` +
-    (pos ? tick(d > 0 ? q.gamma >= 0 : q.gamma <= 0, d > 0 ? "exit: gamma ≥ 0 on a later day" : "exit: gamma ≤ 0 on a later day")
+    (pos ? `<div class="stat"><span>Exit wall today (${T.exitWall})</span><b>${fmt(q.exit_wall_today)}</b></div>` +
+           tick(q.exit_wall_today != null && spy != null && (d > 0 ? spy >= q.exit_wall_today : spy <= q.exit_wall_today), `exit: SPY at the ${T.exitWall} (later day)`) +
+           tick(d > 0 ? q.gamma >= 0 : q.gamma <= 0, d > 0 ? "exit: gamma ≥ 0 (later day)" : "exit: gamma ≤ 0 (later day)") +
+           `<div class="muted">Out at whichever comes first.</div>`
          : tick(dist != null && (d > 0 ? dist <= 0 : dist >= 0), d > 0 ? "entry: SPY at or below the put wall" : "entry: SPY at or above the call wall"));
   let posTxt = `<div class="big" style="color:var(--muted)">Flat</div><div class="muted">Waiting for SPY to reach the ${T.wall}.</div>`;
   if (pos && pos.entry != null) {
@@ -907,7 +910,7 @@ function renderWall(key) {
   }
   const closed = q.closed || [];
   const liveTxt = closed.length ? `<table class="q"><tr><th>Entry</th><th>NQ in</th><th>Exit</th><th>NQ out</th><th>Points</th></tr>` +
-      closed.slice().reverse().map(c => `<tr><td>${c.entry_time.slice(5)}</td><td>${fmt(c.entry, 0)}${c.adds.length ? " +" + fmt(c.adds[0], 0) : ""}</td><td>${c.exit_time.slice(5)}</td><td>${fmt(c.exit, 0)}</td><td class="${cls(c.pnl_pts)}">${sg(c.pnl_pts, 0)} (${sg(c.pct)}%)</td></tr>`).join("") + `</table>`
+      closed.slice().reverse().map(c => `<tr><td>${c.entry_time.slice(5)}</td><td>${fmt(c.entry, 0)}${c.adds.length ? " +" + fmt(c.adds[0], 0) : ""}</td><td>${c.exit_time.slice(5)}${c.exit_reason ? ` <span class="muted">(${c.exit_reason})</span>` : ""}</td><td>${fmt(c.exit, 0)}</td><td class="${cls(c.pnl_pts)}">${sg(c.pnl_pts, 0)} (${sg(c.pct)}%)</td></tr>`).join("") + `</table>`
     : `<span class="muted">No closed live trades yet — the record starts ${(q.start || "").slice(0, 10)}.</span>`;
   const bt = q.backtest || [];
   const sum = per => { const b = bt.filter(x => x.period === per); if (!b.length) return `<td colspan="4" class="muted">running…</td>`;
@@ -918,7 +921,7 @@ function renderWall(key) {
     <details class="how" style="margin-top:8px"><summary>All ${bt.length} backtest trades</summary><div class="scroll" style="max-height:320px;overflow-y:auto">
     <table class="q"><tr><th>Entry</th><th>SPY in</th><th>NQ in</th><th>Exit</th><th>SPY out</th><th>NQ out</th><th>Result</th></tr>` +
     bt.slice().reverse().map(x => `<tr><td>${x.entry_date}</td><td>${fmt(x.entry_spy)}</td><td>${fmt(x.entry, 0)}</td><td>${x.exit_date}</td><td>${fmt(x.exit_spy)}</td><td>${fmt(x.exit, 0)}</td><td class="${cls(x.pct)}">${sg(x.pct)}%</td></tr>`).join("") +
-    `</table></div></details><div class="muted" style="margin-top:6px">ThetaData daily history; fills at the wall and the flip; NQ mapped from SPY; no costs. Not investment advice.</div>`;
+    `</table></div></details><div class="muted" style="margin-top:6px">ThetaData daily history; exit at the opposite wall or the flip, whichever comes first (rules changed 26 Nov 2026 — Test 12); fills at the exact levels; NQ mapped from SPY; no costs. Not investment advice.</div>`;
   {
     let pl = "";
     if (pos && pos.entry != null) {
