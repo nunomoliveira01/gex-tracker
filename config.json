@@ -60,5 +60,62 @@
       "alert_drop_pct": 15
     }
   ],
-  "walls_start": "2026-11-24 00:00"
+  "wall_band_pct": {
+    "put": 5,
+    "call": 5
+  },
+  "strategies": [
+    {
+      "id": "pw",
+      "name": "Put wall long",
+      "on": true,
+      "side": "long",
+      "trade": "NQ",
+      "entry": {
+        "type": "put_wall"
+      },
+      "filters": [],
+      "exits": [
+        {
+          "type": "opposite_wall"
+        },
+        {
+          "type": "flip"
+        }
+      ],
+      "add_on": {
+        "on": false,
+        "z": 1.0
+      },
+      "start": "2026-11-24 00:00",
+      "signal_file": "PW_signal.json",
+      "backtest_file": "pw_backtest.json"
+    },
+    {
+      "id": "cw",
+      "name": "Call wall short",
+      "on": true,
+      "side": "short",
+      "trade": "NQ",
+      "entry": {
+        "type": "call_wall"
+      },
+      "filters": [],
+      "exits": [
+        {
+          "type": "opposite_wall"
+        },
+        {
+          "type": "flip"
+        }
+      ],
+      "add_on": {
+        "on": false,
+        "z": 1.0
+      },
+      "start": "2026-11-24 00:00",
+      "signal_file": "CW_signal.json",
+      "backtest_file": "cw_backtest.json"
+    }
+  ]
 }

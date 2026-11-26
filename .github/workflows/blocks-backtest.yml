@@ -1,0 +1,32 @@
+name: Blocks backtest
+# Re-runs the backtest of any strategy whose blocks changed in config.json (edited from the site's Blocks page).
+on:
+  push:
+    branches: [main]
+    paths: [config.json]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "re-run every strategy"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: blocks-backtest
+  cancel-in-progress: false
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas numpy scipy yfinance requests
+      - run: cd research && python blocks_backtest.py ${{ inputs.force && '--force' || '' }}
+      - run: |
+          git config user.name "gex-bot"; git config user.email "gex-bot@users.noreply.github.com"
+          git add research/data/*.json
+          git diff --cached --quiet || git commit -m "blocks: backtest updated"
+          for i in 1 2 3 4 5; do git pull --rebase --autostash -q && git push && break; sleep 7; done

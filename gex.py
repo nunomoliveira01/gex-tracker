@@ -330,8 +330,10 @@ def strategy_walls(df, now):
         return None
     T = years_to_expiry(x["expiry"].to_numpy(), now)
     x["g"] = bs_gamma(S0, x["strike"].to_numpy(), x["iv"].to_numpy(), T) * x["oi"] * 100 * S0 * S0 * 0.01
-    p = x[(x["type"] == "P") & (x["strike"] >= S0 * 0.95) & (x["strike"] <= S0)].groupby("strike")["g"].sum()
-    c = x[(x["type"] == "C") & (x["strike"] >= S0) & (x["strike"] <= S0 * 1.05)].groupby("strike")["g"].sum()
+    band = CONFIG.get("wall_band_pct", {})   # how far from yesterday's close to look for each wall (blocks editor)
+    bp, bc = float(band.get("put", 5)) / 100, float(band.get("call", 5)) / 100
+    p = x[(x["type"] == "P") & (x["strike"] >= S0 * (1 - bp)) & (x["strike"] <= S0)].groupby("strike")["g"].sum()
+    c = x[(x["type"] == "C") & (x["strike"] >= S0) & (x["strike"] <= S0 * (1 + bc))].groupby("strike")["g"].sum()
     if p.empty or c.empty:
         return None
     return {"prev_close": round(S0, 2), "put_wall": float(p.idxmax()), "call_wall": float(c.idxmax())}
@@ -686,147 +688,244 @@ def spy_minute_bars():
         import yfinance as yf
         b = yf.Ticker(CONFIG.get("signal_ticker", "SPY")).history(period="7d", interval="1m", prepost=False)
         b.index = b.index.tz_convert(ET).tz_localize(None)
-        b = b[(b.index.hour * 60 + b.index.minute >= 570) & (b.index.hour < 16)][["Open", "High", "Low"]].dropna()
+        b = b[(b.index.hour * 60 + b.index.minute >= 570) & (b.index.hour < 16)][["Open", "High", "Low", "Close"]].dropna()
     except Exception as e:
         print(f"  SPY 1-minute bars unavailable ({e})", file=sys.stderr)
-        b = pd.DataFrame(columns=["Open", "High", "Low"])
+        b = pd.DataFrame(columns=["Open", "High", "Low", "Close"])
     _NQ["spy1m"] = b
     return b
 
 
-def wall_signals(h, pcd, side, max_days=None, bars=None):
-    """Put wall long (side "put") / call wall short (side "call") in NQ, from the SPY tracker readings.
-    The day's wall = the tracker's wall at the first reading from 09:30 New York (that day's open interest).
-    Entry: first reading with SPY at/below the put wall (at/above the call wall). Add-on once, at a later day's close
-    (first reading from 16:00), if SPY is below (above) the entry and SPY's put/call z >= +1 (<= -1).
-    Exit (from 26 Nov 2026, Test 12): on a later day, whichever comes first — SPY reaches the day's opposite wall
-    (call wall for the long, put wall for the short; checked on 1-minute bars) or SPY gamma is back at 0 (the flip)."""
-    start = pd.Timestamp(CONFIG.get("walls_start", "2026-11-24 00:00"))
+# ===================================================================== block strategies (edited on the site's Blocks page)
+# A strategy = one ENTRY block (+ optional FILTER blocks) + one or more EXIT blocks (whichever comes first) + an optional
+# ADD-ON block. Signals always come from SPY (the tracker's readings and 1-minute bars); the trade is in `trade` (NQ by default).
+DEFAULT_STRATEGIES = [
+    {"id": "pw", "name": "Put wall long", "on": True, "side": "long", "trade": "NQ", "entry": {"type": "put_wall"}, "filters": [],
+     "exits": [{"type": "opposite_wall"}, {"type": "flip"}], "add_on": {"on": False, "z": 1.0}, "start": "2026-11-24 00:00",
+     "signal_file": "PW_signal.json", "backtest_file": "pw_backtest.json"},
+    {"id": "cw", "name": "Call wall short", "on": True, "side": "short", "trade": "NQ", "entry": {"type": "call_wall"}, "filters": [],
+     "exits": [{"type": "opposite_wall"}, {"type": "flip"}], "add_on": {"on": False, "z": 1.0}, "start": "2026-11-24 00:00",
+     "signal_file": "CW_signal.json", "backtest_file": "cw_backtest.json"},
+]
+PRICE_ENTRIES = {"put_wall": ("put_wall", "down"), "call_wall": ("call_wall", "up"),
+                 "flip_down": ("flip", "down"), "flip_up": ("flip", "up")}   # level, and the way SPY must move to touch it
+
+
+def strategies():
+    return CONFIG.get("strategies") or DEFAULT_STRATEGIES
+
+
+def describe_strategy(s):
+    """Plain-English rules for the site, built from the blocks."""
+    long = s.get("side") == "long"
+    e = s.get("entry", {})
+    ent = {"put_wall": "SPY falls to the day's put wall", "call_wall": "SPY rises to the day's call wall",
+           "flip_down": "SPY falls through the gamma flip", "flip_up": "SPY rises through the gamma flip",
+           "gamma_below": f"SPY dealer gamma is at {e.get('bn')}bn or lower", "gamma_above": f"SPY dealer gamma is at {e.get('bn')}bn or higher"}.get(e.get("type"), e.get("type"))
+    flt = {"gamma_negative": "only if SPY gamma is negative", "gamma_positive": "only if SPY gamma is positive"}
+    ex = []
+    for x in s.get("exits", []):
+        t = x.get("type")
+        ex.append({"opposite_wall": "SPY reaches the day's " + ("call wall" if long else "put wall"),
+                   "flip": "SPY gamma is back at 0 (the flip)",
+                   "gamma_level": f"SPY gamma reaches {x.get('bn')}bn",
+                   "target_pct": f"SPY moves {x.get('pct')}% in your favour (take profit)",
+                   "stop_pct": f"SPY moves {x.get('pct')}% against you (stop)",
+                   "days": f"{x.get('n')} trading days have passed (out at that close)"}.get(t, t))
+    a = s.get("add_on") or {}
+    return {"entry": f"{'Buy' if long else 'Sell (short)'} 1 {s.get('trade', 'NQ')} unit when {ent}" +
+                     ("".join(f", {flt.get(f.get('type'), f.get('type'))}" for f in s.get("filters", []))) + ".",
+            "exit": "From the next day on, " + ("close at whichever comes first: " if len(ex) > 1 else "close when ") + "; ".join(ex) + ".",
+            "add_on": (f"Add 1 unit once, at a later day's close, if SPY is {'below' if long else 'above'} the entry and SPY's put/call ratio is "
+                       f"at least {a.get('z', 1)} std {'above' if long else 'below'} its 60-day average.") if a.get("on") else "No add-on."}
+
+
+def strategy_signals(h, pcd, s, bars=None):
+    """Run one block strategy over the SPY readings (h) and 1-minute bars. Returns trades, open position, status."""
+    start = pd.Timestamp(s.get("start") or "2026-11-24 00:00")
     h = h[h["time_et"] >= start - pd.Timedelta(days=5)].reset_index(drop=True)
-    col = "put_wall" if side == "put" else "call_wall"
-    ocol = "call_wall" if side == "put" else "put_wall"    # the exit wall
-    sign = 1 if side == "put" else -1
-    if h.empty or col not in h:
+    sign = 1 if s.get("side") == "long" else -1
+    entry, filters = s.get("entry", {}), s.get("filters", [])
+    exits = s.get("exits") or [{"type": "flip"}]
+    add = s.get("add_on") or {}
+    if h.empty:
         return [], None, {}
-    dates = h["time_et"].dt.date
     rth = h[(h["time_et"].dt.hour * 60 + h["time_et"].dt.minute >= 570) & (h["time_et"].dt.hour < 16)]
-    day_wall = rth.dropna(subset=[col]).groupby(rth["time_et"].dt.date)[col].first().to_dict()
-    opp_wall = rth.dropna(subset=[ocol]).groupby(rth["time_et"].dt.date)[ocol].first().to_dict() if ocol in rth else {}
+    walls = {c: rth.dropna(subset=[c]).groupby(rth["time_et"].dt.date)[c].first().to_dict() for c in ("put_wall", "call_wall") if c in rth}
     if DAY_WALLS.exists():   # the backtest definition (gamma at the previous close), fixed at the first reading
         dw = pd.read_csv(DAY_WALLS)
         dw = dw[dw["ticker"] == CONFIG.get("signal_ticker", "SPY")]
-        day_wall.update({pd.Timestamp(r["date"]).date(): float(r[col]) for _, r in dw.iterrows() if pd.notna(r[col])})
-        opp_wall.update({pd.Timestamp(r["date"]).date(): float(r[ocol]) for _, r in dw.iterrows() if pd.notna(r[ocol])})
-    # entries are checked on near-real-time 1-minute bars where available (fill at the wall, or at the open on a gap,
-    # as in the backtest); gamma-based exits still use the tracker's Cboe readings
+        for c in ("put_wall", "call_wall"):
+            walls.setdefault(c, {}).update({pd.Timestamp(r["date"]).date(): float(r[c]) for _, r in dw.iterrows() if pd.notna(r[c])})
     h = h.assign(kind="r", bar_open=np.nan, bar_high=np.nan, bar_low=np.nan)
     bar_days = set()
     if bars is not None and len(bars):
         b = bars[bars.index >= start]
         if len(b):
             bar_days = set(b.index.date)
-            hb = pd.DataFrame({"time_et": b.index, "spot": (b["Low"] if sign > 0 else b["High"]).to_numpy(),
-                               "net_gex_bn": np.nan, "kind": "b", "bar_open": b["Open"].to_numpy(),
-                               "bar_high": b["High"].to_numpy(), "bar_low": b["Low"].to_numpy()})
+            hb = pd.DataFrame({"time_et": b.index, "spot": b["Close"].to_numpy(), "net_gex_bn": np.nan, "kind": "b",
+                               "bar_open": b["Open"].to_numpy(), "bar_high": b["High"].to_numpy(), "bar_low": b["Low"].to_numpy()})
             h = pd.concat([h, hb], ignore_index=True).sort_values(["time_et", "kind"], kind="stable").reset_index(drop=True)
     dates = h["time_et"].dt.date
     rd = h[h["kind"] == "r"]
     after = rd[rd["time_et"].dt.hour >= 16]
     close_of_day = set(after.groupby(after["time_et"].dt.date).head(1).index)
     zmap = dict(zip(pcd["date"], pcd["z"])) if len(pcd) else {}
-    day_no = {dd: k for k, dd in enumerate(sorted(set(dates)))}   # trading-day counter (for the 5-day exit version)
+    day_no = {dd: k for k, dd in enumerate(sorted(set(dates)))}
     first_bar = set(h[h["kind"] == "b"].groupby(dates[h["kind"] == "b"]).head(1).index)
+    gam = h["net_gex_bn"].where(h["kind"] == "r").ffill()          # latest gamma reading at every row
+    flp = (h["flip"] if "flip" in h else pd.Series(np.nan, index=h.index)).where(h["kind"] == "r").ffill()
+
+    def touched(r, i, lvl, way):
+        """Did SPY reach lvl moving `way` on this row? Returns the fill (lvl, or the open on a gap) or None."""
+        if lvl is None or pd.isna(lvl):
+            return None
+        if r["kind"] == "b":
+            hit = r["bar_low"] <= lvl if way == "down" else r["bar_high"] >= lvl
+            if not hit:
+                return None
+            gap = i in first_bar and ((way == "down" and r["bar_open"] <= lvl) or (way == "up" and r["bar_open"] >= lvl))
+            return float(r["bar_open"]) if gap else float(lvl)
+        hit = r["spot"] <= lvl if way == "down" else r["spot"] >= lvl
+        return float(r["spot"]) if hit else None
+
     trades, pos = [], None
     for i, r in h.iterrows():
-        t, p, g = r["time_et"], r["spot"], r["net_gex_bn"]
+        t = r["time_et"]
         if t < start:
             continue
         rth_now = 570 <= t.hour * 60 + t.minute and t.hour < 16
+        g = gam[i]
+        use_row = r["kind"] == "b" or dates[i] not in bar_days       # price checks: bars when we have them, else readings
         if pos is None:
-            w = day_wall.get(dates[i])
-            if r["kind"] == "r" and dates[i] in bar_days:
-                continue   # that day's entries come from the 1-minute bars
-            if rth_now and w is not None and ((sign > 0 and p <= w) or (sign < 0 and p >= w)):
-                fill = p
-                if r["kind"] == "b":   # resting order at the wall; on a gap through it at the open, fill at the open
-                    gap = i in first_bar and ((sign > 0 and r["bar_open"] <= w) or (sign < 0 and r["bar_open"] >= w))
-                    fill = float(r["bar_open"]) if gap else float(w)
-                pos = {"entry": (i, fill), "wall": w, "adds": [], "day": dates[i]}
-            continue
-        ow = opp_wall.get(dates[i]) if dates[i] > pos["day"] else None
-        if ow is not None and rth_now and (r["kind"] == "b" or dates[i] not in bar_days):
-            hi = r["bar_high"] if r["kind"] == "b" else p
-            lo = r["bar_low"] if r["kind"] == "b" else p
-            if (sign > 0 and hi >= ow) or (sign < 0 and lo <= ow):   # reached the opposite wall
-                fill = float(ow)
-                if r["kind"] == "b" and i in first_bar and ((sign > 0 and r["bar_open"] >= ow) or (sign < 0 and r["bar_open"] <= ow)):
-                    fill = float(r["bar_open"])
-                elif r["kind"] == "r":
-                    fill = float(p)
-                trades.append({**pos, "exit": (i, fill), "exit_reason": "wall"}); pos = None
+            if not rth_now:
                 continue
-        if r["kind"] != "r":
+            if any((f.get("type") == "gamma_negative" and not (g < 0)) or (f.get("type") == "gamma_positive" and not (g > 0)) for f in filters):
+                continue
+            fill, lvl = None, None
+            et = entry.get("type")
+            if et in PRICE_ENTRIES and use_row:
+                col, way = PRICE_ENTRIES[et]
+                lvl = flp[i] if col == "flip" else walls.get(col, {}).get(dates[i])
+                fill = touched(r, i, lvl, way)
+            elif et in ("gamma_below", "gamma_above") and r["kind"] == "r" and pd.notna(g):
+                bn = float(entry.get("bn", -10))
+                if (et == "gamma_below" and g <= bn) or (et == "gamma_above" and g >= bn):
+                    fill, lvl = float(r["spot"]), bn
+            if fill is not None:
+                pos = {"entry": (i, fill), "wall": None if lvl is None or pd.isna(lvl) else float(lvl), "adds": [], "day": dates[i]}
             continue
-        if dates[i] > pos["day"] and ((sign > 0 and g >= 0) or (sign < 0 and g <= 0)):
-            trades.append({**pos, "exit": (i, p), "exit_reason": "flip"}); pos = None
+        later = dates[i] > pos["day"]
+        done = None
+        if later and rth_now and use_row:                            # price exits; a stop wins a tie (the cautious read)
+            e_px = pos["entry"][1]
+            cands = []
+            for x in exits:
+                xt = x.get("type")
+                if xt == "opposite_wall":
+                    lvl = walls.get("call_wall" if sign > 0 else "put_wall", {}).get(dates[i])
+                    f = touched(r, i, lvl, "up" if sign > 0 else "down"); cands.append((1, f, "wall"))
+                elif xt == "target_pct":
+                    lvl = e_px * (1 + sign * float(x.get("pct", 1)) / 100)
+                    f = touched(r, i, lvl, "up" if sign > 0 else "down"); cands.append((1, f, "target"))
+                elif xt == "stop_pct":
+                    lvl = e_px * (1 - sign * float(x.get("pct", 1)) / 100)
+                    f = touched(r, i, lvl, "down" if sign > 0 else "up"); cands.append((0, f, "stop"))
+            cands = [c for c in cands if c[1] is not None]
+            if cands:
+                best = min(cands, key=lambda c: (c[0], sign * c[1]))   # stop first, then the nearest level
+                done = (best[1], best[2])
+        if done is None and r["kind"] == "r" and later and pd.notna(g):
+            for x in exits:
+                xt = x.get("type")
+                bn = 0.0 if xt == "flip" else (float(x.get("bn", 0)) if xt == "gamma_level" else None)
+                if bn is not None and ((sign > 0 and g >= bn) or (sign < 0 and g <= bn)):
+                    done = (float(r["spot"]), "flip" if xt == "flip" else "gamma"); break
+        if done is None and r["kind"] == "r" and i in close_of_day:
+            for x in exits:
+                if x.get("type") == "days" and day_no[dates[i]] - day_no[pos["day"]] >= int(x.get("n", 5)):
+                    done = (float(r["spot"]), "time"); break
+        if done:
+            trades.append({**pos, "exit": (i, done[0]), "exit_reason": done[1], "timed_out": done[1] == "time"}); pos = None
             continue
-        if max_days and i in close_of_day and day_no[dates[i]] - day_no[pos["day"]] >= max_days:   # time limit: out at that close
-            trades.append({**pos, "exit": (i, p), "timed_out": True}); pos = None
-            continue
-        if CONFIG.get("walls_add_on", False) and i in close_of_day and dates[i] > pos["day"] and not pos["adds"]:
-            z = zmap.get(dates[i])
-            if z is not None and not pd.isna(z) and ((sign > 0 and z >= 1 and p < pos["entry"][1]) or (sign < 0 and z <= -1 and p > pos["entry"][1])):
-                pos["adds"].append((i, p))
+        if add.get("on") and r["kind"] == "r" and i in close_of_day and later and len(pos["adds"]) < int(add.get("max", 1)):
+            z = zmap.get(dates[i]); zz = float(add.get("z", 1.0))
+            if z is not None and not pd.isna(z) and ((sign > 0 and z >= zz and r["spot"] < pos["entry"][1]) or (sign < 0 and z <= -zz and r["spot"] > pos["entry"][1])):
+                pos["adds"].append((i, float(r["spot"])))
     last = h[h["kind"] == "r"].iloc[-1]
-    today = day_wall.get(last["time_et"].date())
-    return trades, pos, {"wall_today": today, "exit_wall_today": opp_wall.get(last["time_et"].date()), "spot": float(last["spot"]), "gamma": float(last["net_gex_bn"]),
+    ld = last["time_et"].date()
+    own = PRICE_ENTRIES.get(entry.get("type"), (None,))[0]
+    return trades, pos, {"wall_today": walls.get(own, {}).get(ld) if own in ("put_wall", "call_wall") else None,
+                         "exit_wall_today": walls.get("call_wall" if sign > 0 else "put_wall", {}).get(ld),
+                         "put_wall_today": walls.get("put_wall", {}).get(ld), "call_wall_today": walls.get("call_wall", {}).get(ld),
+                         "flip": None if pd.isna(last.get("flip", np.nan)) else float(last["flip"]),
+                         "spot": float(last["spot"]), "gamma": float(last["net_gex_bn"]),
                          "time_et": last["time_et"].strftime("%Y-%m-%d %H:%M"), "h": h}
 
 
 def write_wall_signals(h, pcd):
-    nq = load_nq()
-
-    def nq_at(hh, i):
-        if nq.empty:
-            return None
-        gap = (nq["time_et"] - hh["time_et"][i]).abs(); j = gap.idxmin()
-        return float(nq.at[j, "spot"]) if gap[j] <= pd.Timedelta(minutes=20) else None
-
+    """Every block strategy that is switched on -> docs/S_<id>.json (+ its old file name for the put/call wall panels)."""
     bars = spy_minute_bars()
+    prices = {}
 
-    def build(side, max_days=None):
-        sign = 1 if side == "put" else -1
-        trades, pos, st = wall_signals(h, pcd, side, max_days, bars)
-        hh = st.pop("h", None)
-        stamp = lambda i: hh["time_et"][i].strftime("%Y-%m-%d %H:%M")
-        closed = []
-        for tr in trades:
-            units = [nq_at(hh, tr["entry"][0])] + [nq_at(hh, a[0]) for a in tr["adds"]]
-            x = nq_at(hh, tr["exit"][0])
-            ok = x is not None and all(u is not None for u in units)
-            pts = sum(sign * (x - u) for u in units) if ok else None
-            closed.append({"entry_time": stamp(tr["entry"][0]), "entry_spy": tr["entry"][1], "wall": tr["wall"], "entry": units[0],
-                           "adds": units[1:], "add_spy": [a[1] for a in tr["adds"]], "exit_time": stamp(tr["exit"][0]), "exit_spy": tr["exit"][1],
-                           "exit": x, "pnl_pts": round(pts, 2) if ok else None, "pct": round(pts / sum(units) * 100, 2) if ok else None,
-                           "timed_out": tr.get("timed_out", False), "exit_reason": tr.get("exit_reason")})
-        position = None
-        if pos:
-            position = {"entry_time": stamp(pos["entry"][0]), "entry_spy": pos["entry"][1], "wall": pos["wall"], "entry": nq_at(hh, pos["entry"][0]),
-                        "adds": [{"time": stamp(a[0]), "spy": a[1], "price": nq_at(hh, a[0])} for a in pos["adds"]], "side": "long" if sign > 0 else "short"}
-            legs = [(hh["time_et"][pos["entry"][0]], position["entry"])] + [(hh["time_et"][a[0]], b["price"]) for a, b in zip(pos["adds"], position["adds"])]
-            if len(nq):
-                position["dd"] = excursion(nq["time_et"], nq["spot"], legs, sign=sign)
-            if max_days:
+    def series(tk):
+        if tk not in prices:
+            prices[tk] = load_nq() if tk == "NQ" else load_history(tk)[["time_et", "spot"]].dropna()
+        return prices[tk]
+
+    index = []
+    for s in strategies():
+        if not s.get("on", True):
+            continue
+        try:
+            px = series(s.get("trade", "NQ"))
+            sign = 1 if s.get("side") == "long" else -1
+
+            def at(hh, i):
+                if px.empty:
+                    return None
+                gap = (px["time_et"] - hh["time_et"][i]).abs(); j = gap.idxmin()
+                return float(px.at[j, "spot"]) if gap[j] <= pd.Timedelta(minutes=20) else None
+
+            trades, pos, st = strategy_signals(h, pcd, s, bars)
+            hh = st.pop("h", None)
+            stamp = lambda i: hh["time_et"][i].strftime("%Y-%m-%d %H:%M")
+            closed = []
+            for tr in trades:
+                units = [at(hh, tr["entry"][0])] + [at(hh, a[0]) for a in tr["adds"]]
+                x = at(hh, tr["exit"][0])
+                ok = x is not None and all(u is not None for u in units)
+                pts = sum(sign * (x - u) for u in units) if ok else None
+                closed.append({"entry_time": stamp(tr["entry"][0]), "entry_spy": tr["entry"][1], "wall": tr["wall"], "entry": units[0],
+                               "adds": units[1:], "add_spy": [a[1] for a in tr["adds"]], "exit_time": stamp(tr["exit"][0]), "exit_spy": tr["exit"][1],
+                               "exit": x, "pnl_pts": round(pts, 2) if ok else None, "pct": round(pts / sum(units) * 100, 2) if ok else None,
+                               "timed_out": tr.get("timed_out", False), "exit_reason": tr.get("exit_reason")})
+            position = None
+            if pos:
+                position = {"entry_time": stamp(pos["entry"][0]), "entry_spy": pos["entry"][1], "wall": pos["wall"], "entry": at(hh, pos["entry"][0]),
+                            "adds": [{"time": stamp(a[0]), "spy": a[1], "price": at(hh, a[0])} for a in pos["adds"]], "side": s.get("side")}
+                legs = [(hh["time_et"][pos["entry"][0]], position["entry"])] + [(hh["time_et"][a[0]], b["price"]) for a, b in zip(pos["adds"], position["adds"])]
+                if len(px):
+                    position["dd"] = excursion(px["time_et"], px["spot"], legs, sign=sign)
                 ds = sorted(set(hh["time_et"].dt.date))
                 position["days_held"] = ds.index(hh["time_et"].iloc[-1].date()) - ds.index(hh["time_et"][pos["entry"][0]].date())
-        return st, position, closed
+            bp = ROOT / "research" / "data" / s.get("backtest_file", f"bt_{s['id']}.json")
+            bt = json.loads(bp.read_text()) if bp.exists() else []
+            if isinstance(bt, dict):
+                bt = bt.get("trades", [])
+            out = {**st, "id": s["id"], "name": s.get("name", s["id"]), "spec": s, "rules": describe_strategy(s),
+                   "side": "put" if s.get("entry", {}).get("type") == "put_wall" else "call" if s.get("entry", {}).get("type") == "call_wall" else s.get("side"),
+                   "start": s.get("start"), "position": position, "closed": closed, "trade": s.get("trade", "NQ"),
+                   "nq_last": float(px["spot"].iloc[-1]) if len(px) else None, "backtest": bt}
+            txt = json.dumps(out, default=str)
+            (DOCS / f"S_{s['id']}.json").write_text(txt)
+            if s.get("signal_file"):
+                (DOCS / s["signal_file"]).write_text(txt)
+            index.append({"id": s["id"], "name": s.get("name", s["id"]), "panel": s.get("signal_file") is None})
+        except Exception as e:
+            print(f"  strategy {s.get('id')} FAILED - {e}", file=sys.stderr)
+    (DOCS / "strategies.json").write_text(json.dumps(index))
 
-    for side, fname, bt in (("put", "PW_signal.json", "pw_backtest.json"), ("call", "CW_signal.json", "cw_backtest.json")):
-        st, position, closed = build(side)
-        bp = ROOT / "research" / "data" / bt
-        out = {**st, "side": side, "start": CONFIG.get("walls_start", "2026-11-24 00:00"), "position": position, "closed": closed,
-               "nq_last": float(nq["spot"].iloc[-1]) if len(nq) else None, "backtest": json.loads(bp.read_text()) if bp.exists() else []}
-        (DOCS / fname).write_text(json.dumps(out, default=str))
 
 
 def write_nq_pc(h, trades, pos, pcd):
