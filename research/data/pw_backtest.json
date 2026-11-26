@@ -6,11 +6,11 @@
   "entry": 6696.64,
   "add_date": null,
   "add": null,
-  "exit_date": "2018-11-28",
-  "exit_spy": 270.71,
-  "exit": 6810.57,
-  "pnl_pts": 113.93,
-  "pct": 1.7
+  "exit_date": "2018-11-21",
+  "exit_spy": 265.86,
+  "exit": 6599.27,
+  "pnl_pts": -97.37,
+  "pct": -1.45
  },
  {
   "period": "oos",
@@ -33,10 +33,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2018-12-12",
-  "exit_spy": 268.73,
-  "exit": 6861.09,
-  "pnl_pts": 275.86,
-  "pct": 4.19
+  "exit_spy": 267.47,
+  "exit": 6825.6,
+  "pnl_pts": 240.36,
+  "pct": 3.65
  },
  {
   "period": "oos",
@@ -45,11 +45,24 @@
   "entry": 6586.35,
   "add_date": null,
   "add": null,
-  "exit_date": "2019-01-08",
-  "exit_spy": 256.82,
-  "exit": 6558.66,
-  "pnl_pts": -27.69,
-  "pct": -0.42
+  "exit_date": "2018-12-26",
+  "exit_spy": 245.0,
+  "exit": 6252.23,
+  "pnl_pts": -334.12,
+  "pct": -5.07
+ },
+ {
+  "period": "oos",
+  "entry_date": "2018-12-27",
+  "entry_spy": 240.0,
+  "entry": 6096.35,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2018-12-28",
+  "exit_spy": 250.0,
+  "exit": 6356.36,
+  "pnl_pts": 260.01,
+  "pct": 4.27
  },
  {
   "period": "oos",
@@ -292,11 +305,24 @@
   "entry": 7812.93,
   "add_date": null,
   "add": null,
+  "exit_date": "2019-08-07",
+  "exit_spy": 288.0,
+  "exit": 7554.12,
+  "pnl_pts": -258.81,
+  "pct": -3.31
+ },
+ {
+  "period": "oos",
+  "entry_date": "2019-08-09",
+  "entry_spy": 290.0,
+  "entry": 7613.26,
+  "add_date": null,
+  "add": null,
   "exit_date": "2019-08-13",
   "exit_spy": 294.13,
   "exit": 7794.19,
-  "pnl_pts": -18.74,
-  "pct": -0.24
+  "pnl_pts": 180.93,
+  "pct": 2.38
  },
  {
   "period": "oos",
@@ -682,11 +708,102 @@
   "entry": 8367.2,
   "add_date": null,
   "add": null,
-  "exit_date": "2020-04-07",
-  "exit_spy": 274.21,
-  "exit": 8314.99,
-  "pnl_pts": -52.21,
-  "pct": -0.62
+  "exit_date": "2020-03-10",
+  "exit_spy": 284.64,
+  "exit": 8210.93,
+  "pnl_pts": -156.27,
+  "pct": -1.87
+ },
+ {
+  "period": "oos",
+  "entry_date": "2020-03-11",
+  "entry_spy": 280.0,
+  "entry": 8185.18,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2020-03-13",
+  "exit_spy": 263.09,
+  "exit": 7713.55,
+  "pnl_pts": -471.62,
+  "pct": -5.76
+ },
+ {
+  "period": "oos",
+  "entry_date": "2020-03-16",
+  "entry_spy": 241.18,
+  "entry": 7100.71,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2020-03-17",
+  "exit_spy": 250.0,
+  "exit": 7314.68,
+  "pnl_pts": 213.97,
+  "pct": 3.01
+ },
+ {
+  "period": "oos",
+  "entry_date": "2020-03-18",
+  "entry_spy": 236.25,
+  "entry": 7100.59,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2020-03-24",
+  "exit_spy": 234.42,
+  "exit": 7255.24,
+  "pnl_pts": 154.65,
+  "pct": 2.18
+ },
+ {
+  "period": "oos",
+  "entry_date": "2020-03-25",
+  "entry_spy": 240.0,
+  "entry": 7240.87,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2020-03-26",
+  "exit_spy": 250.0,
+  "exit": 7472.6,
+  "pnl_pts": 231.73,
+  "pct": 3.2
+ },
+ {
+  "period": "oos",
+  "entry_date": "2020-03-27",
+  "entry_spy": 253.27,
+  "entry": 7563.55,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2020-03-30",
+  "exit_spy": 260.0,
+  "exit": 7800.05,
+  "pnl_pts": 236.5,
+  "pct": 3.13
+ },
+ {
+  "period": "oos",
+  "entry_date": "2020-03-31",
+  "entry_spy": 260.0,
+  "entry": 7861.3,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2020-04-02",
+  "exit_spy": 250.0,
+  "exit": 7566.05,
+  "pnl_pts": -295.26,
+  "pct": -3.76
+ },
+ {
+  "period": "oos",
+  "entry_date": "2020-04-03",
+  "entry_spy": 250.0,
+  "entry": 7583.33,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2020-04-06",
+  "exit_spy": 257.84,
+  "exit": 7794.74,
+  "pnl_pts": 211.41,
+  "pct": 2.79
  },
  {
   "period": "oos",
@@ -695,11 +812,11 @@
   "entry": 8587.51,
   "add_date": null,
   "add": null,
-  "exit_date": "2020-04-17",
-  "exit_spy": 285.38,
-  "exit": 8766.24,
-  "pnl_pts": 178.73,
-  "pct": 2.08
+  "exit_date": "2020-04-16",
+  "exit_spy": 280.0,
+  "exit": 8765.35,
+  "pnl_pts": 177.84,
+  "pct": 2.07
  },
  {
   "period": "oos",
@@ -708,11 +825,11 @@
   "entry": 8557.58,
   "add_date": null,
   "add": null,
-  "exit_date": "2020-04-23",
-  "exit_spy": 281.71,
-  "exit": 8688.22,
-  "pnl_pts": 130.65,
-  "pct": 1.53
+  "exit_date": "2020-04-22",
+  "exit_spy": 280.0,
+  "exit": 8668.76,
+  "pnl_pts": 111.18,
+  "pct": 1.3
  },
  {
   "period": "oos",
@@ -760,11 +877,11 @@
   "entry": 8935.83,
   "add_date": null,
   "add": null,
-  "exit_date": "2020-05-15",
-  "exit_spy": 285.98,
-  "exit": 9086.09,
-  "pnl_pts": 150.26,
-  "pct": 1.68
+  "exit_date": "2020-05-14",
+  "exit_spy": 285.0,
+  "exit": 9080.56,
+  "pnl_pts": 144.72,
+  "pct": 1.62
  },
  {
   "period": "oos",
@@ -1892,10 +2009,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2021-09-30",
-  "exit_spy": 436.09,
-  "exit": 14944.94,
-  "pnl_pts": -44.22,
-  "pct": -0.3
+  "exit_spy": 436.02,
+  "exit": 14942.42,
+  "pnl_pts": -46.74,
+  "pct": -0.31
  },
  {
   "period": "oos",
@@ -1904,11 +2021,11 @@
   "entry": 14565.05,
   "add_date": null,
   "add": null,
-  "exit_date": "2021-10-07",
-  "exit_spy": 438.39,
-  "exit": 14871.14,
-  "pnl_pts": 306.08,
-  "pct": 2.1
+  "exit_date": "2021-10-06",
+  "exit_spy": 435.0,
+  "exit": 14762.75,
+  "pnl_pts": 197.69,
+  "pct": 1.36
  },
  {
   "period": "oos",
@@ -1918,10 +2035,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2021-10-11",
-  "exit_spy": 438.6,
-  "exit": 14846.37,
-  "pnl_pts": 32.89,
-  "pct": 0.22
+  "exit_spy": 438.0,
+  "exit": 14824.11,
+  "pnl_pts": 10.63,
+  "pct": 0.07
  },
  {
   "period": "oos",
@@ -2125,11 +2242,24 @@
   "entry": 15826.72,
   "add_date": null,
   "add": null,
+  "exit_date": "2022-01-06",
+  "exit_spy": 470.0,
+  "exit": 15835.61,
+  "pnl_pts": 8.89,
+  "pct": 0.06
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-01-07",
+  "entry_spy": 465.0,
+  "entry": 15540.76,
+  "add_date": null,
+  "add": null,
   "exit_date": "2022-01-11",
   "exit_spy": 468.58,
   "exit": 15787.6,
-  "pnl_pts": -39.12,
-  "pct": -0.25
+  "pnl_pts": 246.83,
+  "pct": 1.59
  },
  {
   "period": "oos",
@@ -2138,11 +2268,37 @@
   "entry": 15464.94,
   "add_date": null,
   "add": null,
-  "exit_date": "2022-02-01",
-  "exit_spy": 452.28,
-  "exit": 14970.39,
-  "pnl_pts": -494.55,
-  "pct": -3.2
+  "exit_date": "2022-01-21",
+  "exit_spy": 447.0,
+  "exit": 14754.57,
+  "pnl_pts": -710.36,
+  "pct": -4.59
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-01-24",
+  "entry_spy": 430.0,
+  "entry": 14142.77,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-01-26",
+  "exit_spy": 440.72,
+  "exit": 14423.29,
+  "pnl_pts": 280.52,
+  "pct": 1.98
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-01-28",
+  "entry_spy": 431.0,
+  "entry": 14038.13,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-01-31",
+  "exit_spy": 450.0,
+  "exit": 14908.29,
+  "pnl_pts": 870.16,
+  "pct": 6.2
  },
  {
   "period": "oos",
@@ -2151,11 +2307,24 @@
   "entry": 14614.08,
   "add_date": null,
   "add": null,
-  "exit_date": "2022-02-09",
-  "exit_spy": 455.22,
-  "exit": 14954.05,
-  "pnl_pts": 339.97,
-  "pct": 2.33
+  "exit_date": "2022-02-04",
+  "exit_spy": 450.0,
+  "exit": 14732.48,
+  "pnl_pts": 118.4,
+  "pct": 0.81
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-02-07",
+  "entry_spy": 448.0,
+  "entry": 14586.35,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-02-08",
+  "exit_spy": 450.0,
+  "exit": 14700.58,
+  "pnl_pts": 114.23,
+  "pct": 0.78
  },
  {
   "period": "oos",
@@ -2164,11 +2333,63 @@
   "entry": 14725.57,
   "add_date": null,
   "add": null,
+  "exit_date": "2022-02-11",
+  "exit_spy": 450.0,
+  "exit": 14581.09,
+  "pnl_pts": -144.48,
+  "pct": -0.98
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-02-14",
+  "entry_spy": 439.92,
+  "entry": 14285.27,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-02-22",
+  "exit_spy": 435.0,
+  "exit": 14056.25,
+  "pnl_pts": -229.02,
+  "pct": -1.6
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-02-23",
+  "entry_spy": 425.0,
+  "entry": 13615.31,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-02-28",
+  "exit_spy": 438.0,
+  "exit": 14277.3,
+  "pnl_pts": 661.98,
+  "pct": 4.86
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-03-04",
+  "entry_spy": 430.0,
+  "entry": 13763.01,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-03-11",
+  "exit_spy": 428.12,
+  "exit": 13573.27,
+  "pnl_pts": -189.75,
+  "pct": -1.38
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-03-14",
+  "entry_spy": 420.0,
+  "entry": 13149.13,
+  "add_date": null,
+  "add": null,
   "exit_date": "2022-03-17",
   "exit_spy": 439.35,
   "exit": 14050.9,
-  "pnl_pts": -674.67,
-  "pct": -4.58
+  "pnl_pts": 901.76,
+  "pct": 6.86
  },
  {
   "period": "oos",
@@ -2178,10 +2399,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2022-03-21",
-  "exit_spy": 445.14,
-  "exit": 14397.24,
-  "pnl_pts": 530.22,
-  "pct": 3.82
+  "exit_spy": 445.0,
+  "exit": 14392.28,
+  "pnl_pts": 525.26,
+  "pct": 3.79
  },
  {
   "period": "oos",
@@ -2204,10 +2425,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2022-04-05",
-  "exit_spy": 457.02,
-  "exit": 15045.42,
-  "pnl_pts": 287.49,
-  "pct": 1.95
+  "exit_spy": 457.0,
+  "exit": 15044.73,
+  "pnl_pts": 286.79,
+  "pct": 1.94
  },
  {
   "period": "oos",
@@ -2216,11 +2437,24 @@
   "entry": 14518.52,
   "add_date": null,
   "add": null,
+  "exit_date": "2022-04-07",
+  "exit_spy": 450.0,
+  "exit": 14579.99,
+  "pnl_pts": 61.47,
+  "pct": 0.42
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-04-11",
+  "entry_spy": 440.0,
+  "entry": 14002.81,
+  "add_date": null,
+  "add": null,
   "exit_date": "2022-04-21",
   "exit_spy": 448.54,
   "exit": 14090.91,
-  "pnl_pts": -427.61,
-  "pct": -2.95
+  "pnl_pts": 88.1,
+  "pct": 0.63
  },
  {
   "period": "oos",
@@ -2229,11 +2463,50 @@
   "entry": 13490.56,
   "add_date": null,
   "add": null,
-  "exit_date": "2022-06-01",
-  "exit_spy": 415.94,
-  "exit": 12765.77,
-  "pnl_pts": -724.79,
-  "pct": -5.37
+  "exit_date": "2022-05-06",
+  "exit_spy": 414.0,
+  "exit": 12786.41,
+  "pnl_pts": -704.15,
+  "pct": -5.22
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-05-09",
+  "entry_spy": 400.0,
+  "entry": 12255.63,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-05-11",
+  "exit_spy": 400.0,
+  "exit": 12213.74,
+  "pnl_pts": -41.9,
+  "pct": -0.34
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-05-12",
+  "entry_spy": 389.37,
+  "entry": 11847.38,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-05-13",
+  "exit_spy": 400.0,
+  "exit": 12324.21,
+  "pnl_pts": 476.82,
+  "pct": 4.02
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-05-16",
+  "entry_spy": 399.98,
+  "entry": 12241.03,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-05-20",
+  "exit_spy": 393.25,
+  "exit": 11962.23,
+  "pnl_pts": -278.81,
+  "pct": -2.28
  },
  {
   "period": "oos",
@@ -2242,11 +2515,63 @@
   "entry": 12453.56,
   "add_date": null,
   "add": null,
-  "exit_date": "2022-07-19",
-  "exit_spy": 391.56,
-  "exit": 12249.51,
-  "pnl_pts": -204.05,
-  "pct": -1.64
+  "exit_date": "2022-06-15",
+  "exit_spy": 380.0,
+  "exit": 11620.76,
+  "pnl_pts": -832.8,
+  "pct": -6.69
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-06-16",
+  "entry_spy": 370.0,
+  "entry": 11236.99,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-06-17",
+  "exit_spy": 367.0,
+  "exit": 11168.69,
+  "pnl_pts": -68.3,
+  "pct": -0.61
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-06-22",
+  "entry_spy": 370.62,
+  "entry": 11437.15,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-06-24",
+  "exit_spy": 381.4,
+  "exit": 11842.19,
+  "pnl_pts": 405.05,
+  "pct": 3.54
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-06-29",
+  "entry_spy": 380.0,
+  "entry": 11679.46,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-07-01",
+  "exit_spy": 380.0,
+  "exit": 11569.55,
+  "pnl_pts": -109.91,
+  "pct": -0.94
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-07-13",
+  "entry_spy": 375.1,
+  "entry": 11634.37,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-07-15",
+  "exit_spy": 382.55,
+  "exit": 11918.68,
+  "pnl_pts": 284.31,
+  "pct": 2.44
  },
  {
   "period": "oos",
@@ -2307,11 +2632,141 @@
   "entry": 13367.07,
   "add_date": null,
   "add": null,
-  "exit_date": "2022-10-27",
-  "exit_spy": 383.07,
-  "exit": 11336.14,
-  "pnl_pts": -2030.93,
-  "pct": -15.19
+  "exit_date": "2022-08-23",
+  "exit_spy": 415.0,
+  "exit": 12988.02,
+  "pnl_pts": -379.05,
+  "pct": -2.84
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-08-24",
+  "entry_spy": 412.0,
+  "entry": 12872.11,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-08-31",
+  "exit_spy": 400.0,
+  "exit": 12450.71,
+  "pnl_pts": -421.4,
+  "pct": -3.27
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-09-06",
+  "entry_spy": 390.0,
+  "entry": 11993.19,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-09-08",
+  "exit_spy": 400.0,
+  "exit": 12308.84,
+  "pnl_pts": 315.65,
+  "pct": 2.63
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-09-13",
+  "entry_spy": 400.0,
+  "entry": 12269.79,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-09-15",
+  "exit_spy": 395.0,
+  "exit": 12099.6,
+  "pnl_pts": -170.19,
+  "pct": -1.39
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-09-16",
+  "entry_spy": 384.14,
+  "entry": 11766.53,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-09-21",
+  "exit_spy": 386.11,
+  "exit": 12008.77,
+  "pnl_pts": 242.24,
+  "pct": 2.06
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-09-22",
+  "entry_spy": 375.0,
+  "entry": 11592.12,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-09-26",
+  "exit_spy": 370.0,
+  "exit": 11511.42,
+  "pnl_pts": -80.7,
+  "pct": -0.7
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-09-29",
+  "entry_spy": 360.0,
+  "entry": 11132.9,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-09-30",
+  "exit_spy": 363.0,
+  "exit": 11234.06,
+  "pnl_pts": 101.16,
+  "pct": 0.91
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-10-10",
+  "entry_spy": 360.0,
+  "entry": 10983.83,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-10-12",
+  "exit_spy": 358.17,
+  "exit": 10894.55,
+  "pnl_pts": -89.28,
+  "pct": -0.81
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-10-13",
+  "entry_spy": 349.21,
+  "entry": 10523.25,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-10-14",
+  "exit_spy": 368.55,
+  "exit": 11106.25,
+  "pnl_pts": 583.0,
+  "pct": 5.54
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-10-19",
+  "entry_spy": 368.99,
+  "entry": 11169.63,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-10-20",
+  "exit_spy": 370.0,
+  "exit": 11244.58,
+  "pnl_pts": 74.96,
+  "pct": 0.67
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-10-24",
+  "entry_spy": 374.0,
+  "entry": 11315.82,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2022-10-25",
+  "exit_spy": 380.0,
+  "exit": 11548.17,
+  "pnl_pts": 232.35,
+  "pct": 2.05
  },
  {
   "period": "oos",
@@ -2320,11 +2775,24 @@
   "entry": 10948.69,
   "add_date": null,
   "add": null,
+  "exit_date": "2022-11-04",
+  "exit_spy": 377.0,
+  "exit": 10911.02,
+  "pnl_pts": -37.67,
+  "pct": -0.34
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-11-09",
+  "entry_spy": 375.0,
+  "entry": 10858.56,
+  "add_date": null,
+  "add": null,
   "exit_date": "2022-11-10",
   "exit_spy": 389.58,
   "exit": 11466.03,
-  "pnl_pts": 517.34,
-  "pct": 4.73
+  "pnl_pts": 607.47,
+  "pct": 5.59
  },
  {
   "period": "oos",
@@ -2333,11 +2801,24 @@
   "entry": 11789.13,
   "add_date": null,
   "add": null,
+  "exit_date": "2022-11-18",
+  "exit_spy": 397.74,
+  "exit": 11763.82,
+  "pnl_pts": -25.3,
+  "pct": -0.21
+ },
+ {
+  "period": "oos",
+  "entry_date": "2022-11-21",
+  "entry_spy": 394.64,
+  "entry": 11589.62,
+  "add_date": null,
+  "add": null,
   "exit_date": "2022-11-22",
   "exit_spy": 398.36,
   "exit": 11704.58,
-  "pnl_pts": -84.55,
-  "pct": -0.72
+  "pnl_pts": 114.96,
+  "pct": 0.99
  },
  {
   "period": "oos",
@@ -2347,10 +2828,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2022-11-30",
-  "exit_spy": 403.26,
-  "exit": 11898.12,
-  "pnl_pts": 131.54,
-  "pct": 1.12
+  "exit_spy": 400.0,
+  "exit": 11791.75,
+  "pnl_pts": 25.17,
+  "pct": 0.21
  },
  {
   "period": "oos",
@@ -2359,11 +2840,11 @@
   "entry": 11819.13,
   "add_date": null,
   "add": null,
-  "exit_date": "2022-12-13",
-  "exit_spy": 410.22,
-  "exit": 12108.08,
-  "pnl_pts": 288.95,
-  "pct": 2.44
+  "exit_date": "2022-12-07",
+  "exit_spy": 394.0,
+  "exit": 11536.65,
+  "pnl_pts": -282.47,
+  "pct": -2.39
  },
  {
   "period": "oos",
@@ -2372,24 +2853,76 @@
   "entry": 11770.24,
   "add_date": null,
   "add": null,
-  "exit_date": "2023-01-12",
-  "exit_spy": 398.46,
-  "exit": 11582.47,
-  "pnl_pts": -187.78,
-  "pct": -1.6
+  "exit_date": "2022-12-28",
+  "exit_spy": 382.0,
+  "exit": 10941.4,
+  "pnl_pts": -828.85,
+  "pct": -7.04
  },
  {
   "period": "oos",
-  "entry_date": "2023-01-13",
-  "entry_spy": 393.62,
-  "entry": 11451.03,
+  "entry_date": "2022-12-30",
+  "entry_spy": 380.64,
+  "entry": 10965.28,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-01-03",
+  "exit_spy": 384.37,
+  "exit": 11058.17,
+  "pnl_pts": 92.89,
+  "pct": 0.85
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-01-04",
+  "entry_spy": 380.0,
+  "entry": 10880.25,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-01-09",
+  "exit_spy": 390.37,
+  "exit": 11265.43,
+  "pnl_pts": 385.18,
+  "pct": 3.54
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-01-12",
+  "entry_spy": 395.0,
+  "entry": 11471.36,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-01-17",
+  "exit_spy": 400.0,
+  "exit": 11696.46,
+  "pnl_pts": 225.1,
+  "pct": 1.96
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-01-19",
+  "entry_spy": 389.36,
+  "entry": 11379.73,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-01-23",
+  "exit_spy": 400.0,
+  "exit": 11913.28,
+  "pnl_pts": 533.55,
+  "pct": 4.69
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-01-24",
+  "entry_spy": 398.88,
+  "entry": 11866.12,
   "add_date": null,
   "add": null,
   "exit_date": "2023-01-26",
   "exit_spy": 404.58,
   "exit": 12101.0,
-  "pnl_pts": 649.97,
-  "pct": 5.68
+  "pnl_pts": 234.88,
+  "pct": 1.98
  },
  {
   "period": "oos",
@@ -2398,11 +2931,89 @@
   "entry": 12594.86,
   "add_date": null,
   "add": null,
-  "exit_date": "2023-03-31",
-  "exit_spy": 408.13,
-  "exit": 13256.42,
-  "pnl_pts": 661.56,
-  "pct": 5.25
+  "exit_date": "2023-02-22",
+  "exit_spy": 400.0,
+  "exit": 12146.44,
+  "pnl_pts": -448.42,
+  "pct": -3.56
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-02-24",
+  "entry_spy": 395.42,
+  "entry": 11964.92,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-02-27",
+  "exit_spy": 400.0,
+  "exit": 12159.4,
+  "pnl_pts": 194.49,
+  "pct": 1.63
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-03-02",
+  "entry_spy": 392.68,
+  "entry": 11890.24,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-03-03",
+  "exit_spy": 400.0,
+  "exit": 12170.32,
+  "pnl_pts": 280.08,
+  "pct": 2.36
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-03-07",
+  "entry_spy": 400.0,
+  "entry": 12227.37,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-03-09",
+  "exit_spy": 400.0,
+  "exit": 12293.04,
+  "pnl_pts": 65.67,
+  "pct": 0.54
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-03-10",
+  "entry_spy": 390.0,
+  "entry": 11978.82,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-03-13",
+  "exit_spy": 386.0,
+  "exit": 11953.63,
+  "pnl_pts": -25.18,
+  "pct": -0.21
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-03-15",
+  "entry_spy": 385.89,
+  "entry": 12129.98,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-03-22",
+  "exit_spy": 400.0,
+  "exit": 12989.34,
+  "pnl_pts": 859.36,
+  "pct": 7.08
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-03-23",
+  "entry_spy": 392.0,
+  "entry": 12811.76,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2023-03-24",
+  "exit_spy": 395.0,
+  "exit": 12863.28,
+  "pnl_pts": 51.51,
+  "pct": 0.4
  },
  {
   "period": "oos",
@@ -2424,11 +3035,11 @@
   "entry": 13090.73,
   "add_date": null,
   "add": null,
-  "exit_date": "2023-04-12",
-  "exit_spy": 411.87,
-  "exit": 13086.14,
-  "pnl_pts": -4.59,
-  "pct": -0.04
+  "exit_date": "2023-04-11",
+  "exit_spy": 410.26,
+  "exit": 13093.78,
+  "pnl_pts": 3.04,
+  "pct": 0.02
  },
  {
   "period": "oos",
@@ -2463,11 +3074,24 @@
   "entry": 13115.51,
   "add_date": null,
   "add": null,
+  "exit_date": "2023-04-21",
+  "exit_spy": 412.19,
+  "exit": 13090.15,
+  "pnl_pts": -25.36,
+  "pct": -0.19
+ },
+ {
+  "period": "oos",
+  "entry_date": "2023-04-24",
+  "entry_spy": 411.99,
+  "entry": 13034.14,
+  "add_date": null,
+  "add": null,
   "exit_date": "2023-04-27",
-  "exit_spy": 412.54,
-  "exit": 13235.81,
-  "pnl_pts": 120.29,
-  "pct": 0.92
+  "exit_spy": 410.0,
+  "exit": 13145.87,
+  "pnl_pts": 111.73,
+  "pct": 0.86
  },
  {
   "period": "oos",
@@ -2477,10 +3101,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2023-05-01",
-  "exit_spy": 416.5,
-  "exit": 13341.6,
-  "pnl_pts": 178.36,
-  "pct": 1.36
+  "exit_spy": 416.0,
+  "exit": 13324.08,
+  "pnl_pts": 160.84,
+  "pct": 1.22
  },
  {
   "period": "oos",
@@ -2489,11 +3113,11 @@
   "entry": 13307.28,
   "add_date": null,
   "add": null,
-  "exit_date": "2023-05-17",
-  "exit_spy": 415.45,
-  "exit": 13651.54,
-  "pnl_pts": 344.26,
-  "pct": 2.59
+  "exit_date": "2023-05-12",
+  "exit_spy": 413.42,
+  "exit": 13462.02,
+  "pnl_pts": 154.74,
+  "pct": 1.16
  },
  {
   "period": "oos",
@@ -2515,24 +3139,24 @@
   "entry": 13873.54,
   "add_date": null,
   "add": null,
-  "exit_date": "2023-05-30",
-  "exit_spy": 422.03,
-  "exit": 14466.74,
-  "pnl_pts": 593.2,
-  "pct": 4.28
+  "exit_date": "2023-05-26",
+  "exit_spy": 420.0,
+  "exit": 14331.75,
+  "pnl_pts": 458.21,
+  "pct": 3.3
  },
  {
   "period": "oos",
-  "entry_date": "2023-05-31",
-  "entry_spy": 418.28,
-  "entry": 14316.75,
+  "entry_date": "2023-05-30",
+  "entry_spy": 420.0,
+  "entry": 14389.94,
   "add_date": null,
   "add": null,
   "exit_date": "2023-06-01",
-  "exit_spy": 420.65,
-  "exit": 14428.07,
-  "pnl_pts": 111.32,
-  "pct": 0.78
+  "exit_spy": 420.0,
+  "exit": 14403.3,
+  "pnl_pts": 13.36,
+  "pct": 0.09
  },
  {
   "period": "oos",
@@ -2607,10 +3231,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2023-07-07",
-  "exit_spy": 441.5,
-  "exit": 15294.53,
-  "pnl_pts": 65.71,
-  "pct": 0.43
+  "exit_spy": 440.0,
+  "exit": 15237.18,
+  "pnl_pts": 8.36,
+  "pct": 0.05
  },
  {
   "period": "oos",
@@ -2620,10 +3244,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2023-07-11",
-  "exit_spy": 441.69,
-  "exit": 15230.63,
-  "pnl_pts": 106.95,
-  "pct": 0.71
+  "exit_spy": 440.45,
+  "exit": 15183.45,
+  "pnl_pts": 59.77,
+  "pct": 0.4
  },
  {
   "period": "oos",
@@ -2646,10 +3270,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2023-07-26",
-  "exit_spy": 456.41,
-  "exit": 15644.76,
-  "pnl_pts": 29.52,
-  "pct": 0.19
+  "exit_spy": 456.0,
+  "exit": 15629.29,
+  "pnl_pts": 14.05,
+  "pct": 0.09
  },
  {
   "period": "is",
@@ -2763,10 +3387,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2024-01-04",
-  "exit_spy": 470.78,
-  "exit": 16603.13,
-  "pnl_pts": -406.13,
-  "pct": -2.39
+  "exit_spy": 469.0,
+  "exit": 16522.62,
+  "pnl_pts": -486.64,
+  "pct": -2.86
  },
  {
   "period": "is",
@@ -2802,10 +3426,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2024-01-18",
-  "exit_spy": 475.53,
-  "exit": 17065.96,
-  "pnl_pts": 96.25,
-  "pct": 0.57
+  "exit_spy": 475.0,
+  "exit": 17041.39,
+  "pnl_pts": 71.68,
+  "pct": 0.42
  },
  {
   "period": "is",
@@ -2984,10 +3608,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2024-04-03",
-  "exit_spy": 520.24,
-  "exit": 18410.73,
-  "pnl_pts": 107.91,
-  "pct": 0.59
+  "exit_spy": 520.0,
+  "exit": 18400.01,
+  "pnl_pts": 97.2,
+  "pct": 0.53
  },
  {
   "period": "is",
@@ -2996,11 +3620,11 @@
   "entry": 18262.44,
   "add_date": null,
   "add": null,
-  "exit_date": "2024-04-11",
-  "exit_spy": 519.17,
-  "exit": 18538.44,
-  "pnl_pts": 276.0,
-  "pct": 1.51
+  "exit_date": "2024-04-09",
+  "exit_spy": 520.5,
+  "exit": 18413.25,
+  "pnl_pts": 150.81,
+  "pct": 0.83
  },
  {
   "period": "is",
@@ -3009,11 +3633,37 @@
   "entry": 17633.62,
   "add_date": null,
   "add": null,
-  "exit_date": "2024-05-06",
-  "exit_spy": 514.4,
-  "exit": 18097.3,
-  "pnl_pts": 463.68,
-  "pct": 2.63
+  "exit_date": "2024-04-19",
+  "exit_spy": 500.0,
+  "exit": 17396.1,
+  "pnl_pts": -237.52,
+  "pct": -1.35
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-04-25",
+  "entry_spy": 499.18,
+  "entry": 17374.66,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2024-04-29",
+  "exit_spy": 510.09,
+  "exit": 17905.6,
+  "pnl_pts": 530.94,
+  "pct": 3.06
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-05-01",
+  "entry_spy": 500.0,
+  "entry": 17422.61,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2024-05-03",
+  "exit_spy": 511.16,
+  "exit": 17994.88,
+  "pnl_pts": 572.27,
+  "pct": 3.28
  },
  {
   "period": "is",
@@ -3087,11 +3737,11 @@
   "entry": 18903.37,
   "add_date": null,
   "add": null,
-  "exit_date": "2024-06-03",
-  "exit_spy": 529.19,
-  "exit": 18709.13,
-  "pnl_pts": -194.24,
-  "pct": -1.03
+  "exit_date": "2024-05-31",
+  "exit_spy": 525.0,
+  "exit": 18483.86,
+  "pnl_pts": -419.5,
+  "pct": -2.22
  },
  {
   "period": "is",
@@ -3153,10 +3803,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2024-06-24",
-  "exit_spy": 545.08,
-  "exit": 19860.0,
-  "pnl_pts": 117.83,
-  "pct": 0.6
+  "exit_spy": 545.0,
+  "exit": 19856.22,
+  "pnl_pts": 114.04,
+  "pct": 0.58
  },
  {
   "period": "is",
@@ -3178,11 +3828,24 @@
   "entry": 19963.88,
   "add_date": null,
   "add": null,
-  "exit_date": "2024-07-02",
-  "exit_spy": 547.79,
-  "exit": 20197.73,
-  "pnl_pts": 233.86,
-  "pct": 1.17
+  "exit_date": "2024-07-01",
+  "exit_spy": 545.63,
+  "exit": 20065.67,
+  "pnl_pts": 101.8,
+  "pct": 0.51
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-07-02",
+  "entry_spy": 543.7,
+  "entry": 20004.03,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2024-07-03",
+  "exit_spy": 548.71,
+  "exit": 20280.82,
+  "pnl_pts": 276.79,
+  "pct": 1.38
  },
  {
   "period": "is",
@@ -3204,24 +3867,76 @@
   "entry": 19759.51,
   "add_date": null,
   "add": null,
-  "exit_date": "2024-08-01",
-  "exit_spy": 554.15,
-  "exit": 19523.54,
-  "pnl_pts": -235.97,
-  "pct": -1.19
+  "exit_date": "2024-07-22",
+  "exit_spy": 555.0,
+  "exit": 20017.18,
+  "pnl_pts": 257.68,
+  "pct": 1.3
  },
  {
   "period": "is",
-  "entry_date": "2024-08-02",
-  "entry_spy": 535.75,
-  "entry": 18683.51,
+  "entry_date": "2024-07-25",
+  "entry_spy": 540.0,
+  "entry": 19064.17,
   "add_date": null,
   "add": null,
-  "exit_date": "2024-08-15",
-  "exit_spy": 549.97,
-  "exit": 19440.5,
-  "pnl_pts": 756.99,
-  "pct": 4.05
+  "exit_date": "2024-07-29",
+  "exit_spy": 546.02,
+  "exit": 19266.23,
+  "pnl_pts": 202.05,
+  "pct": 1.06
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-07-30",
+  "entry_spy": 540.0,
+  "entry": 18846.64,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2024-07-31",
+  "exit_spy": 550.0,
+  "exit": 19468.47,
+  "pnl_pts": 621.82,
+  "pct": 3.3
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-08-01",
+  "entry_spy": 540.0,
+  "entry": 18888.03,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2024-08-06",
+  "exit_spy": 520.0,
+  "exit": 18083.01,
+  "pnl_pts": -805.02,
+  "pct": -4.26
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-08-07",
+  "entry_spy": 520.0,
+  "entry": 18026.03,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2024-08-08",
+  "exit_spy": 530.0,
+  "exit": 18496.15,
+  "pnl_pts": 470.12,
+  "pct": 2.61
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-08-09",
+  "entry_spy": 529.81,
+  "entry": 18473.57,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2024-08-12",
+  "exit_spy": 534.21,
+  "exit": 18681.63,
+  "pnl_pts": 208.06,
+  "pct": 1.13
  },
  {
   "period": "is",
@@ -3282,11 +3997,24 @@
   "entry": 18914.67,
   "add_date": null,
   "add": null,
+  "exit_date": "2024-09-05",
+  "exit_spy": 551.0,
+  "exit": 19025.0,
+  "pnl_pts": 110.33,
+  "pct": 0.58
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-09-06",
+  "entry_spy": 540.0,
+  "entry": 18442.48,
+  "add_date": null,
+  "add": null,
   "exit_date": "2024-09-11",
-  "exit_spy": 555.26,
-  "exit": 19308.3,
-  "pnl_pts": 393.63,
-  "pct": 2.08
+  "exit_spy": 550.0,
+  "exit": 19073.99,
+  "pnl_pts": 631.51,
+  "pct": 3.42
  },
  {
   "period": "is",
@@ -3321,11 +4049,11 @@
   "entry": 20090.98,
   "add_date": null,
   "add": null,
-  "exit_date": "2024-10-10",
-  "exit_spy": 577.55,
-  "exit": 20494.43,
-  "pnl_pts": 403.45,
-  "pct": 2.01
+  "exit_date": "2024-10-01",
+  "exit_spy": 574.0,
+  "exit": 20217.36,
+  "pnl_pts": 126.38,
+  "pct": 0.63
  },
  {
   "period": "is",
@@ -3360,11 +4088,24 @@
   "entry": 20310.67,
   "add_date": null,
   "add": null,
-  "exit_date": "2024-10-25",
-  "exit_spy": 581.51,
-  "exit": 20610.88,
-  "pnl_pts": 300.21,
-  "pct": 1.48
+  "exit_date": "2024-10-24",
+  "exit_spy": 580.0,
+  "exit": 20414.54,
+  "pnl_pts": 103.87,
+  "pct": 0.51
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-10-25",
+  "entry_spy": 579.0,
+  "entry": 20496.94,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2024-10-28",
+  "exit_spy": 582.58,
+  "exit": 20576.19,
+  "pnl_pts": 79.26,
+  "pct": 0.39
  },
  {
   "period": "is",
@@ -3374,10 +4115,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2024-10-30",
-  "exit_spy": 582.83,
-  "exit": 20662.59,
-  "pnl_pts": 53.68,
-  "pct": 0.26
+  "exit_spy": 582.0,
+  "exit": 20625.1,
+  "pnl_pts": 16.19,
+  "pct": 0.08
  },
  {
   "period": "is",
@@ -3477,11 +4218,24 @@
   "entry": 21855.51,
   "add_date": null,
   "add": null,
+  "exit_date": "2024-12-19",
+  "exit_spy": 591.36,
+  "exit": 21355.73,
+  "pnl_pts": -499.78,
+  "pct": -2.29
+ },
+ {
+  "period": "is",
+  "entry_date": "2024-12-20",
+  "entry_spy": 581.77,
+  "entry": 20521.74,
+  "add_date": null,
+  "add": null,
   "exit_date": "2024-12-24",
   "exit_spy": 598.16,
   "exit": 21881.11,
-  "pnl_pts": 25.59,
-  "pct": 0.12
+  "pnl_pts": 1359.37,
+  "pct": 6.62
  },
  {
   "period": "is",
@@ -3490,11 +4244,24 @@
   "entry": 21921.64,
   "add_date": null,
   "add": null,
+  "exit_date": "2024-12-31",
+  "exit_spy": 590.0,
+  "exit": 21408.56,
+  "pnl_pts": -513.08,
+  "pct": -2.34
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-01-02",
+  "entry_spy": 585.0,
+  "entry": 21184.21,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-01-06",
   "exit_spy": 596.94,
   "exit": 21818.29,
-  "pnl_pts": -103.35,
-  "pct": -0.47
+  "pnl_pts": 634.08,
+  "pct": 2.99
  },
  {
   "period": "is",
@@ -3542,11 +4309,24 @@
   "entry": 21170.81,
   "add_date": null,
   "add": null,
+  "exit_date": "2025-02-04",
+  "exit_spy": 600.0,
+  "exit": 21588.05,
+  "pnl_pts": 417.24,
+  "pct": 1.97
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-02-05",
+  "entry_spy": 600.0,
+  "entry": 21568.09,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-02-06",
   "exit_spy": 605.99,
   "exit": 21856.48,
-  "pnl_pts": 685.67,
-  "pct": 3.24
+  "pnl_pts": 288.4,
+  "pct": 1.34
  },
  {
   "period": "is",
@@ -3594,11 +4374,154 @@
   "entry": 21183.69,
   "add_date": null,
   "add": null,
+  "exit_date": "2025-02-27",
+  "exit_spy": 596.85,
+  "exit": 21138.7,
+  "pnl_pts": -44.99,
+  "pct": -0.21
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-02-28",
+  "entry_spy": 585.0,
+  "entry": 20505.04,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-03-03",
+  "exit_spy": 596.18,
+  "exit": 21026.23,
+  "pnl_pts": 521.19,
+  "pct": 2.54
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-03-04",
+  "entry_spy": 579.71,
+  "entry": 20528.24,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-03-07",
+  "exit_spy": 575.0,
+  "exit": 20188.31,
+  "pnl_pts": -339.93,
+  "pct": -1.66
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-03-10",
+  "entry_spy": 565.0,
+  "entry": 19649.44,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-03-11",
+  "exit_spy": 561.0,
+  "exit": 19626.32,
+  "pnl_pts": -23.11,
+  "pct": -0.12
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-03-13",
+  "entry_spy": 550.0,
+  "entry": 19185.44,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-03-19",
+  "exit_spy": 570.0,
+  "exit": 19874.9,
+  "pnl_pts": 689.46,
+  "pct": 3.59
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-03-21",
+  "entry_spy": 559.28,
+  "entry": 19242.95,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-03-24",
+  "exit_spy": 570.8,
+  "exit": 20224.97,
+  "pnl_pts": 982.02,
+  "pct": 5.1
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-03-26",
+  "entry_spy": 570.0,
+  "entry": 20180.47,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-03-27",
+  "exit_spy": 570.0,
+  "exit": 20122.25,
+  "pnl_pts": -58.22,
+  "pct": -0.29
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-03-28",
+  "entry_spy": 560.0,
+  "entry": 19651.88,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-04-01",
+  "exit_spy": 560.0,
+  "exit": 19561.03,
+  "pnl_pts": -90.85,
+  "pct": -0.46
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-04-02",
+  "entry_spy": 555.05,
+  "entry": 19332.97,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-04-08",
+  "exit_spy": 521.86,
+  "exit": 18374.15,
+  "pnl_pts": -958.82,
+  "pct": -4.96
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-04-10",
+  "entry_spy": 530.0,
+  "entry": 18729.41,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-04-15",
+  "exit_spy": 540.0,
+  "exit": 19068.34,
+  "pnl_pts": 338.93,
+  "pct": 1.81
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-04-16",
+  "entry_spy": 525.0,
+  "entry": 18355.65,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-04-25",
+  "exit_spy": 550.0,
+  "exit": 19506.13,
+  "pnl_pts": 1150.48,
+  "pct": 6.27
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-04-28",
+  "entry_spy": 550.0,
+  "entry": 19489.36,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-04-29",
   "exit_spy": 555.44,
   "exit": 19692.9,
-  "pnl_pts": -1490.79,
-  "pct": -7.04
+  "pnl_pts": 203.54,
+  "pct": 1.04
  },
  {
   "period": "is",
@@ -3737,11 +4660,11 @@
   "entry": 21923.9,
   "add_date": null,
   "add": null,
-  "exit_date": "2025-06-24",
-  "exit_spy": 604.33,
-  "exit": 22296.7,
-  "pnl_pts": 372.8,
-  "pct": 1.7
+  "exit_date": "2025-06-23",
+  "exit_spy": 600.0,
+  "exit": 22066.42,
+  "pnl_pts": 142.53,
+  "pct": 0.65
  },
  {
   "period": "is",
@@ -3893,11 +4816,24 @@
   "entry": 23776.88,
   "add_date": null,
   "add": null,
+  "exit_date": "2025-08-19",
+  "exit_spy": 644.0,
+  "exit": 23666.6,
+  "pnl_pts": -110.28,
+  "pct": -0.46
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-08-20",
+  "entry_spy": 635.0,
+  "entry": 23178.23,
+  "add_date": null,
+  "add": null,
   "exit_date": "2025-08-22",
   "exit_spy": 644.46,
   "exit": 23529.71,
-  "pnl_pts": -247.17,
-  "pct": -1.04
+  "pnl_pts": 351.48,
+  "pct": 1.52
  },
  {
   "period": "is",
@@ -3958,11 +4894,11 @@
   "entry": 24686.46,
   "add_date": null,
   "add": null,
-  "exit_date": "2025-09-29",
-  "exit_spy": 664.36,
-  "exit": 24870.38,
-  "pnl_pts": 183.92,
-  "pct": 0.75
+  "exit_date": "2025-09-26",
+  "exit_spy": 660.0,
+  "exit": 24639.55,
+  "pnl_pts": -46.91,
+  "pct": -0.19
  },
  {
   "period": "is",
@@ -3985,10 +4921,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2025-10-03",
-  "exit_spy": 671.1,
-  "exit": 25082.58,
-  "pnl_pts": 31.28,
-  "pct": 0.12
+  "exit_spy": 670.0,
+  "exit": 25029.83,
+  "pnl_pts": -21.47,
+  "pct": -0.09
  },
  {
   "period": "is",
@@ -4024,10 +4960,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2025-10-15",
-  "exit_spy": 668.29,
-  "exit": 25074.45,
-  "pnl_pts": 554.58,
-  "pct": 2.26
+  "exit_spy": 666.82,
+  "exit": 25003.79,
+  "pnl_pts": 483.92,
+  "pct": 1.97
  },
  {
   "period": "is",
@@ -4036,11 +4972,11 @@
   "entry": 24800.4,
   "add_date": null,
   "add": null,
-  "exit_date": "2025-10-20",
-  "exit_spy": 671.14,
-  "exit": 25297.69,
-  "pnl_pts": 497.29,
-  "pct": 2.01
+  "exit_date": "2025-10-17",
+  "exit_spy": 665.0,
+  "exit": 25015.92,
+  "pnl_pts": 215.52,
+  "pct": 0.87
  },
  {
   "period": "is",
@@ -4049,11 +4985,11 @@
   "entry": 25280.74,
   "add_date": null,
   "add": null,
-  "exit_date": "2025-10-23",
-  "exit_spy": 671.72,
-  "exit": 25251.88,
-  "pnl_pts": -28.86,
-  "pct": -0.11
+  "exit_date": "2025-10-22",
+  "exit_spy": 672.0,
+  "exit": 25241.2,
+  "pnl_pts": -39.54,
+  "pct": -0.16
  },
  {
   "period": "is",
@@ -4075,11 +5011,11 @@
   "entry": 25619.56,
   "add_date": null,
   "add": null,
-  "exit_date": "2025-11-10",
-  "exit_spy": 677.48,
-  "exit": 25523.07,
-  "pnl_pts": -96.49,
-  "pct": -0.38
+  "exit_date": "2025-11-07",
+  "exit_spy": 671.0,
+  "exit": 25167.69,
+  "pnl_pts": -451.87,
+  "pct": -1.76
  },
  {
   "period": "is",
@@ -4114,11 +5050,24 @@
   "entry": 23973.02,
   "add_date": null,
   "add": null,
-  "exit_date": "2025-11-25",
-  "exit_spy": 671.82,
-  "exit": 24933.14,
-  "pnl_pts": 960.12,
-  "pct": 4.01
+  "exit_date": "2025-11-24",
+  "exit_spy": 670.0,
+  "exit": 25009.01,
+  "pnl_pts": 1035.99,
+  "pct": 4.32
+ },
+ {
+  "period": "is",
+  "entry_date": "2025-11-25",
+  "entry_spy": 668.0,
+  "entry": 24750.96,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2025-11-26",
+  "exit_spy": 677.63,
+  "exit": 25204.39,
+  "pnl_pts": 453.43,
+  "pct": 1.83
  },
  {
   "period": "is",
@@ -4244,11 +5193,11 @@
   "entry": 25858.93,
   "add_date": null,
   "add": null,
-  "exit_date": "2026-01-09",
-  "exit_spy": 691.97,
-  "exit": 25837.39,
-  "pnl_pts": -21.54,
-  "pct": -0.08
+  "exit_date": "2026-01-08",
+  "exit_spy": 690.0,
+  "exit": 25710.91,
+  "pnl_pts": -148.02,
+  "pct": -0.57
  },
  {
   "period": "is",
@@ -4283,11 +5232,24 @@
   "entry": 25244.34,
   "add_date": null,
   "add": null,
+  "exit_date": "2026-01-21",
+  "exit_spy": 685.0,
+  "exit": 25451.94,
+  "pnl_pts": 207.6,
+  "pct": 0.82
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-01-23",
+  "entry_spy": 688.0,
+  "entry": 25679.35,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-01-26",
-  "exit_spy": 693.65,
-  "exit": 25892.3,
-  "pnl_pts": 647.96,
-  "pct": 2.57
+  "exit_spy": 690.49,
+  "exit": 25741.32,
+  "pnl_pts": 61.97,
+  "pct": 0.24
  },
  {
   "period": "is",
@@ -4310,10 +5272,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2026-02-02",
-  "exit_spy": 696.57,
-  "exit": 25905.25,
-  "pnl_pts": 328.97,
-  "pct": 1.29
+  "exit_spy": 695.0,
+  "exit": 25830.46,
+  "pnl_pts": 254.17,
+  "pct": 0.99
  },
  {
   "period": "is",
@@ -4323,10 +5285,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2026-02-10",
-  "exit_spy": 695.35,
-  "exit": 25368.97,
-  "pnl_pts": 227.22,
-  "pct": 0.9
+  "exit_spy": 695.0,
+  "exit": 25352.82,
+  "pnl_pts": 211.06,
+  "pct": 0.84
  },
  {
   "period": "is",
@@ -4348,11 +5310,24 @@
   "entry": 24768.26,
   "add_date": null,
   "add": null,
-  "exit_date": "2026-02-25",
-  "exit_spy": 693.23,
-  "exit": 25385.77,
-  "pnl_pts": 617.51,
-  "pct": 2.49
+  "exit_date": "2026-02-17",
+  "exit_spy": 682.0,
+  "exit": 24728.22,
+  "pnl_pts": -40.04,
+  "pct": -0.16
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-02-19",
+  "entry_spy": 683.84,
+  "entry": 24828.95,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2026-02-20",
+  "exit_spy": 690.0,
+  "exit": 25094.08,
+  "pnl_pts": 265.13,
+  "pct": 1.07
  },
  {
   "period": "is",
@@ -4361,11 +5336,76 @@
   "entry": 25113.66,
   "add_date": null,
   "add": null,
+  "exit_date": "2026-03-02",
+  "exit_spy": 686.0,
+  "exit": 25007.48,
+  "pnl_pts": -106.18,
+  "pct": -0.42
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-03-03",
+  "entry_spy": 675.06,
+  "entry": 24509.84,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2026-03-04",
+  "exit_spy": 685.0,
+  "exit": 25122.14,
+  "pnl_pts": 612.3,
+  "pct": 2.5
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-03-05",
+  "entry_spy": 680.0,
+  "entry": 24987.74,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2026-03-10",
+  "exit_spy": 680.0,
+  "exit": 25115.91,
+  "pnl_pts": 128.17,
+  "pct": 0.51
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-03-19",
+  "entry_spy": 656.97,
+  "entry": 24229.99,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2026-03-23",
+  "exit_spy": 660.0,
+  "exit": 24628.9,
+  "pnl_pts": 398.9,
+  "pct": 1.65
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-03-27",
+  "entry_spy": 640.0,
+  "entry": 23607.32,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2026-03-30",
+  "exit_spy": 640.11,
+  "exit": 23521.96,
+  "pnl_pts": -85.37,
+  "pct": -0.36
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-04-02",
+  "entry_spy": 646.42,
+  "entry": 23772.4,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-04-08",
   "exit_spy": 676.39,
   "exit": 25092.32,
-  "pnl_pts": -21.34,
-  "pct": -0.08
+  "pnl_pts": 1319.93,
+  "pct": 5.55
  },
  {
   "period": "is",
@@ -4492,10 +5532,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2026-06-09",
-  "exit_spy": 746.88,
-  "exit": 29615.01,
-  "pnl_pts": 464.87,
-  "pct": 1.59
+  "exit_spy": 743.63,
+  "exit": 29450.34,
+  "pnl_pts": 300.19,
+  "pct": 1.03
  },
  {
   "period": "is",
@@ -4530,11 +5570,24 @@
   "entry": 30685.71,
   "add_date": null,
   "add": null,
+  "exit_date": "2026-06-25",
+  "exit_spy": 738.91,
+  "exit": 29964.06,
+  "pnl_pts": -721.66,
+  "pct": -2.35
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-06-26",
+  "entry_spy": 728.95,
+  "entry": 29366.18,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-06-30",
   "exit_spy": 744.68,
   "exit": 30413.84,
-  "pnl_pts": -271.87,
-  "pct": -0.89
+  "pnl_pts": 1047.66,
+  "pct": 3.57
  },
  {
   "period": "is",
@@ -4582,11 +5635,37 @@
   "entry": 29189.81,
   "add_date": null,
   "add": null,
+  "exit_date": "2026-07-22",
+  "exit_spy": 750.0,
+  "exit": 29310.93,
+  "pnl_pts": 121.12,
+  "pct": 0.41
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-07-23",
+  "entry_spy": 739.37,
+  "entry": 28679.92,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2026-07-24",
+  "exit_spy": 739.0,
+  "exit": 28285.69,
+  "pnl_pts": -394.23,
+  "pct": -1.37
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-07-29",
+  "entry_spy": 730.0,
+  "entry": 27367.95,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-07-31",
   "exit_spy": 747.47,
   "exit": 28425.77,
-  "pnl_pts": -764.04,
-  "pct": -2.62
+  "pnl_pts": 1057.82,
+  "pct": 3.87
  },
  {
   "period": "is",
@@ -4621,11 +5700,37 @@
   "entry": 29418.75,
   "add_date": null,
   "add": null,
+  "exit_date": "2026-08-21",
+  "exit_spy": 766.05,
+  "exit": 29403.99,
+  "pnl_pts": -14.76,
+  "pct": -0.05
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-08-24",
+  "entry_spy": 764.78,
+  "entry": 29169.8,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2026-08-25",
+  "exit_spy": 766.16,
+  "exit": 29289.0,
+  "pnl_pts": 119.21,
+  "pct": 0.41
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-08-26",
+  "entry_spy": 764.73,
+  "entry": 29223.31,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-08-27",
   "exit_spy": 769.19,
   "exit": 29601.62,
-  "pnl_pts": 182.87,
-  "pct": 0.62
+  "pnl_pts": 378.31,
+  "pct": 1.29
  },
  {
   "period": "is",
@@ -4634,11 +5739,11 @@
   "entry": 29523.7,
   "add_date": null,
   "add": null,
-  "exit_date": "2026-09-03",
-  "exit_spy": 770.48,
-  "exit": 29392.91,
-  "pnl_pts": -130.79,
-  "pct": -0.44
+  "exit_date": "2026-09-02",
+  "exit_spy": 765.0,
+  "exit": 29178.43,
+  "pnl_pts": -345.28,
+  "pct": -1.17
  },
  {
   "period": "is",
@@ -4647,11 +5752,24 @@
   "entry": 29555.9,
   "add_date": null,
   "add": null,
+  "exit_date": "2026-09-16",
+  "exit_spy": 760.0,
+  "exit": 29256.57,
+  "pnl_pts": -299.32,
+  "pct": -1.01
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-09-18",
+  "entry_spy": 760.0,
+  "entry": 29529.42,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-09-21",
   "exit_spy": 767.23,
   "exit": 30464.87,
-  "pnl_pts": 908.97,
-  "pct": 3.08
+  "pnl_pts": 935.45,
+  "pct": 3.17
  },
  {
   "period": "is",
@@ -4674,10 +5792,10 @@
   "add_date": null,
   "add": null,
   "exit_date": "2026-09-30",
-  "exit_spy": 768.82,
-  "exit": 31018.37,
-  "pnl_pts": 364.02,
-  "pct": 1.19
+  "exit_spy": 766.45,
+  "exit": 30895.94,
+  "pnl_pts": 241.59,
+  "pct": 0.79
  },
  {
   "period": "is",
@@ -4725,11 +5843,37 @@
   "entry": 30202.87,
   "add_date": null,
   "add": null,
-  "exit_date": "2026-10-28",
-  "exit_spy": 772.79,
-  "exit": 30003.17,
-  "pnl_pts": -199.69,
-  "pct": -0.66
+  "exit_date": "2026-10-15",
+  "exit_spy": 772.0,
+  "exit": 30154.27,
+  "pnl_pts": -48.6,
+  "pct": -0.16
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-10-16",
+  "entry_spy": 765.0,
+  "entry": 29477.92,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2026-10-19",
+  "exit_spy": 770.0,
+  "exit": 29897.54,
+  "pnl_pts": 419.62,
+  "pct": 1.42
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-10-21",
+  "entry_spy": 769.0,
+  "entry": 29803.42,
+  "add_date": null,
+  "add": null,
+  "exit_date": "2026-10-27",
+  "exit_spy": 770.0,
+  "exit": 29828.89,
+  "pnl_pts": 25.47,
+  "pct": 0.09
  },
  {
   "period": "is",
@@ -4738,10 +5882,23 @@
   "entry": 27079.61,
   "add_date": null,
   "add": null,
+  "exit_date": "2026-11-09",
+  "exit_spy": 750.0,
+  "exit": 27886.11,
+  "pnl_pts": 806.5,
+  "pct": 2.98
+ },
+ {
+  "period": "is",
+  "entry_date": "2026-11-10",
+  "entry_spy": 747.94,
+  "entry": 27741.01,
+  "add_date": null,
+  "add": null,
   "exit_date": "2026-11-11",
-  "exit_spy": 761.17,
-  "exit": 28538.75,
-  "pnl_pts": 1459.14,
-  "pct": 5.39
+  "exit_spy": 760.0,
+  "exit": 28482.38,
+  "pnl_pts": 741.37,
+  "pct": 2.67
  }
 ]
