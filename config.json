@@ -117,5 +117,221 @@
       "signal_file": "CW_signal.json",
       "backtest_file": "cw_backtest.json"
     }
-  ]
+  ],
+  "layout": {
+    "panels": [
+      [
+        "chart",
+        "Gamma chart",
+        [
+          [
+            "chart.stats",
+            "Numbers above the chart"
+          ],
+          [
+            "chart.legend",
+            "Line buttons"
+          ]
+        ],
+        "layout"
+      ],
+      [
+        "rule",
+        "Live position \u00b7 NQ",
+        [],
+        "layout"
+      ],
+      [
+        "my",
+        "My strategy \u00b7 rules & scorecard",
+        [
+          [
+            "my.rules",
+            "Rules"
+          ],
+          [
+            "my.trades",
+            "Live trades"
+          ],
+          [
+            "my.outlook",
+            "Future alpha"
+          ],
+          [
+            "my.score",
+            "Scorecard table"
+          ],
+          [
+            "my.days",
+            "Daily live record"
+          ]
+        ],
+        "my-panel"
+      ],
+      [
+        "pw",
+        "Put wall long \u00b7 NQ",
+        [
+          [
+            "pw.rules",
+            "Rules"
+          ],
+          [
+            "pw.now",
+            "Now"
+          ],
+          [
+            "pw.pos",
+            "Live position"
+          ],
+          [
+            "pw.live",
+            "Live record"
+          ],
+          [
+            "pw.bt",
+            "Backtest"
+          ]
+        ],
+        "pw-panel"
+      ],
+      [
+        "cw",
+        "Call wall short \u00b7 NQ",
+        [
+          [
+            "cw.rules",
+            "Rules"
+          ],
+          [
+            "cw.now",
+            "Now"
+          ],
+          [
+            "cw.pos",
+            "Live position"
+          ],
+          [
+            "cw.live",
+            "Live record"
+          ],
+          [
+            "cw.bt",
+            "Backtest"
+          ]
+        ],
+        "cw-panel"
+      ],
+      [
+        "nqpc",
+        "NQ SPY put/call add-on",
+        [
+          [
+            "nqpc.pos",
+            "Position in NQ"
+          ],
+          [
+            "nqpc.sig",
+            "SPY signals"
+          ],
+          [
+            "nqpc.live",
+            "Live record"
+          ],
+          [
+            "nqpc.bt",
+            "Backtest 2022\u201326"
+          ]
+        ],
+        "nqpc-panel"
+      ],
+      [
+        "margin",
+        "Margin",
+        [
+          [
+            "margin.debt",
+            "Margin debt"
+          ],
+          [
+            "margin.SPX",
+            "S&P 500"
+          ],
+          [
+            "margin.NDX",
+            "Nasdaq 100"
+          ],
+          [
+            "margin.fx",
+            "Dollar signal"
+          ]
+        ],
+        "margin-panel"
+      ],
+      [
+        "oiw",
+        "Put block watch",
+        [
+          [
+            "oiw.now",
+            "Contracts now"
+          ],
+          [
+            "oiw.hist",
+            "Daily history"
+          ]
+        ],
+        "oiw-panel"
+      ],
+      [
+        "quant",
+        "Quant lab",
+        [
+          [
+            "quant.now",
+            "Gamma now / turning"
+          ],
+          [
+            "quant.fuel",
+            "Selling fuel"
+          ],
+          [
+            "quant.vol",
+            "Volatility"
+          ],
+          [
+            "quant.week",
+            "Expiring gamma"
+          ],
+          [
+            "quant.variants",
+            "Paper variants"
+          ],
+          [
+            "quant.cycles",
+            "Cycles table"
+          ]
+        ],
+        "quant-panel"
+      ]
+    ],
+    "lines": [
+      [
+        "flip",
+        "Gamma flip"
+      ],
+      [
+        "walls",
+        "Live call wall / put wall"
+      ],
+      [
+        "strat",
+        "Strategy walls (SPY, fixed for the day)"
+      ],
+      [
+        "majors",
+        "Gamma levels (biggest +\u03b3 / \u2212\u03b3)"
+      ]
+    ]
+  }
 }
