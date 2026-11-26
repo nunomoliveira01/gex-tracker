@@ -913,7 +913,11 @@ def write_wall_signals(h, pcd):
             bt = json.loads(bp.read_text()) if bp.exists() else []
             if isinstance(bt, dict):
                 bt = bt.get("trades", [])
-            out = {**st, "id": s["id"], "name": s.get("name", s["id"]), "spec": s, "rules": describe_strategy(s),
+            sp_ = ROOT / "research" / "data" / "bt_summary.json"
+            bsum = (json.loads(sp_.read_text()) if sp_.exists() else {}).get(s["id"])
+            import hashlib
+            hsh = hashlib.sha1(json.dumps({k: s.get(k) for k in ("side", "trade", "entry", "filters", "exits", "add_on")}, sort_keys=True).encode()).hexdigest()[:12]
+            out = {**st, "id": s["id"], "bt_summary": bsum, "bt_current": bool(bsum and bsum.get("hash") == hsh), "name": s.get("name", s["id"]), "spec": s, "rules": describe_strategy(s),
                    "side": "put" if s.get("entry", {}).get("type") == "put_wall" else "call" if s.get("entry", {}).get("type") == "call_wall" else s.get("side"),
                    "start": s.get("start"), "position": position, "closed": closed, "trade": s.get("trade", "NQ"),
                    "nq_last": float(px["spot"].iloc[-1]) if len(px) else None, "backtest": bt}
@@ -925,6 +929,7 @@ def write_wall_signals(h, pcd):
         except Exception as e:
             print(f"  strategy {s.get('id')} FAILED - {e}", file=sys.stderr)
     (DOCS / "strategies.json").write_text(json.dumps(index))
+    (DOCS / "config.json").write_text((ROOT / "config.json").read_text())   # the page reads the saved layout from here
 
 
 

@@ -187,6 +187,9 @@
   .dropmark { height:6px; border-radius:3px; background:var(--blue); margin:-11px 0; }
   .layoutbar { display:flex; justify-content:flex-end; margin-bottom:-8px; grid-column:1 / -1; }
   footer { max-width:1400px; margin:0 auto; padding:0 18px 30px; font-size:12.5px; color:var(--muted); }
+  .bkwrap { position:fixed; inset:0; z-index:60; background:var(--bg); overflow:auto; padding:16px max(2vw,10px) 40px; }
+  .bkpanel { max-width:1180px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); }
+  .bkwrap.hidden { display:none; }
 </style>
 </head>
 <body>
@@ -204,6 +207,7 @@
     <span class="pill"><span class="dot" id="livedot"></span><span id="statustext">connecting…</span></span>
     <button class="btn primary" id="refreshbtn" title="Fetch the latest data">&#8635; Refresh</button>
     <button class="btn" id="themebtn" title="Light/dark theme">☾</button>
+    <button class="btn" id="blocksbtn" title="Change strategies, tickers, alerts and layout with blocks">Blocks</button>
     <button class="btn" id="setbtn" title="Settings: keys and what to show">⚙</button>
   </div>
 </div></div>
@@ -300,6 +304,11 @@
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="bkwrap hidden" id="bkwrap" role="dialog" aria-label="Blocks editor"><div class="bkpanel">
+  <div class="ph"><h2>Blocks</h2><span class="sub">change the tracker's strategies, tickers, alerts and layout · saves to GitHub with your key</span>
+    <div class="tools"><button class="ib" id="bkclose" title="Close">✕</button></div></div>
+  <div class="pb"><div id="bkroot"></div></div></div></div>
+<script src="blocks.js?v=__BUILD__"></script>
 
 <script>
 // ===================================================================== setup
@@ -792,7 +801,7 @@ function roundRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPat
 window.addEventListener("resize", drawAll);
 
 // ===================================================================== panels
-function refreshPanels(force) { if (force) ["rule", "side-nq", "side-pw", "side-cw", "my", "pw", "cw", "nqpc", "margin", "quant", "oiw"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMy(); renderNqPc(); renderMargin(); renderQuant(); renderOiw(); renderWall("pw"); renderWall("cw"); }
+function refreshPanels(force) { if (force) ["rule", "side-nq", "side-pw", "side-cw", "my", "pw", "cw", "nqpc", "margin", "quant", "oiw"].forEach(id => { const el = $(id); if (el) el._h = null; }); renderRule(); renderMy(); renderNqPc(); renderMargin(); renderQuant(); renderOiw(); renderWall("pw"); renderWall("cw"); custom.forEach(c => renderWall(c.id)); }
 
 // ---------- my strategy: rules + scorecard
 let metrics = null;
@@ -871,68 +880,101 @@ function nqLive() {
 // ---------- NQ traded on the SPY signals
 let nqsig = null;
 const MNQ = 2;   // $ per NQ point for one micro contract (MNQ); a full NQ is $20
-// ---------- wall strategies (put wall long / call wall short, in NQ)
+// ---------- block strategies (put wall long, call wall short, and any built on the Blocks page)
 var walls = { pw: null, cw: null };
+var custom = [];   // [{id, name}] strategies made on the Blocks page that get their own panel
 const OL = `<ol style="margin:4px 0 0;padding-left:18px">`;
-const WALL_TXT = {
-  pw: { dir: 1, wall: "put wall", exitWall: "call wall", rules: `${OL}
-      <li><b>Entry:</b> buy 1 NQ unit when SPY falls to the day's <b>put wall</b> (fixed for the day at the first reading: the strike with the most put gamma 0–5% below yesterday's close, using today's open interest — the same definition as the backtest).</li>
-      <li><b>Exit:</b> from the next day on, sell at whichever comes first: SPY reaches that day's <b>call wall</b>, or SPY gamma is back at 0 or above (price back at the gamma flip).</li>
-      <li><b>One unit per trade</b>, no add-on, no other stop.</li></ol>` },
-  cw: { dir: -1, wall: "call wall", exitWall: "put wall", rules: `${OL}
-      <li><b>Entry:</b> sell (short) 1 NQ unit when SPY rises to the day's <b>call wall</b> (fixed for the day at the first reading: the strike with the most call gamma 0–5% above yesterday's close, using today's open interest — the same definition as the backtest).</li>
-      <li><b>Exit:</b> from the next day on, buy back at whichever comes first: SPY reaches that day's <b>put wall</b>, or SPY gamma is at 0 or below (price back down at the gamma flip).</li>
-      <li><b>One unit per trade</b>, no add-on, no other stop.</li>
-      <li><b>Note:</b> almost all of the backtest gain came on the entry day, and only when gamma was negative.</li></ol>` } };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ENTRY_LVL = { put_wall: ["put wall", "put_wall_today"], call_wall: ["call wall", "call_wall_today"], flip_down: ["gamma flip", "flip"], flip_up: ["gamma flip", "flip"] };
+async function loadCustom() {   // strategies built on the Blocks page get their own panel
+  const list = await getJSON("strategies.json"); if (!list) return;
+  custom = list.filter(c => c.panel && /^[a-z0-9_]+$/i.test(c.id));
+  await Promise.all(custom.map(c => { ensurePanel(c); return getJSON(`S_${c.id}.json`).then(j => { if (j) walls[c.id] = j; }); }));
+}
+function ensurePanel(c) {
+  SIDE_NAMES[c.id] = c.name; SIDE_SHOWS[c.id] = [c.id]; SIDE_SHOWS.all = ["nq", "pw", "cw"].concat(custom.map(x => x.id));
+  if ($(c.id + "-panel")) return;
+  const div = document.createElement("div"); div.className = "panel"; div.dataset.block = c.id; div.id = c.id + "-panel";
+  div.innerHTML = `<div class="ph"><h2>${esc(c.name)}</h2><span class="sub" id="${c.id}-sub"></span>
+    <div class="tools"><button class="ib" data-collapse="${c.id}" title="Collapse/expand"><span class="chev">▾</span></button><button class="ib" data-hide="${c.id}" title="Hide (bring back in ⚙)">✕</button></div></div>
+    <div class="pb"><div id="${c.id}"><span class="muted">loading…</span></div></div>`;
+  ($(custom[custom.indexOf(c) - 1]?.id + "-panel") || $("cw-panel")).after(div);
+  if (!BLOCKS.find(b => b[0] === c.id)) BLOCKS.splice(BLOCKS.findIndex(b => b[0] === "cw") + 1 + custom.indexOf(c), 0,
+    [c.id, c.name, [[c.id + ".rules", "Rules"], [c.id + ".now", "Now"], [c.id + ".pos", "Live position"], [c.id + ".live", "Live record"], [c.id + ".bt", "Backtest"]]]);
+  const sl = document.createElement("div"); sl.className = "side-slot"; sl.id = "side-" + c.id; $("rule").appendChild(sl);
+  const o = document.createElement("option"); o.value = c.id; o.textContent = c.name + " · conditions"; $("sidepick").insertBefore(o, $("sidepick").lastElementChild);
+  if (store.get("sidePick", "nq") === c.id) { sidePick = c.id; $("sidepick").value = c.id; }
+  applyView(); renderBlockList(); applyOrder(); addHandles();
+}
 function renderWall(key) {
-  const el = $(key), q = walls[key], T = WALL_TXT[key]; if (!el || !q) return;
-  const nql = nqLive(), nqNow = nql.px, pos = q.position, d = T.dir;
-  $(key + "-sub").innerHTML = (pos ? `<span class="badge blue">${d > 0 ? "long" : "short"} NQ</span> ` : `<span class="badge off">flat</span> `) +
-    `${T.wall} today ${fmt(q.wall_today)} · live record from ${(q.start || "").slice(0, 10)}`;
-  const spy = state.SPY?.last ?? q.spot, w = q.wall_today, dist = w && spy ? (spy / w - 1) * 100 : null;
-  const nowTxt = `<div class="stat"><span>Today's ${T.wall} (SPY)</span><b>${fmt(w)}</b></div>
-    <div class="stat"><span>SPY now</span><b>${fmt(spy)}</b></div>
-    <div class="stat"><span>SPY vs the wall</span><b>${dist == null ? "–" : sg(dist) + "%"}</b></div>
-    <div class="stat"><span>SPY dealer gamma</span><b class="${cls(q.gamma)}">${sg(q.gamma, 1)}bn</b></div>` +
-    (pos ? `<div class="stat"><span>Exit wall today (${T.exitWall})</span><b>${fmt(q.exit_wall_today)}</b></div>` +
-           tick(q.exit_wall_today != null && spy != null && (d > 0 ? spy >= q.exit_wall_today : spy <= q.exit_wall_today), `exit: SPY at the ${T.exitWall} (later day)`) +
-           tick(d > 0 ? q.gamma >= 0 : q.gamma <= 0, d > 0 ? "exit: gamma ≥ 0 (later day)" : "exit: gamma ≤ 0 (later day)") +
-           `<div class="muted">Out at whichever comes first.</div>`
-         : tick(dist != null && (d > 0 ? dist <= 0 : dist >= 0), d > 0 ? "entry: SPY at or below the put wall" : "entry: SPY at or above the call wall"));
-  let posTxt = `<div class="big" style="color:var(--muted)">Flat</div><div class="muted">Waiting for SPY to reach the ${T.wall}.</div>`;
-  if (pos && pos.entry != null) {
-    const units = [pos.entry].concat(pos.adds.map(a => a.price)).filter(v => v != null), pts = units.reduce((a, u) => a + d * (nqNow - u), 0);
+  const el = $(key), q = walls[key]; if (!el || !q) return;
+  const sp = q.spec || {}, d = sp.side === "short" ? -1 : 1, e = sp.entry || {}, R = q.rules || {}, tk = q.trade || "NQ";
+  const per = tk === "NQ" ? MNQ : tk === "ES" ? 5 : 1, perLbl = tk === "NQ" ? "Per micro (MNQ, $2/pt)" : tk === "ES" ? "Per micro (MES, $5/pt)" : "Per share";
+  const nql = nqLive(), pxNow = tk === "NQ" ? nql.px : (state[tk]?.last ?? q.nq_last), pos = q.position;
+  const [lvlName, lvlKey] = ENTRY_LVL[e.type] || [`gamma ${e.type === "gamma_below" ? "≤" : "≥"} ${e.bn}bn`, null];
+  const w = lvlKey ? q[lvlKey] : null;
+  $(key + "-sub").innerHTML = (pos ? `<span class="badge blue">${d > 0 ? "long" : "short"} ${esc(tk)}</span> ` : `<span class="badge off">flat</span> `) +
+    `${lvlKey ? `${lvlName} today ${fmt(w)}` : `entry at ${lvlName}`} · live record from ${(q.start || "").slice(0, 10)}`;
+  const spy = state.SPY?.last ?? q.spot, dist = w && spy ? (spy / w - 1) * 100 : null;
+  const exits = sp.exits || [];
+  const exitTicks = exits.map(x => {
+    if (x.type === "opposite_wall") { const ow = q.exit_wall_today, nm = d > 0 ? "call wall" : "put wall";
+      return `<div class="stat"><span>Exit: ${nm} today</span><b>${fmt(ow)}</b></div>` + tick(ow != null && spy != null && (d > 0 ? spy >= ow : spy <= ow), `exit: SPY at the ${nm}`); }
+    if (x.type === "flip") return tick(d > 0 ? q.gamma >= 0 : q.gamma <= 0, `exit: gamma ${d > 0 ? "≥" : "≤"} 0 (the flip${q.flip ? " ~" + fmt(q.flip) : ""})`);
+    if (x.type === "gamma_level") return tick(d > 0 ? q.gamma >= x.bn : q.gamma <= x.bn, `exit: gamma ${d > 0 ? "≥" : "≤"} ${x.bn}bn`);
+    const ep = pos && pos.entry_spy;
+    if (x.type === "target_pct") { const lv = ep ? ep * (1 + d * x.pct / 100) : null; return tick(lv && spy && (d > 0 ? spy >= lv : spy <= lv), `exit: take profit at SPY ${fmt(lv)} (${x.pct}%)`); }
+    if (x.type === "stop_pct") { const lv = ep ? ep * (1 - d * x.pct / 100) : null; return tick(lv && spy && (d > 0 ? spy <= lv : spy >= lv), `exit: stop at SPY ${fmt(lv)} (${x.pct}%)`); }
+    if (x.type === "days") return tick(pos && pos.days_held >= x.n, `exit: after ${x.n} trading days (held ${pos ? pos.days_held : 0})`);
+    return "";
+  }).join("");
+  const entryOk = lvlKey ? dist != null && (e.type === "put_wall" || e.type === "flip_down" ? dist <= 0 : dist >= 0)
+                         : (e.type === "gamma_below" ? q.gamma <= e.bn : q.gamma >= e.bn);
+  const nowTxt = (lvlKey ? `<div class="stat"><span>Today's ${lvlName} (SPY)</span><b>${fmt(w)}</b></div>` : "") +
+    `<div class="stat"><span>SPY now</span><b>${fmt(spy)}</b></div>` +
+    (lvlKey ? `<div class="stat"><span>SPY vs the ${lvlName}</span><b>${dist == null ? "–" : sg(dist) + "%"}</b></div>` : "") +
+    `<div class="stat"><span>SPY dealer gamma</span><b class="${cls(q.gamma)}">${sg(q.gamma, 1)}bn</b></div>` +
+    (pos ? exitTicks + (exits.length > 1 ? `<div class="muted">Out at whichever comes first.</div>` : "")
+         : tick(entryOk, `entry: ${esc(R.entry || lvlName).replace(/\.$/, "")}`));
+  let posTxt = `<div class="big" style="color:var(--muted)">Flat</div><div class="muted">Waiting for the entry signal.</div>`;
+  if (pos && pos.entry != null && pxNow == null) posTxt = `<div class="big">${d > 0 ? "Long" : "Short"} since ${pos.entry_time.slice(5)}</div><div class="muted">Entry ${esc(tk)} ${fmt(pos.entry, 2)} · waiting for the latest ${esc(tk)} price…</div>`;
+  else if (pos && pos.entry != null) {
+    const units = [pos.entry].concat(pos.adds.map(a => a.price)).filter(v => v != null), pts = units.reduce((a, u) => a + d * (pxNow - u), 0);
     posTxt = `<div class="big ${cls(pts)}">${d > 0 ? "Long" : "Short"} ${units.length}x · ${sg(pts, 0)} pts</div>
-      <div class="stat"><span>Entry NQ</span><b>${fmt(pos.entry, 2)}</b></div><div class="muted">${pos.entry_time} New York · SPY ${fmt(pos.entry_spy)} (wall ${fmt(pos.wall)})</div>` +
-      pos.adds.map(a => `<div class="stat"><span>Add-on NQ</span><b>${fmt(a.price, 2)}</b></div><div class="muted">${a.time} · SPY ${fmt(a.spy)}</div>`).join("") +
-      `<div class="stat"><span>NQ now</span><b>${fmt(nqNow, 2)}</b></div>
-       <div class="stat"><span>Per micro (MNQ, $2/pt)</span><b class="${cls(pts)}">${sg(pts * MNQ, 0)} $</b></div>` + ddHtml(pos.dd, pts, units.reduce((a, u) => a + u, 0), MNQ);
+      <div class="stat"><span>Entry ${esc(tk)}</span><b>${fmt(pos.entry, 2)}</b></div><div class="muted">${pos.entry_time} New York · SPY ${fmt(pos.entry_spy)}${pos.wall != null ? ` (level ${fmt(pos.wall)})` : ""}</div>` +
+      pos.adds.map(a => `<div class="stat"><span>Add-on ${esc(tk)}</span><b>${fmt(a.price, 2)}</b></div><div class="muted">${a.time} · SPY ${fmt(a.spy)}</div>`).join("") +
+      `<div class="stat"><span>${esc(tk)} now</span><b>${fmt(pxNow, 2)}</b></div>
+       <div class="stat"><span>${perLbl}</span><b class="${cls(pts)}">${sg(pts * per, 0)} $</b></div>` + ddHtml(pos.dd, pts, units.reduce((a, u) => a + u, 0), per);
   }
   const closed = q.closed || [];
-  const liveTxt = closed.length ? `<table class="q"><tr><th>Entry</th><th>NQ in</th><th>Exit</th><th>NQ out</th><th>Points</th></tr>` +
-      closed.slice().reverse().map(c => `<tr><td>${c.entry_time.slice(5)}</td><td>${fmt(c.entry, 0)}${c.adds.length ? " +" + fmt(c.adds[0], 0) : ""}</td><td>${c.exit_time.slice(5)}${c.exit_reason ? ` <span class="muted">(${c.exit_reason})</span>` : ""}</td><td>${fmt(c.exit, 0)}</td><td class="${cls(c.pnl_pts)}">${sg(c.pnl_pts, 0)} (${sg(c.pct)}%)</td></tr>`).join("") + `</table>`
+  const liveTxt = closed.length ? `<table class="q"><tr><th>Entry</th><th>${esc(tk)} in</th><th>Exit</th><th>${esc(tk)} out</th><th>Points</th></tr>` +
+      closed.slice().reverse().map(c => `<tr><td>${c.entry_time.slice(5)}</td><td>${fmt(c.entry, 0)}${c.adds.length ? " +" + fmt(c.adds[0], 0) : ""}</td><td>${c.exit_time.slice(5)}${c.exit_reason ? ` <span class="muted">(${esc(c.exit_reason)})</span>` : ""}</td><td>${fmt(c.exit, 0)}</td><td class="${cls(c.pnl_pts)}">${sg(c.pnl_pts, 0)} (${sg(c.pct)}%)</td></tr>`).join("") + `</table>`
     : `<span class="muted">No closed live trades yet — the record starts ${(q.start || "").slice(0, 10)}.</span>`;
   const bt = q.backtest || [];
-  const sum = per => { const b = bt.filter(x => x.period === per); if (!b.length) return `<td colspan="4" class="muted">running…</td>`;
+  const sum = per => { const b = bt.filter(x => x.period === per); if (!b.length) return `<td colspan="4" class="muted">${bt.length ? "no trades" : "running… (about 3 min after a change)"}</td>`;
     const avg = b.reduce((a, x) => a + x.pct, 0) / b.length, won = b.filter(x => x.pct > 0).length / b.length * 100, worst = Math.min(...b.map(x => x.pct));
     return `<td>${b.length}</td><td class="${cls(avg)}">${sg(avg)}%</td><td>${Math.round(won)}%</td><td class="neg">${sg(worst)}%</td>`; };
-  const btTxt = `<table class="q"><tr><th>Period</th><th>Trades</th><th>Avg</th><th>Won</th><th>Worst</th></tr>
-      <tr><td>Nov 2018 → Jul 2023</td>${sum("oos")}</tr><tr><td>Nov 2023 → Nov 2026</td>${sum("is")}</tr></table>
+  const S = q.bt_summary || {}, P = S.periods || {};
+  const sh = p => P[p] && P[p].sharpe != null ? `<td>${fmt(P[p].sharpe)}</td><td>${fmt(P[p].alpha_t)}</td>` : `<td colspan="2" class="muted">–</td>`;
+  const stale = !q.bt_current ? `<div class="muted" style="margin-bottom:6px">⏳ The blocks changed — the backtest below is being re-run (about 3 min), then refreshes.</div>` : "";
+  const btTxt = stale + `<table class="q"><tr><th>Period</th><th>Trades</th><th>Avg</th><th>Won</th><th>Worst</th><th title="return per unit of swing">Sharpe</th><th title="about 2 = probably not luck">Alpha t</th></tr>
+      <tr><td>Nov 2018 → Jul 2023</td>${sum("oos")}${sh("oos")}</tr><tr><td>Nov 2023 → Nov 2026</td>${sum("is")}${sh("is")}</tr></table>
     <details class="how" style="margin-top:8px"><summary>All ${bt.length} backtest trades</summary><div class="scroll" style="max-height:320px;overflow-y:auto">
-    <table class="q"><tr><th>Entry</th><th>SPY in</th><th>NQ in</th><th>Exit</th><th>SPY out</th><th>NQ out</th><th>Result</th></tr>` +
-    bt.slice().reverse().map(x => `<tr><td>${x.entry_date}</td><td>${fmt(x.entry_spy)}</td><td>${fmt(x.entry, 0)}</td><td>${x.exit_date}</td><td>${fmt(x.exit_spy)}</td><td>${fmt(x.exit, 0)}</td><td class="${cls(x.pct)}">${sg(x.pct)}%</td></tr>`).join("") +
-    `</table></div></details><div class="muted" style="margin-top:6px">ThetaData daily history; exit at the opposite wall or the flip, whichever comes first (rules changed 26 Nov 2026 — Test 12); fills at the exact levels; NQ mapped from SPY; no costs. Not investment advice.</div>`;
+    <table class="q"><tr><th>Entry</th><th>SPY in</th><th>${esc(tk)} in</th><th>Exit</th><th>SPY out</th><th>${esc(tk)} out</th><th>Result</th></tr>` +
+    bt.slice().reverse().map(x => `<tr><td>${x.entry_date}</td><td>${fmt(x.entry_spy)}</td><td>${fmt(x.entry, 0)}</td><td>${x.exit_date}${x.why ? ` <span class="muted">(${esc(x.why)})</span>` : ""}</td><td>${fmt(x.exit_spy)}</td><td>${fmt(x.exit, 0)}</td><td class="${cls(x.pct)}">${sg(x.pct)}%</td></tr>`).join("") +
+    `</table></div></details><div class="muted" style="margin-top:6px">ThetaData daily history; re-run automatically when the blocks change; fills at the exact levels; ${esc(tk)} mapped from SPY; no costs. Not investment advice.</div>`;
   {
     let pl = "";
-    if (pos && pos.entry != null) {
-      const units = [pos.entry].concat(pos.adds.map(a => a.price)).filter(v => v != null), pts = units.reduce((a, u) => a + d * (nqNow - u), 0);
-      pl = `<div class="stat"><span>${d > 0 ? "Long" : "Short"} ${units.length}x NQ since ${pos.entry_time.slice(5)}</span><b class="${cls(pts)}">${sg(pts, 0)} pts · ${sg(pts * MNQ, 0)} $/MNQ</b></div>`;
+    if (pos && pos.entry != null && pxNow != null) {
+      const units = [pos.entry].concat(pos.adds.map(a => a.price)).filter(v => v != null), pts = units.reduce((a, u) => a + d * (pxNow - u), 0);
+      pl = `<div class="stat"><span>${d > 0 ? "Long" : "Short"} ${units.length}x ${esc(tk)} since ${pos.entry_time.slice(5)}</span><b class="${cls(pts)}">${sg(pts, 0)} pts · ${sg(pts * per, 0)} $</b></div>`;
     }
-    const addLine = "";
-    sideOut(key, `<div class="big" style="font-size:18px">${pos ? (d > 0 ? "In: long NQ" : "In: short NQ") : "Flat — waiting"}</div>${pl}${nowTxt}${addLine}`,
-      `${T.wall} ${fmt(w)} · SPY ${fmt(spy)}`);
+    sideOut(key, `<div class="big" style="font-size:18px">${pos ? `In: ${d > 0 ? "long" : "short"} ${esc(tk)}` : "Flat — waiting"}</div>${pl}${nowTxt}`,
+      lvlKey ? `${lvlName} ${fmt(w)} · SPY ${fmt(spy)}` : `gamma ${sg(q.gamma, 1)}bn · SPY ${fmt(spy)}`);
   }
-  const html = card(key + ".rules", "Rules", T.rules) + card(key + ".now", "Now", nowTxt) + card(key + ".pos", "Live position", posTxt) +
+  const rules = `${OL}<li><b>Entry:</b> ${esc(R.entry)}</li><li><b>Exit:</b> ${esc(R.exit)}</li><li><b>Add-on:</b> ${esc(R.add_on)}</li>
+    <li>Change any of this on the <b>Blocks</b> page (top bar).</li></ol>`;
+  const html = card(key + ".rules", "Rules", rules) + card(key + ".now", "Now", nowTxt) + card(key + ".pos", "Live position", posTxt) +
     card(key + ".live", "Live record", liveTxt) + card(key + ".bt", "Backtest", btTxt);
   if (el._h === html) return; el._h = html; el.innerHTML = `<div class="cards">${html}</div>`;
 }
@@ -1042,13 +1084,13 @@ function ddHtml(dd, nowPts, capital, perPoint) {
 
 // ---------- right-hand panel: JP rule, or my strategy in SPY or NQ
 let sidePick = store.get("sidePick", "nq");
-if (!["nq", "pw", "cw", "walls", "all"].includes(sidePick)) sidePick = "nq";
 const SIDE_SHOWS = { nq: ["nq"], pw: ["pw"], cw: ["cw"], walls: ["pw", "cw"], all: ["nq", "pw", "cw"] };
+const SIDE_NAMES = { nq: "My strategy · NQ", pw: "Put wall long", cw: "Call wall short" };
 function sideOut(kind, html, sub) {
   const show = SIDE_SHOWS[sidePick] || ["nq"];
-  ["nq", "pw", "cw"].forEach(k => { const el = $("side-" + k); if (el) el.classList.toggle("hidden", !show.includes(k)); });
+  document.querySelectorAll("#rule .side-slot").forEach(el => el.classList.toggle("hidden", !show.includes(el.id.slice(5))));
   if (!show.includes(kind)) return;
-  setHTML("side-" + kind, show.length > 1 ? `<h4>${{ nq: "My strategy · NQ", pw: "Put wall long", cw: "Call wall short" }[kind]}</h4>` + html : html);
+  setHTML("side-" + kind, show.length > 1 ? `<h4>${esc(SIDE_NAMES[kind] || kind)}</h4>` + html : html);
   if (sub != null && show[0] === kind) $("rule-sub").innerHTML = show.length > 1 ? "" : sub;
 }
 $("sidepick").value = sidePick;
@@ -1205,7 +1247,7 @@ async function gh(path, opts = {}) {
 }
 async function reloadAll() {
   await Promise.all(TICKERS.map(loadData).concat([loadStatus(),
-    getJSON("SPY_signal.json").then(j => { if (j) signal = j; }), getJSON("SPY_pc_signal.json").then(j => { if (j) pcsig = j; }), getJSON("NQ_pc_signal.json").then(j => { if (j) nqsig = j; }), getJSON("PW_signal.json").then(j => { if (j) walls.pw = j; }), getJSON("CW_signal.json").then(j => { if (j) walls.cw = j; }), getJSON("strategy_metrics.json").then(j => { if (j) metrics = j; }), getJSON("SPY_quant.json").then(j => { if (j) quant = j; }),
+    getJSON("SPY_signal.json").then(j => { if (j) signal = j; }), getJSON("SPY_pc_signal.json").then(j => { if (j) pcsig = j; }), getJSON("NQ_pc_signal.json").then(j => { if (j) nqsig = j; }), getJSON("PW_signal.json").then(j => { if (j) walls.pw = j; }), getJSON("CW_signal.json").then(j => { if (j) walls.cw = j; }), loadCustom(), getJSON("strategy_metrics.json").then(j => { if (j) metrics = j; }), getJSON("SPY_quant.json").then(j => { if (j) quant = j; }),
     getJSON("margin.json").then(j => { if (j) margin = j; }), getJSON("oi_watch.json").then(j => { if (j) oiw = j; })]));
   refreshPanels(); TICKERS.forEach(renderHead); drawAll();
 }
@@ -1295,6 +1337,57 @@ function startDrag(e, sec) {
   move(e);
 }
 $("resetorder").onclick = () => { store.set(ORDER_KEY, null); location.reload(); };
+
+
+// ===================================================================== Blocks editor (strategies, tickers, alerts, layout)
+const u8b64 = str => btoa(unescape(encodeURIComponent(str)));
+const b64u8 = b => decodeURIComponent(escape(atob(b.replace(/\n/g, ""))));
+let bkEd = null;
+async function ghFile(path) {   // read a repo file (with the key if there is one), return {json, sha}
+  const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${path}?ref=main&t=${Date.now()}`,
+    { headers: getGh() ? { Authorization: "Bearer " + getGh() } : {}, cache: "no-store" });
+  if (!r.ok) throw new Error("couldn't read " + path + " (" + r.status + ")");
+  const j = await r.json(); return { json: JSON.parse(b64u8(j.content)), sha: j.sha };
+}
+function bkPanels() { return BLOCKS.map(([id, name, kids]) => [id, name, kids, ($(id + "-panel") || {}).id || (id === "chart" ? "chartcol" : id + "-panel")])
+  .map(p => { const el = $(p[3]); const top = el && el.closest("#wrap > *"); return [p[0], p[1], p[2], top ? top.id : p[3]]; }); }
+function openBlocks() {
+  $("bkwrap").classList.remove("hidden"); document.body.style.overflow = "hidden";
+  if (bkEd) return;
+  bkEd = BlocksEditor($("bkroot"), {
+    panels: bkPanels(), lines: LINES,
+    load: async () => {
+      const [c, w] = await Promise.all([ghFile("config.json"), ghFile("watchlist.json").catch(() => ({ json: { tickers: [], futures: [] } }))]);
+      return { config: c.json, watchlist: w.json, note: getGh() ? "" : "Read-only until you add your GitHub key in ⚙ (Contents: Read and write)." };
+    },
+    save: async st => {
+      if (!getGh()) { openSettings(); throw new Error("add your GitHub key in ⚙ first"); }
+      const cur = await ghFile("config.json"), curW = await ghFile("watchlist.json").catch(() => null);
+      const body = JSON.stringify(st.config, null, 2) + "\n";
+      if (JSON.stringify(cur.json) !== JSON.stringify(st.config))
+        await gh("/contents/config.json", { method: "PUT", body: JSON.stringify({ message: "blocks: edited on the site", content: u8b64(body), sha: cur.sha, branch: "main" }) });
+      if (curW && JSON.stringify(curW.json) !== JSON.stringify(st.watchlist)) {
+        await gh("/contents/watchlist.json", { method: "PUT", body: JSON.stringify({ message: "blocks: tickers edited on the site",
+          content: u8b64(JSON.stringify({ tickers: st.watchlist.tickers, futures: st.watchlist.futures }, null, 1) + "\n"), sha: curW.sha, branch: "main" }) });
+        setPool(st.watchlist);
+      }
+      applyLayout(st.config.layout, true);
+      runNow(true);
+      return "Saved to GitHub. The live tracker picks it up in about 5 minutes; changed strategies are re-backtested automatically (about 3 minutes).";
+    }
+  });
+}
+$("blocksbtn").onclick = openBlocks;
+$("bkclose").onclick = () => { if (bkEd && bkEd.isDirty() && !$("bkclose").dataset.sure) { $("bkclose").dataset.sure = 1; toast("You have unsaved changes — click ✕ again to close anyway"); return; }
+  delete $("bkclose").dataset.sure; $("bkwrap").classList.add("hidden"); document.body.style.overflow = ""; };
+// layout saved on the Blocks page: applied once per new version (this browser's ✕ / ⚙ changes win until the next save)
+function applyLayout(L, force) {
+  if (!L || !L.version || (!force && L.version <= store.get("layoutVersion", 0))) return;
+  hidden = new Set(L.hidden || []); collapsed = new Set(L.collapsed || []); lineOff = new Set(L.lines_off || []);
+  store.set("lineOff", [...lineOff]); if (L.order && L.order.length) store.set(ORDER_KEY, L.order);
+  store.set("layoutVersion", L.version); saveView(); applyOrder(); drawAll();
+}
+getJSON("config.json").then(c => { if (c) applyLayout(c.layout); });
 
 // ===================================================================== new version check
 // GitHub Pages (and the browser) may keep the old page for ~10 minutes. The page asks for version.json (never cached)
