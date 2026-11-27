@@ -835,7 +835,7 @@ def strategy_signals(h, pcd, s, bars=None):
             if cands:
                 best = min(cands, key=lambda c: (c[0], sign * c[1]))   # stop first, then the nearest level
                 done = (best[1], best[2])
-        if done is None and r["kind"] == "r" and later and pd.notna(g):
+        if done is None and r["kind"] == "r" and later and rth_now and pd.notna(g):   # NY session only, like the backtest
             for x in exits:
                 xt = x.get("type")
                 bn = 0.0 if xt == "flip" else (float(x.get("bn", 0)) if xt == "gamma_level" else None)
