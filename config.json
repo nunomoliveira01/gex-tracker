@@ -137,36 +137,9 @@
       ],
       [
         "rule",
-        "Live position \u00b7 NQ",
+        "Live conditions \u00b7 walls",
         [],
         "layout"
-      ],
-      [
-        "my",
-        "My strategy \u00b7 rules & scorecard",
-        [
-          [
-            "my.rules",
-            "Rules"
-          ],
-          [
-            "my.trades",
-            "Live trades"
-          ],
-          [
-            "my.outlook",
-            "Future alpha"
-          ],
-          [
-            "my.score",
-            "Scorecard table"
-          ],
-          [
-            "my.days",
-            "Daily live record"
-          ]
-        ],
-        "my-panel"
       ],
       [
         "pw",
@@ -221,29 +194,6 @@
           ]
         ],
         "cw-panel"
-      ],
-      [
-        "nqpc",
-        "NQ SPY put/call add-on",
-        [
-          [
-            "nqpc.pos",
-            "Position in NQ"
-          ],
-          [
-            "nqpc.sig",
-            "SPY signals"
-          ],
-          [
-            "nqpc.live",
-            "Live record"
-          ],
-          [
-            "nqpc.bt",
-            "Backtest 2022\u201326"
-          ]
-        ],
-        "nqpc-panel"
       ],
       [
         "margin",

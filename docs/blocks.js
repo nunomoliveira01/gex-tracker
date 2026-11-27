@@ -181,7 +181,7 @@
     }
     function render() {
       if (!S) { root.innerHTML = `<div class="bk"><div class="bk-msg">${esc(note || "Loading the settings…")}</div></div>`; return; }
-      const tabs = [["strategies", "Strategies"], ["mine", "My strategy"], ["tickers", "Tickers & alerts"], ["layout", "Layout"]];
+      const tabs = [["strategies", "Strategies"], ["tickers", "Tickers & alerts"], ["layout", "Layout"]];
       const body = tab === "strategies" ? `<div class="bk-grid">${palette()}<div>${strats().map(stratHTML).join("") || '<div class="bk-say">No strategies yet: pick one under NEW STRATEGY.</div>'}</div></div>`
         : tab === "mine" ? mineHTML() : tab === "tickers" ? tickHTML() : layoutHTML();
       const y = window.scrollY, f = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.bind : null;
